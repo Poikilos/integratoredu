@@ -1,0 +1,27 @@
+{
+  "name": "integratoredu",
+  "version": "1.0.0",
+  "description": "Manages student information and learning community",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/expertmm/integratoredu.git"
+  },
+  "keywords": [
+    "learning",
+    "community",
+    "management",
+    "student",
+    "information",
+    "system"
+  ],
+  "author": "Jake Gustafson",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/expertmm/integratoredu/issues"
+  },
+  "homepage": "https://github.com/expertmm/integratoredu#readme"
+}

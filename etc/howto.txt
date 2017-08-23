@@ -1,0 +1,15 @@
+To use the API of the system written by Arneson
+ use the following in your route section of your page to protect a section only visible via sign-in:
+
+```
+// Simple route middleware to ensure user is authenticated.
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) { return next(); }
+  req.session.error = 'Please sign in!';
+  res.redirect('/signin');
+}
+```
+
+Works Cited:
+Erik Arneson. <https://www.ctl.io/developers/blog/post/build-user-authentication-with-node-js-express-passport-and-mongodb>. 26 Feb 2014. 8 Aug 2017.
+
