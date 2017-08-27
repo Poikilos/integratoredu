@@ -1,0 +1,4 @@
+devices.jpg:123freeavatars.com/new/19.jpg
+admin.jpg:http://123freeavatars.com/jpg/81-jpg-avatar.jpg
+kiosk.jpg:http://123freeavatars.com/jpg/108-jpg-avatar.jpg
+accounting.jpg:http://123freeavatars.com/gif/177-gif-avatar.gif

@@ -1,7 +1,7 @@
 {
   "name": "integratoredu",
   "version": "1.0.0",
-  "description": "Manages student information and learning community",
+  "description": "Tracker for learning community micro events",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

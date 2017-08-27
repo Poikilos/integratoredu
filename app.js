@@ -18,6 +18,7 @@ var config = require('./config.js'), //config file contains all tokens and other
 
 var app = express();
 
+
 //===============PASSPORT===============
 
 // Passport session setup.
@@ -106,10 +107,38 @@ app.use(function(req, res, next){
 
 // Configure express to use handlebars templates
 var hbs = exphbs.create({
+	 helpers: {
+        sayHello: function () { alert("Hello World") },
+        getStringifiedJson: function (value) {
+            return JSON.stringify(value);
+        },
+		strcomp: function(haystack, needle) {
+			return haystack==needle;
+		}
+    },
     defaultLayout: 'main', //we will be creating this layout shortly
 });
+//partialsDir can also be added as a param above for storing partial paths for portability (normally used to specify where handlebars files are stored)
 app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
+
+//Handlebars helpers added by Jake Gustafson
+//Drkawashima on https://stackoverflow.com/questions/33979051/typeerror-handlebars-registerhelper-is-not-a-function-nodejs
+//  says: "The object you get from require('express-handlebars') is not any 'plain old handlebars object'. It's a different object only used in express-handlebars
+//    What you do is pass your helpers (and other settings as well) to the .create() function of that object."
+//  so the following doesn't work:
+//via https://www.youtube.com/watch?v=h3sAJXpCOdo
+//NOTE: if helper is called via iterate, context and options are the params automatically created by handlebars, and contains fn, hash, and inverse (see https://www.youtube.com/watch?v=oezJZiFFPNU)
+//exphbs.registerHelper('strcomp', function(haystack, needle){
+//	return haystack==needle;
+//});
+
+//or like:
+//hbs = require("hbs");
+//hbs.registerHelper('plusone', (val,opts))=>{
+//	return val + 1;
+//});
+//use like: {{plusone @index}}
 
 //===============ROUTES===============
 
@@ -140,7 +169,7 @@ app.post('/login', passport.authenticate('local-signin', {
 //logs user out of site, deleting them from the session, and returns to homepage
 app.get('/logout', function(req, res){
   var name = req.user.username;
-  console.log("LOGGIN OUT " + req.user.username)
+  console.log("LOGGING OUT " + req.user.username)
   req.logout();
   res.redirect('/sign');
   req.session.notice = "You have successfully been logged out " + name + "!";

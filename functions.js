@@ -1,7 +1,7 @@
 var bcrypt = require('bcryptjs'),
     Q = require('q'),
     config = require('./config.js'); //config file contains all tokens and other private info
-
+var prefix = "/sign"
 // MongoDB connection information
 var mongodbUrl = 'mongodb://' + config.mongodbHost + ':27017/users';
 var MongoClient = require('mongodb').MongoClient
@@ -25,7 +25,7 @@ exports.localReg = function (username, password) {
           var user = {
             "username": username,
             "password": hash,
-            "avatar": "http://placepuppy.it/images/homepage/Beagle_puppy_6_weeks.JPG"
+            "avatar": "sign/users/profilepics/" + username + ".jpg"
           }
 
           console.log("CREATING USER:", username);
