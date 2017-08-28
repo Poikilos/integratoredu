@@ -105,16 +105,30 @@ app.use(function(req, res, next){
   next();
 });
 
+//NOTE: direct use of handlebars object is not possible after created since:
+//"It's important to note you're using express-handlebars, which is a plugin to allow using handlebars as a view engine in express. So the object you get from require('express-handlebars') won't be a Handlebars instance." - Tom Jardine-McNamara  on https://stackoverflow.com/questions/38488939/handlebars-registerhelper-error-registerhelper-is-not-a-function
+
 // Configure express to use handlebars templates
 var hbs = exphbs.create({
 	 helpers: {
-        sayHello: function () { alert("Hello World") },
+        sayHello: function () { alert("Hello") },
         getStringifiedJson: function (value) {
             return JSON.stringify(value);
         },
-		strcomp: function(haystack, needle) {
-			return haystack==needle;
-		}
+		if_eq: function(a, b, opts) {
+			//console.log("checking if_eq while user is " + a);
+			if (a == b) // Or === 
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		is_after_school: function(a, b, opts) {
+			if (a == b) // Or === 
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		
     },
     defaultLayout: 'main', //we will be creating this layout shortly
 });

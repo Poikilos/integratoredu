@@ -1,29 +1,63 @@
 <!-- views/home.handlebars -->
 {{#if user}}
-  <div class="jumbotron">
-    <h1>MongoDB User Authentication</h1>
-    <p>Below is your profile information!</p>
-  </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h3 class="panel-title">Profile Information</h3>
-    </div>
-    <div class="panel-body">
-      <p>Username: {{user.username}}</p>
-      <p>Avatar: <img src="{{user.avatar}}"/></p>
-    </div>
-  </div>
-
+	{{#if_eq user.username "care"}}
+	<div class="jumbotron">
+		<h1>Before/After School Care</h1>
+		{{#is_after_school}}
+		<p>Sign students out below</p>
+		{{else}}
+		<p>Sign students in below</p>
+		{{/is_after_school}}
+	</div>
+	<div class="panel panel-default">
+		<div class="panel-heading">
+		<h3 class="panel-title">Profile</h3>
+		</div>
+		<div class="panel-body">
+		<p>Username: {{user.username}}</p>
+		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
+		</div>
+	</div>
+	{{/if_eq}}
+	{{#if_eq user.username "admin"}}
+	<div class="jumbotron">
+		<h1>Administration</h1>
+		<p>(not yet implemented)</p>
+	</div>
+	<div class="panel panel-default">
+		<div class="panel-heading">
+		<h3 class="panel-title">Profile</h3>
+		</div>
+		<div class="panel-body">
+		<p>Username: {{user.username}}</p>
+		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
+		</div>
+	</div>
+	{{/if_eq}}
+	{{#if_eq user.username "accounting"}}
+	<div class="jumbotron">
+		<h1>Accounting</h1>
+		<p>Before/After School Care Data (not yet implemented)</p>
+	</div>
+	<div class="panel panel-default">
+		<div class="panel-heading">
+		<h3 class="panel-title">Profile</h3>
+		</div>
+		<div class="panel-body">
+		<p>Username: {{user.username}}</p>
+		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
+		</div>
+	</div>
+	{{/if_eq}}
 {{else}}
   <div class="jumbotron">
-    <h1>MongoDB User Authentication</h1>
-    <p>Sign in and view your profile!</p>
+    <h1>User Authentication</h1>
+    <p>Sign in as known user to view and add information.</p>
     <p>
-      <a href="/signin" class="btn btn-primary btn-lg" role="button">
+      <a href="/sign/signin" class="btn btn-primary btn-lg" role="button">
         <span class="glyphicon glyphicon-user"></span>
         Sign in!
       </a>
     </p>
   </div>
-
 {{/if}}

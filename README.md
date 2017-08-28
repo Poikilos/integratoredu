@@ -43,10 +43,11 @@ sudo service apache2 restart
 
 ```
 
-Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install]):
+Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5]):
 ```
 cd ~/Applications/integratoredu
 npm init
+#NOTE: --save should really be used for all of these, so they are automatically added in the dependencies section of package.json
 npm install express
 npm install morgan
 npm install body-parser
@@ -64,4 +65,6 @@ npm install cookie-parser
 npm install express-session
 #deps I added beyond the express mongodb local authentication tutorial:
 npm install express-helpers
+npm install moment
+#see also: npm install moment-timezone --save
 ```
