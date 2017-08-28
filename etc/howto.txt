@@ -10,7 +10,13 @@ function ensureAuthenticated(req, res, next) {
 }
 ```
 
-Works Cited:
+## Works Cited:
 Erik Arneson. <https://www.ctl.io/developers/blog/post/build-user-authentication-with-node-js-express-passport-and-mongodb>. 26 Feb 2014. 8 Aug 2017.
 
 The above only applies to the 2nd commit (next commit after initial commit).
+Also, sign in was changed to login everywhere to differentiate between that and signing people in and out of the building in real life.
+
+## General Node.js info:
+* Templates can have comments that will not appear in the output html:
+	```{{!--<strong>Hi,</strong>--}}```
+

@@ -2,12 +2,15 @@
 var express = require('express'),
     exphbs = require('express-handlebars'),
     logger = require('morgan'),
+    moment = require('moment'),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
     methodOverride = require('method-override'),
     session = require('express-session'),
     passport = require('passport'),
-    LocalStrategy = require('passport-local');
+    LocalStrategy = require('passport-local'),
+    yaml = require("node-yaml"),
+	fs = require('fs');
 //    TwitterStrategy = require('passport-twitter'),
 //    GoogleStrategy = require('passport-google'),
 //    FacebookStrategy = require('passport-facebook');
@@ -17,6 +20,9 @@ var config = require('./config.js'), //config file contains all tokens and other
     funct = require('./functions.js'); //funct file contains our helper functions for our Passport and database work
 
 var app = express();
+
+var data_dir_name = "data";
+var data_dir_path = data_dir_name;
 
 
 //===============PASSPORT===============
@@ -33,7 +39,7 @@ passport.deserializeUser(function(obj, done) {
 });
 
 // Use the LocalStrategy within Passport to login/"signin" users.
-passport.use('local-signin', new LocalStrategy(
+passport.use('local-login', new LocalStrategy(
   {passReqToCallback : true}, //allows us to pass back the request to the callback
   function(req, username, password, done) {
     funct.localAuth(username, password)
@@ -107,8 +113,11 @@ app.use(function(req, res, next){
 
 //NOTE: direct use of handlebars object is not possible after created since:
 //"It's important to note you're using express-handlebars, which is a plugin to allow using handlebars as a view engine in express. So the object you get from require('express-handlebars') won't be a Handlebars instance." - Tom Jardine-McNamara  on https://stackoverflow.com/questions/38488939/handlebars-registerhelper-error-registerhelper-is-not-a-function
+//Handlebars helpers added by Jake Gustafson
 
 // Configure express to use handlebars templates
+var startTime = moment('08:10a', "HH:MM");
+var endTime = moment('03:30p', "HH:MM");
 var hbs = exphbs.create({
 	 helpers: {
         sayHello: function () { alert("Hello") },
@@ -122,13 +131,20 @@ var hbs = exphbs.create({
 			else
 				return opts.inverse(this);
 		},
-		is_after_school: function(a, b, opts) {
-			if (a == b) // Or === 
+		is_after_school: function(opts) {
+			//if (Date.format("HH:MM:SS") > Date.parse("15:05:00"))
+			var currentTime = moment(); //moment('11:00p', "HH:mm a");
+			
+			//if (moment().format('HH:MM:SS') );
+			if (currentTime > endTime)
 			    return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		
+		show_time: function(opts) {
+			//return "Time of last change: " + moment().format("HH:MM");
+ 			return moment().format("h:mm a") + " (will be updated on refresh or enter)";
+		},
     },
     defaultLayout: 'main', //we will be creating this layout shortly
 });
@@ -136,7 +152,6 @@ var hbs = exphbs.create({
 app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
 
-//Handlebars helpers added by Jake Gustafson
 //Drkawashima on https://stackoverflow.com/questions/33979051/typeerror-handlebars-registerhelper-is-not-a-function-nodejs
 //  says: "The object you get from require('express-handlebars') is not any 'plain old handlebars object'. It's a different object only used in express-handlebars
 //    What you do is pass your helpers (and other settings as well) to the .create() function of that object."
@@ -147,7 +162,7 @@ app.set('view engine', 'handlebars');
 //	return haystack==needle;
 //});
 
-//or like:
+//otherwise could do:
 //hbs = require("hbs");
 //hbs.registerHelper('plusone', (val,opts))=>{
 //	return val + 1;
@@ -156,27 +171,81 @@ app.set('view engine', 'handlebars');
 
 //===============ROUTES===============
 
+
 //displays our homepage
 app.get('/', function(req, res){
   res.render('home', {user: req.user});
 });
 
 //displays our signup page
-app.get('/signin', function(req, res){
-  res.render('signin');
+app.get('/login', function(req, res){
+  res.render('login');
 });
 
 //sends the request through our local signup strategy, and if successful takes user to homepage, otherwise returns then to signin page
 app.post('/local-reg', passport.authenticate('local-signup', {
   successRedirect: '/sign',
-  failureRedirect: '/sign/signin'
+  failureRedirect: '/sign/login'
   })
 );
 
+function show_notice(msg) {
+	//NOTE: does nothing since no req
+	req.session.notice = msg;
+}
+
+app.post('/sign-student', function(req, res){
+	//req is request, res is response
+	//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
+	var time_string = moment().format("HH:MM");
+	var family_id = req.body.student_family_id.trim();
+	var first_name = req.body.student_first_name.trim();
+	var last_name = req.body.student_last_name.trim();
+	var grade = req.body.student_grade.trim();
+	if (first_name) {
+		if (last_name) {
+			//console.log(req.body.student_family_id);
+			var student = {first_name:first_name, last_name:last_name, family_id:family_id, grade:grade, time:time_string};
+			if (!fs.existsSync(data_dir_path))
+				fs.mkdirSync(data_dir_path);
+			var signs_dir_name = "extcare_events";
+			var signs_dir_path = data_dir_path + "/" + signs_dir_name;
+			if (!fs.existsSync(signs_dir_path))
+				fs.mkdirSync(signs_dir_path);
+			var y_dir_name = moment().format("YYYY");
+			var y_dir_path = signs_dir_path + "/" + y_dir_name;
+			if (!fs.existsSync(y_dir_path))
+				fs.mkdirSync(y_dir_path);
+			var m_dir_name = moment().format("MM");
+			var m_dir_path = y_dir_path + "/" + m_dir_name;
+			if (!fs.existsSync(m_dir_path))
+				fs.mkdirSync(m_dir_path);
+			var d_dir_name = moment().format("DD");
+			var d_dir_path = m_dir_path + "/" + d_dir_name;
+			if (!fs.existsSync(d_dir_path))
+				fs.mkdirSync(d_dir_path);
+			var dated_path = d_dir_path;
+			var out_name = moment().format("HHMMSS") + ".yml";
+			var out_path = dated_path + "/" + out_name;
+			//this callback doesn't work:
+			//yaml.write(out_path, student, "utf8", show_notice);
+			yaml.writeSync(out_path, student, "utf8");
+			req.session.notice = "Saved " + out_path + ".";
+		}
+		else {
+			req.session.error = "Missing last name";
+		}
+	}
+	else {
+		req.session.error = "Missing first name";
+	}
+	res.redirect('/sign');
+});
+
 //sends the request through our local login/signin strategy, and if successful takes user to homepage, otherwise returns then to signin page
-app.post('/login', passport.authenticate('local-signin', {
+app.post('/login', passport.authenticate('local-login', {
   successRedirect: '/sign',
-  failureRedirect: '/sign/signin'
+  failureRedirect: '/sign/login'
   })
 );
 

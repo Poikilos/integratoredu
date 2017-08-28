@@ -2,12 +2,35 @@
 {{#if user}}
 	{{#if_eq user.username "care"}}
 	<div class="jumbotron">
-		<h1>Before/After School Care</h1>
+		<h1>Extended Care</h1>
 		{{#is_after_school}}
 		<p>Sign students out below</p>
 		{{else}}
 		<p>Sign students in below</p>
 		{{/is_after_school}}
+		<br/>
+		{{show_time}}
+		<form id="sign-student" action="/sign/sign-student" method="post">
+			<div class="form-group">
+				<label>Family ID (if applicable):</label>
+				<input type="text" name="student_family_id"/>
+			</div>
+			<div class="form-group">
+				<label>Student First Name:</label>
+				<input type="text" name="student_first_name"/>
+			</div>
+			<div class="form-group">
+				<label>Student Last Name:</label>
+				<input type="text" name="student_last_name"/>
+			</div>
+			<div class="form-group">
+				<label>Grade:</label>
+				<input type="text" name="student_grade"/>
+			</div>
+			<div>
+				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+			</div>
+		</form>
 	</div>
 	<div class="panel panel-default">
 		<div class="panel-heading">
@@ -52,11 +75,11 @@
 {{else}}
   <div class="jumbotron">
     <h1>User Authentication</h1>
-    <p>Sign in as known user to view and add information.</p>
+    <p>Log in as known user to view and add information.</p>
     <p>
-      <a href="/sign/signin" class="btn btn-primary btn-lg" role="button">
+      <a href="/sign/login" class="btn btn-primary btn-lg" role="button">
         <span class="glyphicon glyphicon-user"></span>
-        Sign in!
+        Log In
       </a>
     </p>
   </div>

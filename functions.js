@@ -1,7 +1,6 @@
 var bcrypt = require('bcryptjs'),
     Q = require('q'),
     config = require('./config.js'); //config file contains all tokens and other private info
-var prefix = "/sign"
 // MongoDB connection information
 var mongodbUrl = 'mongodb://' + config.mongodbHost + ':27017/users';
 var MongoClient = require('mongodb').MongoClient

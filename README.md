@@ -6,6 +6,7 @@ http://github.com/expertmm/integratoredu
 * Clicking create account followed by "I have an account..." leaves both the New and login subpanels open (each is only closed by clicking again on the same button)
 * Don't know how to serve images (browser shows missing image symbol, and show image in new tab says "http://192.168.1.5/sign/users/profilepics/admin.jpg" where http://192.168.1.5/sign is a working reverse http proxy redirect that points to node running on 8080)
 * Exception on Logout if node instance has been restarted (probably no fix exists for this, but make sure user loses credentials when server restarts in case point of restarting was resolving security issues in code)
+* fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
 
 ## Planned Features
 * [Employee Absence] Implement employee day off request page and page UAC
@@ -14,7 +15,24 @@ http://github.com/expertmm/integratoredu
 * [Devices] Implement Devices page with signin and signout of devices
 * [Devices] Enter the following example devices: CamA, CamB, CamC, CamD, Chromebook1, Chromebook2, Chromebook3, Chromebook4, Chromebook5, Chromebook6, Chromebook7
 * [Devices] implement a way to delete recently used individual people and individual devices
-* [Devices] Implement import of EquipChan CSV into device
+* [Devices] Implement import of EquipChan log
+* [Extended Care] autocomplete family name and id (express-form? express-validator? --NOTE: express-form does validation too, via node-validator)
+
+## Core Features
+* Make program to log after school care hours (3:05 to signout time)
+* Maximum 5:30 but still charge after that, and log warning
+* Finger signin
+* Keep track of who picked up who when & where (archive after 1yr)
+* Sync with SmartTuition OR give total monthly (Current system is a physical log)
+* (optional) email hours at end of week (summary not bill): requires email address field in family table
+* CHILD table fields: family_id, first_name, last_name, grade
+* PARENT table fields: family_id, first_name, last_name, email
+
+## General Notes: SmartTuition:
+* replaces ACS invoice created manually (but ACS still used for other things)
+* does billing and handles all AR billing & collection
+* Extended Care data import requires Family ID, Student First Name, Student Last Name, Grade, Total
+
 
 ## Authors
 Jake Gustafson
@@ -43,28 +61,32 @@ sudo service apache2 restart
 
 ```
 
-Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5]):
+Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5 such as on Ubuntu Xenial]):
 ```
 cd ~/Applications/integratoredu
 npm init
 #NOTE: --save should really be used for all of these, so they are automatically added in the dependencies section of package.json
-npm install express
-npm install morgan
-npm install body-parser
-npm install errorhandler
-npm install method-override
+npm install express --save
+npm install morgan --save
+npm install body-parser --save
+npm install errorhandler --save
+npm install method-override --save
 #now install deps that weren't mentioned in tutorial:
-npm install bcryptjs
-npm install express-handlebars
-npm install passport
-npm install passport-mongodb
+npm install bcryptjs --save
+npm install express-handlebars --save
+npm install passport --save
+npm install passport-mongodb --save
 #passport-local allows using a local database instead of social network login
-npm install passport-local
-npm install q
-npm install cookie-parser
-npm install express-session
+npm install passport-local --save
+npm install q --save
+npm install cookie-parser --save
+npm install express-session --save
 #deps I added beyond the express mongodb local authentication tutorial:
-npm install express-helpers
-npm install moment
+npm install express-helpers --save
+npm install moment --save
+npm install fs --save
+npm install js-yaml --save
+#node-yaml is a wrapper for js-yaml and adds save feature:
+npm install node-yaml --save
 #see also: npm install moment-timezone --save
 ```
