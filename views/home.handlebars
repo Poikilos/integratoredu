@@ -13,19 +13,23 @@
 		<form id="sign-student" action="/sign/sign-student" method="post">
 			<div class="form-group">
 				<label>Family ID (if applicable):</label>
-				<input type="text" name="student_family_id"/>
+				<input type="text" name="student_family_id" value="{{prefill_family_id}}"/>
 			</div>
 			<div class="form-group">
 				<label>Student First Name:</label>
-				<input type="text" name="student_first_name"/>
+				<input type="text" name="student_first_name" value="{{prefill_first_name}}"/>
 			</div>
 			<div class="form-group">
 				<label>Student Last Name:</label>
-				<input type="text" name="student_last_name"/>
+				<input type="text" name="student_last_name" value="{{prefill_last_name}}"/>
 			</div>
 			<div class="form-group">
 				<label>Grade:</label>
-				<input type="text" name="student_grade"/>
+				<input type="text" name="student_grade_level" value="{{prefill_grade_level}}"/>
+			</div>
+			<div class="form-group">
+				<label>Picked up by:</label>
+				<input type="text" name="student_picked_up_by" value="{{prefill_picked_up_by}}"/>
 			</div>
 			<div>
 				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>

@@ -115,6 +115,9 @@ app.use(function(req, res, next){
 //"It's important to note you're using express-handlebars, which is a plugin to allow using handlebars as a view engine in express. So the object you get from require('express-handlebars') won't be a Handlebars instance." - Tom Jardine-McNamara  on https://stackoverflow.com/questions/38488939/handlebars-registerhelper-error-registerhelper-is-not-a-function
 //Handlebars helpers added by Jake Gustafson
 
+var prefill_enable = true;
+var prefill_data = {};
+
 // Configure express to use handlebars templates
 var startTime = moment('08:10a', "HH:MM");
 var endTime = moment('03:30p', "HH:MM");
@@ -144,6 +147,36 @@ var hbs = exphbs.create({
 		show_time: function(opts) {
 			//return "Time of last change: " + moment().format("HH:MM");
  			return moment().format("h:mm a") + " (will be updated on refresh or enter)";
+		},
+		prefill_first_name: function(opts) {
+			if (prefill_data.first_name)
+				return prefill_data.first_name
+			else
+				return "";
+		},
+		prefill_last_name: function(opts) {
+			if (prefill_data.last_name)
+				return prefill_data.last_name
+			else
+				return "";
+		},
+		prefill_picked_up_by: function(opts) {
+			if (prefill_data.picked_up_by)
+				return prefill_data.picked_up_by
+			else
+				return "";
+		},
+		prefill_grade_level: function(opts) {
+			if (prefill_data.grade_level)
+				return prefill_data.grade_level
+			else
+				return "";
+		},
+		prefill_family_id: function(opts) {
+			if (prefill_data.family_id)
+				return prefill_data.family_id
+			else
+				return "";
 		},
     },
     defaultLayout: 'main', //we will be creating this layout shortly
@@ -197,47 +230,66 @@ function show_notice(msg) {
 app.post('/sign-student', function(req, res){
 	//req is request, res is response
 	//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
-	var time_string = moment().format("HH:MM");
-	var family_id = req.body.student_family_id.trim();
-	var first_name = req.body.student_first_name.trim();
-	var last_name = req.body.student_last_name.trim();
-	var grade = req.body.student_grade.trim();
-	if (first_name) {
-		if (last_name) {
-			//console.log(req.body.student_family_id);
-			var student = {first_name:first_name, last_name:last_name, family_id:family_id, grade:grade, time:time_string};
-			if (!fs.existsSync(data_dir_path))
-				fs.mkdirSync(data_dir_path);
-			var signs_dir_name = "extcare_events";
-			var signs_dir_path = data_dir_path + "/" + signs_dir_name;
-			if (!fs.existsSync(signs_dir_path))
-				fs.mkdirSync(signs_dir_path);
-			var y_dir_name = moment().format("YYYY");
-			var y_dir_path = signs_dir_path + "/" + y_dir_name;
-			if (!fs.existsSync(y_dir_path))
-				fs.mkdirSync(y_dir_path);
-			var m_dir_name = moment().format("MM");
-			var m_dir_path = y_dir_path + "/" + m_dir_name;
-			if (!fs.existsSync(m_dir_path))
-				fs.mkdirSync(m_dir_path);
-			var d_dir_name = moment().format("DD");
-			var d_dir_path = m_dir_path + "/" + d_dir_name;
-			if (!fs.existsSync(d_dir_path))
-				fs.mkdirSync(d_dir_path);
-			var dated_path = d_dir_path;
-			var out_name = moment().format("HHMMSS") + ".yml";
-			var out_path = dated_path + "/" + out_name;
-			//this callback doesn't work:
-			//yaml.write(out_path, student, "utf8", show_notice);
-			yaml.writeSync(out_path, student, "utf8");
-			req.session.notice = "Saved " + out_path + ".";
+	prefill_data.time_string = moment().format("HH:MM");
+	prefill_data.family_id = req.body.student_family_id.trim();
+	prefill_data.first_name = req.body.student_first_name.trim();
+	prefill_data.last_name = req.body.student_last_name.trim();
+	prefill_data.grade_level = req.body.student_grade_level.trim();
+	prefill_data.picked_up_by = req.body.student_picked_up_by.trim();
+	
+	if (prefill_data.first_name) {
+		if (prefill_data.last_name) {
+			if (prefill_data.picked_up_by) {
+				if (prefill_data.grade_level) {
+					//console.log(req.body.student_family_id);
+					var student = {first_name:prefill_data.first_name, last_name:prefill_data.last_name, family_id:prefill_data.family_id, grade:prefill_data.grade_level, time:prefill_data.time_string, picked_up_by:prefill_data.picked_up_by};
+					if (!fs.existsSync(data_dir_path))
+						fs.mkdirSync(data_dir_path);
+					var signs_dir_name = "extcare_events";
+					var signs_dir_path = data_dir_path + "/" + signs_dir_name;
+					if (!fs.existsSync(signs_dir_path))
+						fs.mkdirSync(signs_dir_path);
+					var y_dir_name = moment().format("YYYY");
+					var y_dir_path = signs_dir_path + "/" + y_dir_name;
+					if (!fs.existsSync(y_dir_path))
+						fs.mkdirSync(y_dir_path);
+					var m_dir_name = moment().format("MM");
+					var m_dir_path = y_dir_path + "/" + m_dir_name;
+					if (!fs.existsSync(m_dir_path))
+						fs.mkdirSync(m_dir_path);
+					var d_dir_name = moment().format("DD");
+					var d_dir_path = m_dir_path + "/" + d_dir_name;
+					if (!fs.existsSync(d_dir_path))
+						fs.mkdirSync(d_dir_path);
+					var dated_path = d_dir_path;
+					var out_name = moment().format("HHMMSS") + ".yml";
+					var out_path = dated_path + "/" + out_name;
+					//this callback doesn't work:
+					//yaml.write(out_path, student, "utf8", show_notice);
+					yaml.writeSync(out_path, student, "utf8");
+					req.session.notice = "Saved " + out_path + ".";
+					prefill_enable = false;
+					delete prefill_data.time_string;
+					delete prefill_data.family_id;
+					delete prefill_data.first_name;
+					delete prefill_data.last_name;
+					delete prefill_data.grade_level;
+					delete prefill_data.picked_up_by;
+				}
+				else {
+					req.session.error = "Missing 'Grade'";
+				}
+			}
+			else {
+				req.session.error = "Missing 'picked up by'";
+			}
 		}
 		else {
-			req.session.error = "Missing last name";
+			req.session.error = "Missing 'student last name'";
 		}
 	}
 	else {
-		req.session.error = "Missing first name";
+		req.session.error = "Missing 'student first name'";
 	}
 	res.redirect('/sign');
 });
