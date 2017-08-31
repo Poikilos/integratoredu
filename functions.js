@@ -4,14 +4,12 @@ var bcrypt = require('bcryptjs'),
 // MongoDB connection information
 var mongodbUrl = 'mongodb://' + config.mongodbHost + ':27017/users';
 var MongoClient = require('mongodb').MongoClient
-
 //used in local-signup strategy
-exports.localReg = function (username, password) {
+exports.localReg = function (username, password) { //, pin
   var deferred = Q.defer();
 
   MongoClient.connect(mongodbUrl, function (err, db) {
     var collection = db.collection('localUsers');
-
     //check if username is already assigned in our database
     collection.findOne({'username' : username})
       .then(function (result) {
@@ -23,8 +21,8 @@ exports.localReg = function (username, password) {
           var hash = bcrypt.hashSync(password, 8);
           var user = {
             "username": username,
-            "password": hash,
-            "avatar": "sign/users/profilepics/" + username + ".jpg"
+            "password": hash
+            //"avatar": "sign/users/profilepics/" + username + ".jpg"
           }
 
           console.log("CREATING USER:", username);
@@ -78,3 +76,37 @@ exports.localAuth = function (username, password) {
 
   return deferred.promise;
 }
+
+
+
+
+
+
+
+////// GENERAL FUNCTIONS ///////
+
+
+
+
+
+
+	
+//Array.prototype.contains = function(obj) {
+//    var i = this.length;
+//    while (i--) {
+//        if (this[i] == obj) {
+//            return true;
+//        }
+//    }
+//    return false;
+//}
+//doesn't work:
+//Array.prototype.indexOf = function(obj) {
+//    var i = this.length;
+//    while (i--) {
+//        if (this[i] == obj) {
+//            return i;
+//        }
+//    }
+//    return -1;
+//}

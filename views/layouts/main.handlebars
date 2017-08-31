@@ -46,10 +46,10 @@
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                   <li>
-                    <a href="/sign/logout">Log Out</a>
+                    <a href="{{get_proxy_prefix_path}}/logout">Log Out</a>
                   </li>
               {{else}}
-                <a href="/sign/login">Log In</a>
+                <a href="{{get_proxy_prefix_path}}/login">Log In</a>
                 </li>
               {{/if}}
           </ul>
@@ -73,6 +73,8 @@
     {{{body}}}
 
     </div> <!-- /container -->
+    <br/>
+	<p>Powered by <a href="http://github.com/expertmm/integratoredu">IntegratorEdu</a></p>
 
     <!-- Bootstrap core JavaScript
     ================================================== -->

@@ -1,7 +1,13 @@
 <!-- views/home.handlebars -->
 {{#if user}}
-	{{#if_eq user.username "care"}}
 	<div class="jumbotron">
+	{{#groupContains "attendance" user.username}}
+	<h1>Attendance</h1>
+	If you are trying to sign students in or out, please login as <b>commute</b> user instead. Sorry for the inconvenience.
+	{{/groupContains}}
+	{{#groupContains "student-microevent" user.username}}
+	
+		{{#groupContains "care" user.username}}
 		<h1>Extended Care</h1>
 		{{#is_after_school}}
 		<p>Sign students out below</p>
@@ -9,33 +15,79 @@
 		<p>Sign students in below</p>
 		{{/is_after_school}}
 		<br/>
-		{{show_time}}
-		<form id="sign-student" action="/sign/sign-student" method="post">
+		<span style="color:dimgray">{{show_time}}</span>
+		<form id="student-microevent" action="{{get_proxy_prefix_path}}/student-microevent" method="post">
+			<input type="hidden" name="transaction_type" value="care"/>
 			<div class="form-group">
-				<label>Family ID (if applicable):</label>
-				<input type="text" name="student_family_id" value="{{prefill_family_id}}"/>
+				<label style="color:dimgray">Time (blank for auto, else include AM/PM):</label>
+				<input type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+			</div>
+			<div class="form-group">
+				<label style="color:dimgray">Family ID (if applicable):</label>
+				<input type="text" name="family_id" value="{{prefill_family_id}}"/>
 			</div>
 			<div class="form-group">
 				<label>Student First Name:</label>
-				<input type="text" name="student_first_name" value="{{prefill_first_name}}"/>
+				<input type="text" name="first_name" value="{{prefill_first_name}}"/>
 			</div>
 			<div class="form-group">
 				<label>Student Last Name:</label>
-				<input type="text" name="student_last_name" value="{{prefill_last_name}}"/>
+				<input type="text" name="last_name" value="{{prefill_last_name}}"/>
 			</div>
 			<div class="form-group">
 				<label>Grade:</label>
-				<input type="text" name="student_grade_level" value="{{prefill_grade_level}}"/>
+				<input type="text" name="grade_level" value="{{prefill_grade_level}}"/>
 			</div>
 			<div class="form-group">
-				<label>Picked up by:</label>
-				<input type="text" name="student_picked_up_by" value="{{prefill_picked_up_by}}"/>
+				<label>Pickup/Dropoff by:</label>
+				<input type="text" name="chaperone" value="{{prefill_chaperone}}"/>
 			</div>
 			<div>
 				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
 			</div>
 		</form>
-	</div>
+		{{/groupContains}}
+		{{#groupContains "commute" user.username}}
+		<h1>Student Commute</h1>
+		<p>Sign students in or out of school below</p>
+		<br/>
+		<span style="color:dimgray">{{show_time}}</span>
+		<form id="student-microevent" action="{{get_proxy_prefix_path}}/student-microevent" method="post">
+			<input type="hidden" name="transaction_type" value="commute"/>
+			<div class="form-group">
+				<label>Student First Name:</label>
+				<input type="text" name="first_name" value="{{prefill_first_name}}"/>
+			</div>
+			<div class="form-group">
+				<label>Student Last Name:</label>
+				<input type="text" name="last_name" value="{{prefill_last_name}}"/>
+			</div>
+			<div class="form-group">
+				<label>Grade:</label>
+				<input type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+			</div>
+			<div class="form-group">
+				<label>Pickup/Dropoff by:</label>
+				<input type="text" name="chaperone" value="{{prefill_chaperone}}"/>
+			</div>
+			<div class="form-group">
+				<label>Reason:</label>
+				<input type="text" name="reason" value="{{prefill_reason}}"/>
+			</div>
+			<div>
+				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+			</div>
+			<div class="form-group">
+				<label>Custom Time:</label>
+				<input type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+			</div>
+			<div class="form-group">
+				<label>override pin:</label>
+				<input type="password" name="pin" value=""/>
+			</div>
+		</form>
+		{{/groupContains}}
+	<br/>
 	<div class="panel panel-default">
 		<div class="panel-heading">
 		<h3 class="panel-title">Profile</h3>
@@ -45,12 +97,14 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>
 	</div>
-	{{/if_eq}}
-	{{#if_eq user.username "admin"}}
+	{{/groupContains}}{{!--end student-microevent--}}
+	</div><!--end jumbotron-->
+	{{#groupContains "admin" user.username}}
 	<div class="jumbotron">
 		<h1>Administration</h1>
 		<p>(not yet implemented)</p>
 	</div>
+	<br/>
 	<div class="panel panel-default">
 		<div class="panel-heading">
 		<h3 class="panel-title">Profile</h3>
@@ -60,12 +114,13 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>
 	</div>
-	{{/if_eq}}
-	{{#if_eq user.username "accounting"}}
+	{{/groupContains}}
+	{{#groupContains "accounting" user.username}}
 	<div class="jumbotron">
 		<h1>Accounting</h1>
 		<p>Before/After School Care Data (not yet implemented)</p>
 	</div>
+	<br/>
 	<div class="panel panel-default">
 		<div class="panel-heading">
 		<h3 class="panel-title">Profile</h3>
@@ -75,13 +130,13 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>
 	</div>
-	{{/if_eq}}
+	{{/groupContains}}
 {{else}}
   <div class="jumbotron">
     <h1>User Authentication</h1>
     <p>Log in as known user to view and add information.</p>
     <p>
-      <a href="/sign/login" class="btn btn-primary btn-lg" role="button">
+      <a href="{{get_proxy_prefix_path}}/login" class="btn btn-primary btn-lg" role="button">
         <span class="glyphicon glyphicon-user"></span>
         Log In
       </a>

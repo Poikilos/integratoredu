@@ -21,9 +21,43 @@ var config = require('./config.js'), //config file contains all tokens and other
 
 var app = express();
 
+var proxy_prefix_path = "/sign"; //NOTE: see also handlebars
+
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
 
+
+//function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
+//var contains = function(needle) {
+var contains = function(needle) {
+    // Per spec, the way to identify NaN is that it is not equal to itself
+    var findNaN = needle !== needle;
+    var indexOf;
+
+    if(!findNaN && typeof Array.prototype.indexOf === 'function') {
+        indexOf = Array.prototype.indexOf;
+    } else {
+        indexOf = function(needle) {
+            var i = -1, index = -1;
+
+            for(i = 0; i < this.length; i++) {
+                var item = this[i];
+
+                if((findNaN && item !== item) || item === needle) {
+                    index = i;
+                    break;
+                }
+            }
+
+            return index;
+        };
+    }
+
+    return indexOf.call(this, needle) > -1;
+};
+//used like:
+//var myArray = [0,1,2];
+//var result = contains.call(myArray, needle); // true
 
 //===============PASSPORT===============
 
@@ -66,14 +100,14 @@ passport.use('local-signup', new LocalStrategy(
   function(req, username, password, done) {
     funct.localReg(username, password)
     .then(function (user) {
-      if (user) {
-        console.log("REGISTERED: " + user.username);
-        req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
-        done(null, user);
-      }
       if (!user) {
         console.log("COULD NOT REGISTER");
         req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
+        done(null, user);
+      }
+      else {//if (user) {
+        console.log("REGISTERED: " + user.username);
+        req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
         done(null, user);
       }
     })
@@ -117,7 +151,14 @@ app.use(function(req, res, next){
 
 var prefill_enable = true;
 var prefill_data = {};
-
+var groups = {};
+//Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
+groups["student-microevent"] = ["care", "commute"];
+groups["care"] = ["care"];
+groups["commute"] = ["commute"];
+groups["accounting"] = ["accounting"];
+groups["admin"] = ["admin"];
+groups["attendance"] = ["attendance"];
 // Configure express to use handlebars templates
 var startTime = moment('08:10a', "HH:MM");
 var endTime = moment('03:30p', "HH:MM");
@@ -131,6 +172,12 @@ var hbs = exphbs.create({
 			//console.log("checking if_eq while user is " + a);
 			if (a == b) // Or === 
 			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		groupContains: function(haystack, needle, opts) {
+			if (contains.call(groups[haystack], needle))
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
@@ -148,6 +195,12 @@ var hbs = exphbs.create({
 			//return "Time of last change: " + moment().format("HH:MM");
  			return moment().format("h:mm a") + " (will be updated on refresh or enter)";
 		},
+		prefill_form_field: function(fieldname, opts) {
+			if (fieldname in prefill_data)
+				return fieldname["prefill_data"]
+			else
+				return "";
+		},
 		prefill_first_name: function(opts) {
 			if (prefill_data.first_name)
 				return prefill_data.first_name
@@ -160,9 +213,15 @@ var hbs = exphbs.create({
 			else
 				return "";
 		},
-		prefill_picked_up_by: function(opts) {
-			if (prefill_data.picked_up_by)
-				return prefill_data.picked_up_by
+		prefill_reason: function(opts) {
+			if (prefill_data.reason)
+				return prefill_data.reason
+			else
+				return "";
+		},
+		prefill_chaperone: function(opts) {
+			if (prefill_data.chaperone)
+				return prefill_data.chaperone
 			else
 				return "";
 		},
@@ -175,6 +234,18 @@ var hbs = exphbs.create({
 		prefill_family_id: function(opts) {
 			if (prefill_data.family_id)
 				return prefill_data.family_id
+			else
+				return "";
+		},
+		prefill_stated_time: function(opts) {
+			if (prefill_data.stated_time)
+				return prefill_data.stated_time
+			else
+				return "";
+		},
+		get_proxy_prefix_path: function(opts) {
+			if (proxy_prefix_path.trim())
+				return proxy_prefix_path.trim();
 			else
 				return "";
 		},
@@ -217,64 +288,137 @@ app.get('/login', function(req, res){
 
 //sends the request through our local signup strategy, and if successful takes user to homepage, otherwise returns then to signin page
 app.post('/local-reg', passport.authenticate('local-signup', {
-  successRedirect: '/sign',
-  failureRedirect: '/sign/login'
+  successRedirect: proxy_prefix_path,
+  failureRedirect: proxy_prefix_path  + '/login'
   })
 );
 
-function show_notice(msg) {
-	//NOTE: does nothing since no req
-	req.session.notice = msg;
+//function show_notice(msg) {
+	//NOTE: does nothing since don't have req
+//	req.session.notice = msg;
+//}
+
+function is_not_blank(str) {
+	return str && str.trim();
 }
 
-app.post('/sign-student', function(req, res){
+app.post('/student-microevent', function(req, res){
 	//req is request, res is response
 	//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
-	prefill_data.time_string = moment().format("HH:MM");
-	prefill_data.family_id = req.body.student_family_id.trim();
-	prefill_data.first_name = req.body.student_first_name.trim();
-	prefill_data.last_name = req.body.student_last_name.trim();
-	prefill_data.grade_level = req.body.student_grade_level.trim();
-	prefill_data.picked_up_by = req.body.student_picked_up_by.trim();
+	prefill_data.time = moment().format('HH:mm:ss')
+	prefill_data.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z')
+	if (is_not_blank(req.body.stated_time)) prefill_data.stated_time = req.body.stated_time.trim();
+	else {
+		delete prefill_data.stated_time;
+	}
+	//else prefill_data.stated_time = moment().format("HH:mm:SS");
+	if (("family_id" in req.body) ) prefill_data.family_id = req.body.family_id.trim();
+	if ("first_name" in req.body) prefill_data.first_name = req.body.first_name.trim();
+	if ("last_name" in req.body) prefill_data.last_name = req.body.last_name.trim();
+	if ("grade_level" in req.body) prefill_data.grade_level = req.body.grade_level.trim();
+	if ("chaperone" in req.body) prefill_data.chaperone = req.body.chaperone.trim();
+	if ("reason" in req.body) prefill_data.reason = req.body.reason.trim();
 	
 	if (prefill_data.first_name) {
 		if (prefill_data.last_name) {
-			if (prefill_data.picked_up_by) {
+			if (prefill_data.chaperone) {
 				if (prefill_data.grade_level) {
-					//console.log(req.body.student_family_id);
-					var student = {first_name:prefill_data.first_name, last_name:prefill_data.last_name, family_id:prefill_data.family_id, grade:prefill_data.grade_level, time:prefill_data.time_string, picked_up_by:prefill_data.picked_up_by};
-					if (!fs.existsSync(data_dir_path))
-						fs.mkdirSync(data_dir_path);
-					var signs_dir_name = "extcare_events";
-					var signs_dir_path = data_dir_path + "/" + signs_dir_name;
-					if (!fs.existsSync(signs_dir_path))
-						fs.mkdirSync(signs_dir_path);
-					var y_dir_name = moment().format("YYYY");
-					var y_dir_path = signs_dir_path + "/" + y_dir_name;
-					if (!fs.existsSync(y_dir_path))
-						fs.mkdirSync(y_dir_path);
-					var m_dir_name = moment().format("MM");
-					var m_dir_path = y_dir_path + "/" + m_dir_name;
-					if (!fs.existsSync(m_dir_path))
-						fs.mkdirSync(m_dir_path);
-					var d_dir_name = moment().format("DD");
-					var d_dir_path = m_dir_path + "/" + d_dir_name;
-					if (!fs.existsSync(d_dir_path))
-						fs.mkdirSync(d_dir_path);
-					var dated_path = d_dir_path;
-					var out_name = moment().format("HHMMSS") + ".yml";
-					var out_path = dated_path + "/" + out_name;
-					//this callback doesn't work:
-					//yaml.write(out_path, student, "utf8", show_notice);
-					yaml.writeSync(out_path, student, "utf8");
-					req.session.notice = "Saved " + out_path + ".";
-					prefill_enable = false;
-					delete prefill_data.time_string;
-					delete prefill_data.family_id;
-					delete prefill_data.first_name;
-					delete prefill_data.last_name;
-					delete prefill_data.grade_level;
-					delete prefill_data.picked_up_by;
+					//console.log(req.body.family_id);
+					var student = {};
+					student.first_name=prefill_data.first_name;
+					student.last_name=prefill_data.last_name;
+					student.chaperone=prefill_data.chaperone;
+					student.grade=prefill_data.grade_level;
+					if ("family_id" in prefill_data) student.family_id=prefill_data.family_id;
+					//var uac_error = null;
+					var custom_error = null;
+					if ("stated_time" in prefill_data) {
+						if (prefill_data.stated_time.toLowerCase().match("am")
+							|| prefill_data.stated_time.toLowerCase().match("pm") ) {
+							if ((req.body.transaction_type=="commute") && (req.body.pin!="7364")) {
+									custom_error="INCORRECT PIN: office must enter the correct override pin in order to enter a custom time instead of current time.";
+							}
+							else student.stated_time=prefill_data.stated_time;
+						}
+						else custom_error="MISSING: AM or PM is required for custom time";
+					}
+					if (!custom_error) {
+						student.ctime=prefill_data.ctime;
+						student.time=prefill_data.time;
+						//unique ones are below
+						if (!fs.existsSync(data_dir_path))
+							fs.mkdirSync(data_dir_path);
+						var signs_dir_name = null;
+						if (contains.call(groups[req.body.transaction_type],req.user.username)) {
+							if (req.body.transaction_type=="care") {
+								//if (contains.call(groups["care"],req.user.username)) {
+								signs_dir_name = req.body.transaction_type;
+								//}
+								//else {
+								//	uac_error="Your group is not authorized to make this change.";
+								//}
+							}
+							else if (req.body.transaction_type=="commute") {
+								//if (contains.call(groups["commute"],req.user.username)) {
+								//signs_dir_name = req.body.transaction_type;
+								//}
+								//else {
+								//	uac_error="Your group is not authorized to make this change.";
+								//}
+								if (req.body.reason) {
+									student.reason = req.body.reason;
+									signs_dir_name = req.body.transaction_type;
+								}
+								else {
+									custom_error = "MISSING: Reason is required.";
+								}
+							}
+							if (signs_dir_name) {
+								var signs_dir_path = data_dir_path + "/" + signs_dir_name;
+								if (!fs.existsSync(signs_dir_path))
+									fs.mkdirSync(signs_dir_path);
+								var y_dir_name = moment().format("YYYY");
+								var y_dir_path = signs_dir_path + "/" + y_dir_name;
+								if (!fs.existsSync(y_dir_path))
+									fs.mkdirSync(y_dir_path);
+								var m_dir_name = moment().format("MM");
+								var m_dir_path = y_dir_path + "/" + m_dir_name;
+								if (!fs.existsSync(m_dir_path))
+									fs.mkdirSync(m_dir_path);
+								var d_dir_name = moment().format("DD");
+								var d_dir_path = m_dir_path + "/" + d_dir_name;
+								if (!fs.existsSync(d_dir_path))
+									fs.mkdirSync(d_dir_path);
+								var dated_path = d_dir_path;
+								var out_name = moment().format("HHmmSS") + ".yml";
+								var out_path = dated_path + "/" + out_name;
+								//this callback doesn't work:
+								//yaml.write(out_path, student, "utf8", show_notice);
+								student.created_by = req.user.username;
+								yaml.writeSync(out_path, student, "utf8");
+								req.session.notice = "Saved " + out_path + ".";
+								prefill_enable = false;
+								delete prefill_data.time_string;
+								delete prefill_data.family_id;
+								delete prefill_data.first_name;
+								delete prefill_data.last_name;
+								delete prefill_data.grade_level;
+								delete prefill_data.chaperone;
+								delete prefill_data.reason;
+								delete prefill_data.time;
+								delete prefill_data.ctime;
+								delete prefill_data.stated_time;
+							}
+							else {
+								if (custom_error) req.session.error = custom_error;
+								else req.session.error = "Unknown transaction_type '" + req.body.transaction_type + "' could not be recorded.";
+							}
+						}
+						else {
+							req.session.error = "not authorized to modify data for '" + req.body.transaction_type + "'";
+						}
+					}
+					else req.session.error = custom_error;
 				}
 				else {
 					req.session.error = "Missing 'Grade'";
@@ -291,13 +435,13 @@ app.post('/sign-student', function(req, res){
 	else {
 		req.session.error = "Missing 'student first name'";
 	}
-	res.redirect('/sign');
+	res.redirect(proxy_prefix_path);
 });
 
 //sends the request through our local login/signin strategy, and if successful takes user to homepage, otherwise returns then to signin page
 app.post('/login', passport.authenticate('local-login', {
-  successRedirect: '/sign',
-  failureRedirect: '/sign/login'
+  successRedirect: proxy_prefix_path,
+  failureRedirect: proxy_prefix_path + '/login'
   })
 );
 
@@ -306,7 +450,7 @@ app.get('/logout', function(req, res){
   var name = req.user.username;
   console.log("LOGGING OUT " + req.user.username)
   req.logout();
-  res.redirect('/sign');
+  res.redirect(proxy_prefix_path);
   req.session.notice = "You have successfully been logged out " + name + "!";
 });
 

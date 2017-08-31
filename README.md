@@ -2,7 +2,17 @@
 Tracker for learning community micro events (changes or interactions that occur more frequently than once a day)
 http://github.com/expertmm/integratoredu
 
+
+## Changes
+* (2017-08-30) implemented separate form for Commute logging (student arriving late or departing early)
+* (2017-08-30) minute should be recorded correctly by using moment format string "HH:mm" (was all caps) --fixed sample data by changing everything at 3:* PM to 3:10 PM (15:10) -- see boom.py
+* (2017-08-30) removed "student_" prefix from form variable names
+* (2017-08-30) get_proxy_prefix_path helper should be prepended to action by handlebars to create correct form posting address
+* (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
+
 ## Known Issues
+* proxy_prefix should work if value is blank (already works for forms; may need path join function of some kind for cases where redirect is "" if that doens't work)
+* improve form repopulation such as with express-forms, or flashify as per Jason Gelinas at https://stackoverflow.com/questions/10706588/how-do-i-repopulate-form-fields-after-validation-errors-with-express-form
 * Clicking create account followed by "I have an account..." leaves both the New and login subpanels open (each is only closed by clicking again on the same button)
 * Don't know how to serve images (browser shows missing image symbol, and show image in new tab says "http://192.168.1.5/sign/users/profilepics/admin.jpg" where http://192.168.1.5/sign is a working reverse http proxy redirect that points to node running on 8080)
 * Exception on Logout if node instance has been restarted (probably no fix exists for this, but make sure user loses credentials when server restarts in case point of restarting was resolving security issues in code)

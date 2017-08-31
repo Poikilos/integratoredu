@@ -15,7 +15,7 @@
     <a data-toggle="collapse" href="#local-reg" class="btn btn-default btn-md" role="button">I need to make an account</a>
   </div>
 
-  <form id="local-login" class="collapse" action="/sign/login" method="post">
+  <form id="local-login" class="collapse" action="{{get_proxy_prefix_path}}/login" method="post">
     <div>
         <p></p>
         <label>Username:</label>
@@ -30,7 +30,7 @@
     </div>
   </form>
 
-  <form id="local-reg" class="collapse" action="/sign/local-reg" method="post">
+  <form id="local-reg" class="collapse" action="{{get_proxy_prefix_path}}/local-reg" method="post">
     <div>
         <p></p>
         <label>New Username:</label>
@@ -39,6 +39,10 @@
     <div>
         <label>New Password:</label>
         <input type="password" name="password"/>
+    </div>
+    <div>
+        <label>Administrative Pin (required for adding users):</label>
+        <input type="password" name="pin"/>
     </div>
     <div>
         <input type="submit" class="btn btn-primary btn-sm" value="Register"/>
