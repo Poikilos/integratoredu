@@ -21,13 +21,12 @@ var config = require('./config.js'), //config file contains all tokens and other
 
 var app = express();
 
-var proxy_prefix_then_slash = "/"; //NOTE: see also handlebars
-if (!proxy_prefix_then_slash) proxy_prefix_with_slash = "/";
+if (!config.proxy_prefix_then_slash) proxy_prefix_with_slash = "/";
 
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
 
-var prefill_enable = true;
+//var prefill_enable = true;
 var prefill_data = {};
 var groups = {};
 //Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
@@ -99,7 +98,7 @@ passport.use('local-login', new LocalStrategy(
     .then(function (user) {
       if (user) {
         console.log("LOGGED IN AS: " + user.username);
-        req.session.success = 'You are successfully logged in ' + user.username + '!';
+        //req.session.success = 'You are successfully logged in ' + user.username + '!';
         done(null, user);
       }
       if (!user) {
@@ -117,22 +116,44 @@ passport.use('local-login', new LocalStrategy(
 passport.use('local-signup', new LocalStrategy(
   {passReqToCallback : true}, //allows us to pass back the request to the callback
   function(req, username, password, done) {
-    funct.localReg(username, password)
-    .then(function (user) {
-      if (!user) {
-        console.log("COULD NOT REGISTER");
-        req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
-        done(null, user);
-      }
-      else {//if (user) {
-        console.log("REGISTERED: " + user.username);
-        req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
-        done(null, user);
-      }
-    })
-    .fail(function (err){
-      console.log(err.body);
-    });
+    if (password) {
+        if (username) {
+            if ( req.body.pin && (req.body.pin==config.it_pin)) {
+                funct.localReg(username, password)
+                .then(function (user) {
+                    if (!user) {
+                    console.log("COULD NOT REGISTER");
+                    req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
+                    done(null, user);
+                    }
+                    else {//if (user) {
+                    console.log("REGISTERED: " + user.username);
+                    req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
+                    done(null, user);
+                    }
+                })
+                .fail(function (err){
+                    console.log("FAILED during register");
+                    console.log(err.body);
+                    req.session.error = err.body;
+                    done(null, null);
+                });
+            
+            }
+            else {
+                req.session.error = "INCORRECT PIN: Special pin required for adding users. Please contact IT Department.";
+                done(null, null);
+            }
+        }
+        else {
+            req.session.error = "MISSING: username";
+            done(null, null);
+        }
+    }
+    else {
+        req.session.error = "MISSING: password";
+        done(null, null);
+    }
   }
 ));
 
@@ -169,8 +190,8 @@ app.use(function(req, res, next){
 //Handlebars helpers added by Jake Gustafson
 
 // Configure express to use handlebars templates
-var startTime = moment('08:10a', "HH:MM");
-var endTime = moment('03:30p', "HH:MM");
+var startTime = moment('08:10', "HH:mm").format("HH:mm");
+var endTime = moment('15:30', "HH:mm").format("HH:mm");
 var hbs = exphbs.create({
 	 helpers: {
         sayHello: function () { alert("Hello") },
@@ -191,18 +212,23 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 		},
 		is_after_school: function(opts) {
-			//if (Date.format("HH:MM:SS") > Date.parse("15:05:00"))
-			var currentTime = moment(); //moment('11:00p', "HH:mm a");
+			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+			var currentTime = moment().format("HH:mm"); //moment('11:00p', "HH:mm a");
 			
-			//if (moment().format('HH:MM:SS') );
-			if (currentTime > endTime)
+			//if (moment().format('HH:mm:ss') );
+			if (currentTime > endTime) {
+                console.log(currentTime + " > " + endTime);
 			    return opts.fn(this);
-			else
+            }
+			else {
+                console.log(currentTime + " <= " + endTime);
 				return opts.inverse(this);
+            }
 		},
 		show_time: function(opts) {
-			//return "Time of last change: " + moment().format("HH:MM");
- 			return moment().format("h:mm a") + " (will be updated on refresh or enter)";
+			//return "Time of last change: " + moment().format("HH:mm");
+ 			//return moment().format("h:mm a") + " (will be updated on refresh or enter)";
+            return "";
 		},
 		prefill_form_field: function(fieldname, opts) {
 			if (fieldname in prefill_data)
@@ -259,8 +285,8 @@ var hbs = exphbs.create({
 				return "";
 		},
 		get_proxy_prefix_then_slash: function(opts) {
-			if (proxy_prefix_then_slash.trim())
-				return proxy_prefix_then_slash.trim();
+			if (config.proxy_prefix_then_slash.trim())
+				return config.proxy_prefix_then_slash.trim();
 			else
 				return "/";
 		},
@@ -303,8 +329,8 @@ app.get('/login', function(req, res){
 
 //sends the request through our local signup strategy, and if successful takes user to homepage, otherwise returns then to signin page
 app.post('/local-reg', passport.authenticate('local-signup', {
-  successRedirect: proxy_prefix_then_slash,
-  failureRedirect: proxy_prefix_then_slash  + 'login'
+  successRedirect: config.proxy_prefix_then_slash,
+  failureRedirect: config.proxy_prefix_then_slash  + 'login'
   })
 );
 
@@ -320,7 +346,7 @@ function is_not_blank(str) {
 app.post('/student-microevent', function(req, res){
 	//req is request, res is response
     if (("user" in req) && ("username" in req.user) ) {
-    
+        console.log("* action by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
         prefill_data.time = moment().format('HH:mm:ss')
         prefill_data.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z')
@@ -328,7 +354,7 @@ app.post('/student-microevent', function(req, res){
         else {
             delete prefill_data.stated_time;
         }
-        //else prefill_data.stated_time = moment().format("HH:mm:SS");
+        //else prefill_data.stated_time = moment().format("HH:mm:ss");
         
         //if (("family_id" in req.body) ) prefill_data.family_id = req.body.family_id.trim();
         //if ("first_name" in req.body) prefill_data.first_name = req.body.first_name.trim();
@@ -337,6 +363,8 @@ app.post('/student-microevent', function(req, res){
         //if ("chaperone" in req.body) prefill_data.chaperone = req.body.chaperone.trim();
         //if ("reason" in req.body) prefill_data.reason = req.body.reason.trim();
         var record = {};
+        var custom_error = null;
+        var missing_fields = "";
         if (req.body.transaction_type in group_form_fields) {
             for (var index in group_form_fields[req.body.transaction_type]) {
                 if (group_form_fields[req.body.transaction_type].hasOwnProperty(index)) {
@@ -344,17 +372,19 @@ app.post('/student-microevent', function(req, res){
                     if (key in req.body) {
                         if (req.body[key]) {
                             prefill_data[key] = req.body[key];
-                            console.log(key + " is filled in");
+                            record[key] = req.body[key];
+                            //console.log(key + " is filled in");
                         }
-                        console.log(key + " is in body");
+                        //console.log(key + " is in body");
                     }
-                    else
-                        console.log(key + " is in body");
+                    //else
+                    //    console.log(key + " is in body");
                 }
             }
         }
-        var custom_error = null;
-        var missing_fields = "";
+        else {
+            custom_error = "unknown transaction_type '" + req.body.transaction_type + "'";
+        }
         if (req.body.transaction_type in group_required_fields) {
             for (var index in group_required_fields[req.body.transaction_type]) {
                 if (group_required_fields[req.body.transaction_type].hasOwnProperty(index)) {
@@ -363,11 +393,15 @@ app.post('/student-microevent', function(req, res){
                         custom_error = "MISSING: ";
                         missing_fields = missing_fields + " " + key;
                     }
-                    else {
-                        console.log(key + " is in prefill_data");
-                    }
+                    //else {
+                     //   console.log(key + " is in prefill_data");
+                    //}
                 }
             }
+        }
+        else {
+            console.log("WARNING: no required fields are specified for transaction_type '" + req.body.transaction_type + "'.");
+            custom_error = "unknown transaction_type '" + req.body.transaction_type + "'";
         }
         
         //console.log(req.body.family_id);
@@ -382,10 +416,11 @@ app.post('/student-microevent', function(req, res){
             if ("stated_time" in prefill_data) {
                 if (prefill_data.stated_time.toLowerCase().match("am")
                     || prefill_data.stated_time.toLowerCase().match("pm") ) {
-                    if ((req.body.transaction_type=="commute") && (req.body.pin!="7364")) {
-                            custom_error="INCORRECT PIN: office must enter the correct override pin in order to enter a custom time instead of current time.";
+                    if (  (req.body.transaction_type=="commute")  &&  ( (!req.body.pin) || (req.body.pin!=config.office_pin))  ) {
+                        custom_error="INCORRECT PIN: To use custom time, office must enter the correct pin (otherwise leave time blank for current).";
+                        if (!config.office_pin) custom_error = custom_error + "; website administrator has not yet set office_pin in config.json";
+                        custom_error = custom_error + ".";
                     }
-                    else record.stated_time=prefill_data.stated_time;
                 }
                 else {
                     custom_error="MISSING: AM or PM is required for custom time";
@@ -401,88 +436,76 @@ app.post('/student-microevent', function(req, res){
                     fs.mkdirSync(data_dir_path);
                 var signs_dir_name = null;
                 if (contains.call(groups[req.body.transaction_type],req.user.username)) {
-                    if (req.body.transaction_type=="care") {
-                        //if (contains.call(groups["care"],req.user.username)) {
-                        signs_dir_name = req.body.transaction_type;
-                        //}
-                        //else {
-                        //	uac_error="Your group is not authorized to make this change.";
-                        //}
-                    }
-                    else if (req.body.transaction_type=="commute") {
-                        //if (contains.call(groups["commute"],req.user.username)) {
-                        //signs_dir_name = req.body.transaction_type;
-                        //}
-                        //else {
-                        //	uac_error="Your group is not authorized to make this change.";
-                        //}
-                        if (req.body.reason) {
-                            record.reason = req.body.reason;
-                            signs_dir_name = req.body.transaction_type;
-                        }
-                        else {
-                            custom_error = "MISSING: Reason is required.";
-                        }
-                    }
-                    if (signs_dir_name) {
-                        var signs_dir_path = data_dir_path + "/" + signs_dir_name;
-                        if (!fs.existsSync(signs_dir_path))
-                            fs.mkdirSync(signs_dir_path);
-                        var y_dir_name = moment().format("YYYY");
-                        var y_dir_path = signs_dir_path + "/" + y_dir_name;
-                        if (!fs.existsSync(y_dir_path))
-                            fs.mkdirSync(y_dir_path);
-                        var m_dir_name = moment().format("MM");
-                        var m_dir_path = y_dir_path + "/" + m_dir_name;
-                        if (!fs.existsSync(m_dir_path))
-                            fs.mkdirSync(m_dir_path);
-                        var d_dir_name = moment().format("DD");
-                        var d_dir_path = m_dir_path + "/" + d_dir_name;
-                        if (!fs.existsSync(d_dir_path))
-                            fs.mkdirSync(d_dir_path);
-                        var dated_path = d_dir_path;
-                        var out_time_string = moment().format("HHmmSS");
-                        var out_name = out_time_string + ".yml";
-                        var out_path = dated_path + "/" + out_name;
-                        //this callback doesn't work:
-                        //yaml.write(out_path, record, "utf8", show_notice);
-                        record.created_by = req.user.username;
-                        yaml.writeSync(out_path, record, "utf8");
-                        req.session.notice = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6); //+"<!--" + out_path + "-->."
-                        prefill_enable = false;
-                        delete prefill_data.time_string;
-                        delete prefill_data.family_id;
-                        delete prefill_data.first_name;
-                        delete prefill_data.last_name;
-                        delete prefill_data.grade_level;
-                        delete prefill_data.chaperone;
-                        delete prefill_data.reason;
-                        delete prefill_data.time;
-                        delete prefill_data.ctime;
-                        delete prefill_data.stated_time;
-                    }
-                    else {
-                        if (custom_error) req.session.error = custom_error;
-                        else req.session.error = "Unknown transaction_type '" + req.body.transaction_type + "' could not be recorded.";
-                    }
+                    signs_dir_name = req.body.transaction_type;
+                    var signs_dir_path = data_dir_path + "/" + signs_dir_name;
+                    if (!fs.existsSync(signs_dir_path))
+                        fs.mkdirSync(signs_dir_path);
+                    var y_dir_name = moment().format("YYYY");
+                    var y_dir_path = signs_dir_path + "/" + y_dir_name;
+                    if (!fs.existsSync(y_dir_path))
+                        fs.mkdirSync(y_dir_path);
+                    var m_dir_name = moment().format("MM");
+                    var m_dir_path = y_dir_path + "/" + m_dir_name;
+                    if (!fs.existsSync(m_dir_path))
+                        fs.mkdirSync(m_dir_path);
+                    var d_dir_name = moment().format("DD");
+                    var d_dir_path = m_dir_path + "/" + d_dir_name;
+                    if (!fs.existsSync(d_dir_path))
+                        fs.mkdirSync(d_dir_path);
+                    var dated_path = d_dir_path;
+                    var out_time_string = moment().format("HHmmss");
+                    var out_name = out_time_string + ".yml";
+                    var out_path = dated_path + "/" + out_name;
+                    //this callback doesn't work:
+                    //yaml.write(out_path, record, "utf8", show_notice);
+                    record.created_by = req.user.username;
+                    yaml.writeSync(out_path, record, "utf8");
+                    var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
+                    if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
+                    req.session.notice = msg; //+"<!--" + out_path + "-->.";
+                    //prefill_enable = false;
+                    
+                    //delete prefill_data.time;
+                    //delete prefill_data.family_id;
+                    //delete prefill_data.first_name;
+                    //delete prefill_data.last_name;
+                    //delete prefill_data.grade_level;
+                    //delete prefill_data.chaperone;
+                    //delete prefill_data.reason;
+                    //delete prefill_data.time;
+                    //delete prefill_data.ctime;
+                    //delete prefill_data.stated_time;
+                    for (var member in prefill_data) delete prefill_data[member];
                 }
                 else {
                     req.session.error = "not authorized to modify data for '" + req.body.transaction_type + "'";
+                    delete prefill_data.pin;
+                    delete prefill_data.heading;
                 }
             }
-            else req.session.error = custom_error;
+            else {
+                req.session.error = custom_error;
+                delete prefill_data.pin;
+                delete prefill_data.heading;
+            }
         }
-        else req.session.error = custom_error + missing_fields;
+        else {
+            delete prefill_data.pin;
+            delete prefill_data.heading;
+            req.session.error = custom_error + missing_fields;
+        }
     }
-    else req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
-         
-	res.redirect(proxy_prefix_then_slash);
+    else {
+        for (var member in prefill_data) delete prefill_data[member];
+        req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
+    }
+	res.redirect(config.proxy_prefix_then_slash);
 });
 
 //sends the request through our local login/signin strategy, and if successful takes user to homepage, otherwise returns then to signin page
 app.post('/login', passport.authenticate('local-login', {
-  successRedirect: proxy_prefix_then_slash,
-  failureRedirect: proxy_prefix_then_slash + 'login'
+  successRedirect: config.proxy_prefix_then_slash,
+  failureRedirect: config.proxy_prefix_then_slash + 'login'
   })
 );
 
@@ -491,7 +514,7 @@ app.get('/logout', function(req, res){
   var name = req.user.username;
   console.log("LOGGING OUT " + req.user.username)
   req.logout();
-  res.redirect(proxy_prefix_then_slash);
+  res.redirect(config.proxy_prefix_then_slash);
   req.session.notice = "You have successfully been logged out " + name + "!";
 });
 

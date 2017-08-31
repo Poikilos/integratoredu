@@ -1,51 +1,66 @@
 <!-- views/login.handlebars -->
-<div class="jumbotron">
-  <h1>IntegratorEdu Login</h1>
-  <p>You must log in as care user before signing student(s) in or out.</p>
-  <p>
-{{!--    <a data-toggle="collapse" href="#local" class="btn btn-warning btn-lg" role="button"><span class="glyphicon glyphicon-user"></span> Log in</a>
+<div >
+  {{!--<h1>IntegratorEdu Login</h1>--}}
+  {{!--<p>You must log in as care user before signing student(s) in or out.</p>--}}
+  {{!--<p>
+    <a data-toggle="collapse" href="#local" class="btn btn-warning btn-lg" role="button"><span class="glyphicon glyphicon-user"></span> Log in</a>
     <a href="/sign/auth/twitter" class="btn btn-info btn-lg" role="button"><span class="glyphicon glyphicon-user"></span> Log in with Twitter</a>
     <a href="/sign/auth/google" class="btn btn-danger btn-lg" role="button"><span class="glyphicon glyphicon-user"></span> Log in with Google</a>
     <a href="/sign/auth/facebook" class="btn btn-primary btn-lg" role="button"><span class="glyphicon glyphicon-user"></span> Log in with Facebook</a>
---}}
-  </p>
+  </p>--}}
 
+
+  <div>
+    <form class="form-horizontal" id="local-login" action="{{get_proxy_prefix_then_slash}}login" method="post">
+        <div class="form-group">
+            <label class="control-label col-sm-2">Username:</label>
+            <div class="col-sm-10">
+            <input class="form-control" type="text" name="username"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-sm-2">Password:</label>
+            <div class="col-sm-10">
+            <input class="form-control" type="password" name="password"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-10" style="text-align:center">
+            <input type="submit" class="btn btn-primary" value="Log In"/>
+            </div>
+        </div>
+    </form>
+  </div>
+    
   <div id="local">
-    <a data-toggle="collapse" href="#local-login" class="btn btn-default btn-md" role="button">I already have an account</a>
+    {{!--<a data-toggle="collapse" href="#local-login" class="btn btn-default btn-md" role="button">I already have an account</a>--}}
     <a data-toggle="collapse" href="#local-reg" class="btn btn-default btn-md" role="button">I need to make an account</a>
   </div>
-
-  <form id="local-login" class="collapse" action="{{get_proxy_prefix_path}}/login" method="post">
-    <div>
-        <p></p>
-        <label>Username:</label>
-        <input type="text" name="username"/>
-    </div>
-    <div>
-        <label>Password:</label>
-        <input type="password" name="password"/>
-    </div>
-    <div>
-        <input type="submit" class="btn btn-primary btn-sm" value="Log In"/>
-    </div>
-  </form>
-
-  <form id="local-reg" class="collapse" action="{{get_proxy_prefix_path}}/local-reg" method="post">
-    <div>
-        <p></p>
-        <label>New Username:</label>
-        <input type="text" name="username"/>
-    </div>
-    <div>
-        <label>New Password:</label>
-        <input type="password" name="password"/>
-    </div>
-    <div>
-        <label>Administrative Pin (required for adding users):</label>
-        <input type="password" name="pin"/>
-    </div>
-    <div>
-        <input type="submit" class="btn btn-primary btn-sm" value="Register"/>
-    </div>
-  </form>
+  <div>
+    <form id="local-reg" class="form-horizontal collapse" action="{{get_proxy_prefix_then_slash}}local-reg" method="post">
+        <div class="form-group">
+            <label class="control-label col-sm-2">New Username:</label>
+            <div class="col-sm-10">
+            <input class="form-control" type="text" name="username"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-sm-2">New Password:</label>
+            <div class="col-sm-10">
+            <input class="form-control" type="password" name="password"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-sm-2">Administrative Pin:</label>
+            <div class="col-sm-10">
+            <input class="form-control" type="password" name="pin"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-10" style="text-align:center">
+            <input type="submit" class="btn btn-primary" value="Register"/>
+            </div>
+        </div>
+    </form>
+  </div>
 </div>

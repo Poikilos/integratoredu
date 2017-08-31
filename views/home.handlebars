@@ -1,83 +1,108 @@
 <!-- views/home.handlebars -->
 {{#if user}}
-	<div class="jumbotron">
+	<div class="container-fluid">
 	{{#groupContains "attendance" user.username}}
 	<h1>Attendance</h1>
 	If you are trying to sign students in or out, please login as <b>commute</b> user instead. Sorry for the inconvenience.
 	{{/groupContains}}
 	{{#groupContains "student-microevent" user.username}}
-	
 		{{#groupContains "care" user.username}}
-		<h1>Extended Care</h1>
-		{{#is_after_school}}
-		<p>Sign students out below</p>
-		{{else}}
-		<p>Sign students in below</p>
-		{{/is_after_school}}
-		<br/>
-		<form id="student-microevent" action="{{get_proxy_prefix_path}}student-microevent" method="post">
+		<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
 			<input type="hidden" name="transaction_type" value="care"/>
-			<div class="form-group_notsobig">
-				<label style="color:dimgray">Family ID (if applicable):</label>
-				<input type="text" name="family_id" value="{{prefill_family_id}}"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Student First Name:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="first_name" value="{{prefill_first_name}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label>Student First Name:</label>
-				<input type="text" name="first_name" value="{{prefill_first_name}}"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Student Last Name:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="last_name" value="{{prefill_last_name}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label>Student Last Name:</label>
-				<input type="text" name="last_name" value="{{prefill_last_name}}"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Grade:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label>Grade:</label>
-				<input type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Pickup/Dropoff by:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="chaperone" value="{{prefill_chaperone}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label>Pickup/Dropoff by:</label>
-				<input type="text" name="chaperone" value="{{prefill_chaperone}}"/>
+
+			<div class="form-group">
+				<label class="control-label col-sm-2" style="color:darkgray">Time (blank for auto, else include AM/PM):</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+                </div>
 			</div>
-			<div>
-				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" style="color:darkgray">Family ID (if applicable):</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="family_id" value="{{prefill_family_id}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label style="color:dimgray">Time (blank for auto, else include AM/PM):</label>
-				<input type="text" name="stated_time" value="{{prefill_stated_time}}"/>
-			</div>
-            <span style="color:dimgray">{{show_time}}</span>
+			<div class="form-group">
+				<div class="col-sm-10" style="text-align:center">
+                    <input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+                </div>
+			</div>			
+		<div class="form-group">
+		{{#is_after_school}}
+		<div class="col-sm-10" style="text-align:center" style="font-style:italic;">Sign student out</div>
+		{{else}}
+		<div class="col-sm-10" style="text-align:center" style="font-style:italic;">Sign student in</div>
+		{{/is_after_school}}
+		</div>
+            <span style="color:darkgray">{{show_time}}</span>
 		</form>
+		
 		{{/groupContains}}
 		{{#groupContains "commute" user.username}}
-		<h1>Student Commute</h1>
-		<p>Sign students in or out of school below</p>
-		<br/>
-		<span style="color:dimgray">{{show_time}}</span>
-		<form id="student-microevent" action="{{get_proxy_prefix_path}}student-microevent" method="post">
+		<!--<h1>Student Commute</h1>-->
+		<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
 			<input type="hidden" name="transaction_type" value="commute"/>
-			<div class="form-group_notsobig">
-				<label>Student Name:</label>
-				<input type="text" name="name" value="{{prefill_name}}"/>
-				<label> &nbsp;Grade:</label>
-				<input type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Student Name:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="name" value="{{prefill_name}}"/>
+                </div>
+				<label class="control-label col-sm-2" > &nbsp;Grade:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-                <input type="radio" name="heading" value="in"> arriving<br>
-                <input type="radio" name="heading" value="out"> departing<br>
+			<div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-primary"><input type="radio" name="heading" value="in"/>arriving</label>
+                    <label class="btn btn-primary"><input type="radio" name="heading" value="out"/>departing</label>
             </div>
-			<div class="form-group_notsobig">
-				<label>Reason:</label>
-				<input type="text" name="reason" value="{{prefill_reason}}"/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Reason:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="reason" value="{{prefill_reason}}"/>
+                </div>
 			</div>
-			<div>
-				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+			<div class="form-group">
+                <div class="col-sm-10">
+                        <input class="form-control" type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label>Custom Time:</label>
-				<input type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+		<div style="text-align:center; color:darkgray">{{show_time}}</div>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >Custom Time:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+                </div>
 			</div>
-			<div class="form-group_notsobig">
-				<label>override pin:</label>
-				<input type="password" name="pin" value=""/>
+			<div class="form-group">
+				<label class="control-label col-sm-2" >override pin:</label>
+				<div class="col-sm-10">
+                    <input class="form-control" type="password" name="pin" value=""/>
+                </div>
 			</div>
 		</form>
 		{{/groupContains}}
@@ -129,10 +154,10 @@
 	{{/groupContains}}
 {{else}}
   <div class="jumbotron">
-    <h1>User Authentication</h1>
+    <h1>IntegratorEdu</h1>
     <p>Log in as known user to view and add information.</p>
     <p>
-      <a href="{{get_proxy_prefix_path}}login" class="btn btn-primary btn-lg" role="button">
+      <a href="{{get_proxy_prefix_then_slash}}login" class="btn btn-primary btn-lg" role="button">
         <span class="glyphicon glyphicon-user"></span>
         Log In
       </a>
