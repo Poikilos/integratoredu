@@ -54,18 +54,25 @@ I may have more files in my ownCloud in www/Node
 This git repository is usually pulled from ~/Applications resulting in ~/Applications/integratoredu folder.
 Requires nodejs to be installed
 run like: js app.js
-
 install system deps:
 ```
 sudo apt-get install nodejs
 sudo apt-get install mongodb
 sudo apt-get install mongodb-server
+sudo apt-get install npm
 sudo service mongodb start
+sudo systemctl start mongodb
 #now allow node to run alongside apache in case you use apache:
 sudo ufw allow 8080
 sudo a2enmod proxy
 sudo a2enmod proxy_http
-cd ~/Applications/integratoredu
+if [ -d ~/Applications/integratoredu ]; then
+  cd ~/Applications/integratoredu
+else
+  cd ~/Documents/GitHub/integratoredu
+fi
+#tell npm to get all dependencies (if no param after install, uses package.json to get list):
+npm install
 sudo cp ./share/etc/apache2/sites-available/sign.conf /etc/apache2/sites-available/
 sudo service apache2 restart
 

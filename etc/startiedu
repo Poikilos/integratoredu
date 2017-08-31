@@ -1,0 +1,18 @@
+#!/bin/sh
+#BROKEN: screen -t MinetestServer minetestserver --gameid minetest_next --draworigin --drawplayers --world FCAWorldMTNext
+#BROKEN: screen -t MinetestServer minetestserver --gameid ENLIVEN --worldname FCAGameAWorld
+#NOTE: if only title is set, screen -x must be used to resume, so use -S <name> to resume with -r <name>
+#screen -S MinetestServer minetestserver --gameid ENLIVEN --worldname FCAGameAWorld
+#screen -S MinetestServer /home/owner/minetest/bin/minetestserver --gameid ENLIVEN --worldname FCAGameAWorld
+if [ -d ~/Applications/integratoredu ]; then
+  cd ~/Applications/integratoredu
+else
+  cd ~/Documents/GitHub/integratoredu
+fi
+
+#js app.js
+if [ -f /usr/bin/node ]; then
+  screen -S integratoredu node app.js
+else
+  screen -S integratoredu js app.js
+fi

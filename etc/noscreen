@@ -1,0 +1,7 @@
+#!/bin/sh
+cd ..
+if [ -f /usr/bin/node ]; then
+  node app.js
+else
+  js app.js
+fi
