@@ -15,6 +15,36 @@ var express = require('express'),
 //    GoogleStrategy = require('passport-google'),
 //    FacebookStrategy = require('passport-facebook');
 
+// "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
+// https://tc39.github.io/ecma262/#sec-array.prototype.includes
+if (!Array.prototype.includes) { //if browser doesn't support ECMA 2016
+  Object.defineProperty(Array.prototype, 'includes', {
+    value: function(searchElement, fromIndex) {
+      if (this == null) {
+        throw new TypeError('"this" is null or not defined');
+      }
+      var o = Object(this);
+      var len = o.length >>> 0;
+      if (len === 0) {
+        return false;
+      }
+      var n = fromIndex | 0;
+      var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+      function sameValueZero(x, y) {
+        return x === y || (typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y));
+      }
+      while (k < len) {
+        if (sameValueZero(o[k], searchElement)) {
+          return true;
+        }
+        k++;
+      }
+      return false;
+    }
+  });
+}
+    
 //We will be creating these two files shortly
 var config = require('./config.js'), //config file contains all tokens and other private info
     funct = require('./functions.js'); //funct file contains our helper functions for our Passport and database work
@@ -44,6 +74,8 @@ group_required_fields["commute"] = ["name", "grade_level", "heading", "reason"];
 var group_form_fields = {};
 group_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time"];
 group_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "pin"];
+
+var never_save_fields = ["pin", "password", "transaction_type"];
 
 //function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
 //var contains = function(needle) {
@@ -81,12 +113,12 @@ var contains = function(needle) {
 
 // Passport session setup.
 passport.serializeUser(function(user, done) {
-  console.log("serializing " + user.username);
+  console.log("* passport serializing " + user.username);
   done(null, user);
 });
 
 passport.deserializeUser(function(obj, done) {
-  console.log("deserializing " + obj);
+  console.log("* passport deserializing " + obj);
   done(null, obj);
 });
 
@@ -97,18 +129,18 @@ passport.use('local-login', new LocalStrategy(
     funct.localAuth(username, password)
     .then(function (user) {
       if (user) {
-        console.log("LOGGED IN AS: " + user.username);
+        console.log("* LOGGED IN AS: " + user.username);
         //req.session.success = 'You are successfully logged in ' + user.username + '!';
         done(null, user);
       }
       if (!user) {
-        console.log("COULD NOT LOG IN");
+        console.log("* COULD NOT LOG IN");
         req.session.error = 'Could not log user in. Please try again.'; //inform user could not log them in
         done(null, user);
       }
     })
     .fail(function (err){
-      console.log(err.body);
+      console.log("* FAILED during login: " err.body);
     });
   }
 ));
@@ -122,19 +154,19 @@ passport.use('local-signup', new LocalStrategy(
                 funct.localReg(username, password)
                 .then(function (user) {
                     if (!user) {
-                    console.log("COULD NOT REGISTER");
+                    console.log("* COULD NOT REGISTER");
                     req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
                     done(null, user);
                     }
                     else {//if (user) {
-                    console.log("REGISTERED: " + user.username);
+                    console.log("* REGISTERED: " + user.username);
                     req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
                     done(null, user);
                     }
                 })
                 .fail(function (err){
-                    console.log("FAILED during register");
-                    console.log(err.body);
+                    console.log("* FAILED during register:");
+                    console.log("  " + err.body);
                     req.session.error = err.body;
                     done(null, null);
                 });
@@ -199,7 +231,7 @@ var hbs = exphbs.create({
             return JSON.stringify(value);
         },
 		if_eq: function(a, b, opts) {
-			//console.log("checking if_eq while user is " + a);
+			//console.log("* checking if_eq while user is " + a);
 			if (a == b) // Or === 
 			    return opts.fn(this);
 			else
@@ -217,11 +249,11 @@ var hbs = exphbs.create({
 			
 			//if (moment().format('HH:mm:ss') );
 			if (currentTime > endTime) {
-                console.log(currentTime + " > " + endTime);
+                //console.log(currentTime + " > " + endTime);
 			    return opts.fn(this);
             }
 			else {
-                console.log(currentTime + " <= " + endTime);
+                //console.log(currentTime + " <= " + endTime);
 				return opts.inverse(this);
             }
 		},
@@ -346,7 +378,7 @@ function is_not_blank(str) {
 app.post('/student-microevent', function(req, res){
 	//req is request, res is response
     if (("user" in req) && ("username" in req.user) ) {
-        console.log("* action by " + req.user.username);
+        console.log("* student-microevent by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
         prefill_data.time = moment().format('HH:mm:ss')
         prefill_data.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z')
@@ -372,7 +404,7 @@ app.post('/student-microevent', function(req, res){
                     if (key in req.body) {
                         if (req.body[key]) {
                             prefill_data[key] = req.body[key];
-                            record[key] = req.body[key];
+                            if (!never_save_fields.includes(key)) record[key] = req.body[key];
                             //console.log(key + " is filled in");
                         }
                         //console.log(key + " is in body");
@@ -391,7 +423,8 @@ app.post('/student-microevent', function(req, res){
                     var key = group_required_fields[req.body.transaction_type][index];
                     if (!(key in prefill_data)) {
                         custom_error = "MISSING: ";
-                        missing_fields = missing_fields + " " + key;
+                        if (missing_fields!="") missing_fields += ","
+                        missing_fields += " " + key;
                     }
                     //else {
                      //   console.log(key + " is in prefill_data");
@@ -425,7 +458,7 @@ app.post('/student-microevent', function(req, res){
                 else {
                     custom_error="MISSING: AM or PM is required for custom time";
                     //custom_error="MISSING: ";
-                    //missing_fields = missing_fields + " " + "AM or PM is required for custom time";
+                    //missing_fields += " " + "AM or PM is required for custom time";
                 }
             }
             if (!custom_error) {

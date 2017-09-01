@@ -24,6 +24,7 @@ http://github.com/expertmm/integratoredu
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
 
 ## Planned Features
+* [commute] email a contact on each student-microevent
 * [Employee Absence] Implement employee day off request page and page UAC
 * [Employee Absence] Allow multiple groups per person such as for email groups used for Employee Absence
 * Implement groups and default page for group
@@ -55,22 +56,28 @@ see etc/howto.txt for more
 see LICENSE file for license
 
 ## Developer Notes
+### Security
+* Security checking must be done using groups["group name"] where each group name contains an array of users
+* student-microevent is only a group for display, not for security. 
+### First-time setup (no longer needed)
 I may have more files in my ownCloud in www/Node
 This git repository is usually pulled from ~/Applications resulting in ~/Applications/integratoredu folder.
-Requires nodejs to be installed
-run like: js app.js
+### Running
+Requires nodejs package to be installed
+To run (such as on Ubuntu Xenial): js app.js
+OR (such as Antergos): node app.js
 install system deps:
 ```
+#on Ubuntu:
 sudo apt-get install nodejs
 sudo apt-get install mongodb
+#(note: mondodb package includes both client and server on Antergos)
 sudo apt-get install mongodb-server
 sudo apt-get install npm
+#on Ubuntu etc:
 sudo service mongodb start
+#or on Antergos:
 sudo systemctl start mongodb
-#now allow node to run alongside apache in case you use apache:
-sudo ufw allow 8080
-sudo a2enmod proxy
-sudo a2enmod proxy_http
 if [ -d ~/Applications/integratoredu ]; then
   cd ~/Applications/integratoredu
 else
@@ -78,6 +85,11 @@ else
 fi
 #tell npm to get all dependencies (if no param after install, uses package.json to get list):
 npm install
+#on Ubuntu:
+sudo ufw allow 8080
+# BELOW IS ONLY NEEDED IF you want to also have apache installed:
+sudo a2enmod proxy
+sudo a2enmod proxy_http
 sudo cp ./share/etc/apache2/sites-available/sign.conf /etc/apache2/sites-available/
 sudo service apache2 restart
 
