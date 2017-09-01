@@ -10,6 +10,7 @@ exports.localReg = function (username, password) {
   var deferred = Q.defer();
   if (username) {
     if (password) {
+        username = username.toLowerCase();
         MongoClient.connect(mongodbUrl, function (err, db) {
             var collection = db.collection('localUsers');
             //check if username is already assigned in our database
@@ -17,6 +18,11 @@ exports.localReg = function (username, password) {
             .then(function (result) {
                 if (null != result) {
                 console.log("USERNAME ALREADY EXISTS:", result.username);
+                //This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead)
+                //if (result.username=="attendance") {
+                //    console.log("DELETING attendance");
+                //    collection.remove();
+                //}
                 deferred.resolve(false); // username exists
                 }
                 else  {
@@ -60,8 +66,9 @@ exports.localAuth = function (username, password) {
   var deferred = Q.defer();
 
   MongoClient.connect(mongodbUrl, function (err, db) {
+      
     var collection = db.collection('localUsers');
-
+    if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
     collection.findOne({'username' : username})
       .then(function (result) {
         if (null == result) {

@@ -75,6 +75,21 @@ var group_form_fields = {};
 group_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time"];
 group_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "pin"];
 
+var group_sheet_fields = {};
+group_sheet_fields["care"] = [".get_date()", "time", "first name", "last_name", "grade_level", "family_id", "chaperone"]
+group_sheet_fields["commute"] = [".get_date()", "time", "", "grade_level"]
+
+var group_sheet_fields_names = {};
+group_sheet_fields_names["care"] = {};
+group_sheet_fields_names["care"]["time"] = "Time";
+group_sheet_fields_names["care"][".get_date()"] = "Date";
+
+var group_fields_overrides = {};
+group_fields_overrides["care"] = {};
+group_fields_overrides["care"]["time"] = "stated_time";
+group_fields_overrides["commute"] = {};
+group_fields_overrides["commute"]["time"] = "stated_time";
+
 var never_save_fields = ["pin", "password", "transaction_type"];
 
 //function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
@@ -140,7 +155,7 @@ passport.use('local-login', new LocalStrategy(
       }
     })
     .fail(function (err){
-      console.log("* FAILED during login: " err.body);
+      console.log("* FAILED during login: " + err.body);
     });
   }
 ));
@@ -322,6 +337,9 @@ var hbs = exphbs.create({
 			else
 				return "/";
 		},
+        get_tz_offset_mins: function(opts) {
+            return moment().utcOffset();
+        },
     },
     defaultLayout: 'main', //we will be creating this layout shortly
 });
@@ -380,8 +398,6 @@ app.post('/student-microevent', function(req, res){
     if (("user" in req) && ("username" in req.user) ) {
         console.log("* student-microevent by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
-        prefill_data.time = moment().format('HH:mm:ss')
-        prefill_data.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z')
         if (is_not_blank(req.body.stated_time)) prefill_data.stated_time = req.body.stated_time.trim();
         else {
             delete prefill_data.stated_time;
@@ -462,8 +478,9 @@ app.post('/student-microevent', function(req, res){
                 }
             }
             if (!custom_error) {
-                record.ctime=prefill_data.ctime;
-                record.time=prefill_data.time;
+                record.time = moment().format('HH:mm:ss')
+                record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z')
+                record.tz_offset_mins = moment().utcOffset();
                 //unique ones are below
                 if (!fs.existsSync(data_dir_path))
                     fs.mkdirSync(data_dir_path);

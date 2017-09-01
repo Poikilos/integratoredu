@@ -4,6 +4,7 @@ http://github.com/expertmm/integratoredu
 
 
 ## Changes
+* (2017-09-01) do not allow making same username with different case, and allow different case when logging in
 * (2017-08-31) condense and clean up web gui; make use of bootstrap classes
 * (2017-08-31) trimmed redundant code from form handling now that form validation code and UAC are both based on predefined transaction_type and respective form specification
 * (2017-08-31) fixed issues where prefill_data wasn't cleared (after failed form validation) and therefore: pin was used invisibly, or heading was detected as valid but then not able to be saved.
@@ -16,6 +17,13 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* implement ".get_date()" function as field (get date from dated folder names)
+* for export, only fields from group_sheet_fields_names should be used (others displayed as gray on preview)
+* implement overrides for editing and sheets--see group_fields_overrides (for editing, use stated time, but only if stated time exists. Also, only allow editing "time" field)
+* allow changing password (see "This is how to change the password" in app.js)
+* repeat password on registration
+* display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
+* care form should have a drawing pad for signing
 * pin should be stored in database, encrypted
 * improve form repopulation such as with express-forms, or flashify as per Jason Gelinas at https://stackoverflow.com/questions/10706588/how-do-i-repopulate-form-fields-after-validation-errors-with-express-form
 * Clicking create account followed by "I have an account..." leaves both the New and login subpanels open (each is only closed by clicking again on the same button)
