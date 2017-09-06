@@ -18,7 +18,7 @@ http://github.com/expertmm/integratoredu
 
 ## Known Issues
 * implement ".get_date()" function as field (get date from dated folder names)
-* for export, only fields from group_sheet_fields_names should be used (others displayed as gray on preview)
+* for export, only fields from group_sheet_fields_names should be used (others displayed as gray on preview). SmartTuition requires (you have to email them the spreadsheet): Family ID, FirstName, LastName, GraveLevel, Total
 * implement overrides for editing and sheets--see group_fields_overrides (for editing, use stated time, but only if stated time exists. Also, only allow editing "time" field)
 * allow changing password (see "This is how to change the password" in app.js)
 * repeat password on registration
@@ -32,6 +32,12 @@ http://github.com/expertmm/integratoredu
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
 
 ## Planned Features
+* overtime penalties?
+* autocomplete history
+* record a copy of each report exported in order to retain record in case data is changed later
+    * it could contain an automatic subreport of any changes made outside of the date range specified, and also automatically display that subreport.
+* display legal notices including restraining orders for the student in focus during clock out process
+* implement bar code reader for family id (and fill in appropriate fields)
 * [commute] email a contact on each student-microevent
 * [Employee Absence] Implement employee day off request page and page UAC
 * [Employee Absence] Allow multiple groups per person such as for email groups used for Employee Absence

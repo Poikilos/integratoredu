@@ -90,6 +90,9 @@ group_fields_overrides["care"]["time"] = "stated_time";
 group_fields_overrides["commute"] = {};
 group_fields_overrides["commute"]["time"] = "stated_time";
 
+var fields_friendly_names = {};
+//fields_friendly_names["heading"] = "select arriving/departing";
+
 var never_save_fields = ["pin", "password", "transaction_type"];
 
 //function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
@@ -439,7 +442,9 @@ app.post('/student-microevent', function(req, res){
                     var key = group_required_fields[req.body.transaction_type][index];
                     if (!(key in prefill_data)) {
                         custom_error = "MISSING: ";
-                        if (missing_fields!="") missing_fields += ","
+                        if (missing_fields!="") missing_fields += ",";
+                        key_friendly_name = key;
+                        if (fields_friendly_names.key) key_friendly_name = fields_friendly_names.key;
                         missing_fields += " " + key;
                     }
                     //else {
