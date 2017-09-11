@@ -1,68 +1,87 @@
 <!-- views/home.handlebars -->
 {{#if user}}
 	<div class="container-fluid">
-	{{#groupContains "attendance" user.username}}
-	<h1>Attendance</h1>
-	<p style="size:.8em; color:darkgray">This page should only be viewed by employees.
-	</p>
-	<p>
+	{{!--#groupContains "attendance" user.username--}}
+	<nav class="navbar navbar-toggleable-md navbar-light bg-faded">
+	{{!--<a class="navbar-brand" href="#">Attendance</a>--}}
+	<div style="size:.8em; color:darkgray">This page should only be viewed by employees.
+	</div>
+	<div>
+	
 	{{#each sections}}
 	<form action="{{get_proxy_prefix_then_slash}}">
 	<input type="hidden" name="section" id="section" value="{{this}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{selected_year}}" />
 	<input type="submit" value="{{this}}" />
 	</form>
 	{{/each}}
-	</p>
-	<p>Select Year: 
+	</div>
+	<div>Select Year: 
 	{{#each years}}
 	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{section}}"/>
+	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 	<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
+	<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
+	<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+	<input type="hidden" name="selected_item" id="selected_item" value="(none)" />
 	<input type="submit" value="{{this}}" />
 	</form>
 	{{/each}}
-	</p>
-	<p>Select Month:
+	</div>
+	<div>Select Month:
 	{{#each months}}
 	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{selected_year}}" />
+	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 	<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
+	<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+	<input type="hidden" name="selected_item" id="selected_item" value="(none)" />
 	<input type="submit" value="{{this}}" />
 	</form>
 	{{/each}}
-	</p>
-	<p>Select Day:
+	</div>
+	<div>Select Day:
 	{{#each days}}
 	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{selected_year}}" />
-	<input type="hidden" name="selected_month" id="selected_month" value="{{selected_month}}" />
+	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+	<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
 	<input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
+	<input type="hidden" name="selected_item" id="selected_item" value="(none)" />
 	<input type="submit" value="{{this}}" />
 	</form>
 	{{/each}}
-	</p>
-	<p>Select event to edit:
+	</div>
+	
+	<div>Select event to edit:
+	<table>
 	{{#each items}}
+	<tr>
+        {{#each this}}
+        <td>
+        {{@index}}: {{this}}
+        </td>
+        {{/each}}
+	<td>
 	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{selected_year}}" />
-	<input type="hidden" name="selected_month" id="selected_month" value="{{selected_month}}" />
-	<input type="hidden" name="selected_day" id="selected_day" value="{{selected_day}}" />
+	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+	<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
+	<input type="hidden" name="selected_day" id="selected_day" value="{{@root.selected_day}}" />
 	<input type="hidden" name="selected_item" id="selected_item" value="{{this}}" />
 	<input type="submit" value="{{this}}" />
 	</form>
+	</td></tr>
 	{{/each}}
-	</p>
-    
-    <p>Section: {{section}}</p>
-    <p>Year: {{selected_year}}</p>
-    <p>Month: {{selected_month}}</p>
-    <p>Day: {{selected_day}}</p>
-	
-	{{/groupContains}}
+	</table>
+	</div>
+    <nav class="navbar navbar-light bg-faded">
+    <span> Section: {{section}}</span>
+    <span> Year: {{selected_year}}</span>
+    <span> Month: {{selected_month}}</span>
+    <span> Day: {{selected_day}}</span>
+    <span> Item: {{selected_item}}</span>
+	</nav>
+	{{!--/groupContains--}}
 	{{#groupContains "student-microevent" user.username}}
 		{{#groupContains "care" user.username}}
 		<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">

@@ -180,20 +180,20 @@ passport.use('local-signup', new LocalStrategy(
                 funct.localReg(username, password)
                 .then(function (user) {
                     if (!user) {
-						console.log("* COULD NOT REGISTER");
-						req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
-						done(null, user);
+			console.log("* COULD NOT REGISTER");
+			req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
+			done(null, user);
                     }
                     else {//if (user) {
-						if (user.error) {
-							req.session.error = user.error;
-							done(null, null); //2nd param null means don't log in!
-						}
-						else {
-							console.log("* REGISTERED: " + user.username);
-							req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
-							done(null, user);
-						}
+			if (user.error) {
+				req.session.error = user.error;
+				done(null, null); //2nd param null means don't log in!
+			}
+			else {
+				console.log("* REGISTERED: " + user.username);
+				req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
+				done(null, user);
+			}
                     }
                 })
                 .fail(function (err){
@@ -357,6 +357,12 @@ var hbs = exphbs.create({
         get_tz_offset_mins: function(opts) {
             return moment().utcOffset();
         },
+        get_session_field: function(fieldname, opts) {
+            return session[fieldname];  // DOESN'T WORK
+        },
+        get_session_field_section: function(opts) {
+            return session.section;  // DOESN'T WORK
+        },
     },
     defaultLayout: 'main', //we will be creating this layout shortly
 });
@@ -403,6 +409,7 @@ app.get('/', function(req, res){
 	var months = [];
 	var days = [];
 	var items = [];
+    var item_keys = [];
 	var section = null; //selected section
 	var selected_month = null;
 	var selected_year = null;
@@ -426,17 +433,49 @@ app.get('/', function(req, res){
 			}
 		}
 	}
-	if (req.query.section && asdf) {
+	if (is_not_blank(req.query.section)) {
 		section = req.query.section;
 	}
-	if (req.session.section) {
-		section = req.query.section;
+	else if (is_not_blank(req.session.section)) {
+		section = req.session.section;
 	}
 	if (req.query.selected_year) {
 		selected_year = req.query.selected_year;
+        if (selected_year = "(none)") selected_year = null;
+        req.session.selected_year = selected_year;
 	}
-	if (req.session.selected_year) {
-		selected_year = req.query.selected_year;
+	else if (req.session.selected_year) {
+		selected_year = req.session.selected_year;
+	}
+	if (req.query.selected_month) {
+		selected_month = req.query.selected_month;
+        if (selected_month=="(none)") selected_month = null;
+        req.session.selected_month = selected_month;
+	}
+	else if (req.session.selected_month) {
+		selected_month = req.session.selected_month;
+	}
+	//console.log("req.query.selected_month:"+req.query.selected_month);
+	//console.log("req.session.selected_month:"+req.session.selected_month);
+	//console.log("selected_month:"+selected_month);
+	if (req.query.selected_day) {
+		selected_day = req.query.selected_day;
+        if (selected_day=="(none)") selected_day = null;
+        req.session.selected_day = selected_day;
+	}
+	else if (req.session.selected_day) {
+		selected_day = req.session.selected_day;
+	}
+	//console.log("req.query.selected_day:"+req.query.selected_day);
+	//console.log("req.session.selected_day:"+req.session.selected_day);
+	//console.log("selected_day:"+selected_day);
+	if (req.query.selected_item) {
+		selected_item = req.query.selected_item;
+        if (selected_item=="(none)") selected_item = null;
+        req.session.selected_item = selected_item;
+	}
+	else if (req.session.selected_item) {
+		selected_item = req.session.selected_item;
 	}
 	if (section) {
 		req.session.section = section;
@@ -457,10 +496,6 @@ app.get('/', function(req, res){
 						if (!dat[section]) dat[section] = {};
 						years = getDirectories(table_path);
 						dat[section]["years"] = years;
-						if (years.length==1) {
-							selected_year = years[0];
-							req.session.selected_year = selected_year;
-						}
 						//for (var y_i = 0; y_i < years.length; y_i++) {
 							//var this_year = years[y_i];
 							//dat[section][this_year] = {};
@@ -468,26 +503,34 @@ app.get('/', function(req, res){
 					}
 				}
 				else years = dat[section]["years"];
+                if (years.length==1) {
+                    selected_year = years[0];
+                    req.session.selected_year = selected_year;
+                    if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
+                }
+                if (!years) {
+                    console.log("WARNING: no years (no data or cache fail)");
+                }
 				if (selected_year) {
-					var y_path = table_path + "/" + req.query.selected_year;
+					var y_path = table_path + "/" + selected_year;
 					if (fs.existsSync(y_path)) {
 						if (!(dat[section][selected_year]&&dat[section][selected_year]["months"]) || !listed_month_on_date || (listed_month_on_date!=date_string) ) {
 							listed_month_on_date = date_string;
 							months = getDirectories(y_path);
 							if (!dat[section][selected_year]) dat[section][selected_year] = {};
 							dat[section][selected_year]["months"] = months;
-							if (months.length==1) {
-								selected_month = months[0];
-								req.session.selected_month = selected_month;
-							}
 							for (var m_i = 0; m_i < months.length; m_i++) {
 								var this_month = months[m_i];
 								dat[section][selected_year][this_month] = {};
 							}
 						}
 						else months = dat[section][selected_year]["months"];
-						if (req.query.selected_month) {
-							selected_month = req.query.selected_month;
+                        if (months.length==1) {
+                            selected_month = months[0];
+                            req.session.selected_month = selected_month;
+                            console.log("Auto selected_month "+selected_month);
+                        }
+						if (selected_month) {
 							var m_path = y_path + "/" + selected_month;
 							if (!(dat[section][selected_year][selected_month]&&dat[section][selected_year][selected_month]["days"])
 									|| !listed_day_on_date || listed_day_on_date!=date_string) {
@@ -495,8 +538,52 @@ app.get('/', function(req, res){
 								days = getDirectories(m_path);
 								if (!dat[section][selected_year][selected_month]) dat[section][selected_year][selected_month]={};
 								dat[section][selected_year][selected_month]["days"] = days;
+                                for (var d_i = 0; d_i < days.length; d_i++) {
+                                    var this_day = days[d_i];
+                                    console.log("this_day:"+this_day);
+                                    dat[section][selected_year][selected_month][this_day] = {};
+                                }
 							}
 							else days = dat[section][selected_year][selected_month]["days"];
+                            if (days.length==1) {
+                                selected_day = days[0];
+                                req.session.selected_day = selected_day;
+                                console.log("Auto selected_day="+selected_day);
+                            }
+                            if (selected_day) {
+                                var d_path = m_path + "/" + selected_day;
+                                //if (!(dat[section][selected_year][selected_month][selected_day]&&dat[section][selected_year][selected_month][selected_day]["items"])
+                                //lists files every page load since modification not saved nor checked
+                                
+                                //subs = getDirectories(d_path);
+                                fs.readdir(d_path, function(err, these_items) {
+                                    if (err) {
+                                        req.session.error = err;
+                                        console.log("ERROR (readdir): "+err);
+                                    }
+                                    else {
+                                    //console.log(items);
+                                    for (var i=0; i<these_items.length; i++) {
+                                        //console.log("   * " + items[i]);
+                                        items.push(these_items[i]);
+                                    }
+                                    }
+                                });
+                                
+                                for (var i=0; i<items.length; i++) {
+                                    console.log("   * " + items[i]);
+                                }
+                                
+                                if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
+                                dat[section][selected_year][selected_month][selected_day]["items"] = items;
+                                for (var item_i = 0; item_i < items.length; item_i++) {
+                                    var this_item = days[item_i];
+                                    dat[section][selected_year][selected_month][selected_day][this_item] = {};
+                                    var item_path = d_path + "/" + this_item;
+                                    dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+                                    //dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+                                }
+                            }
 						}
 					}
 				}
@@ -510,7 +597,7 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item: selected_item, sections: sections, years: years, months: months, days: days, items: items});
+	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item: selected_item, sections: sections, years: years, months: months, days: days, item_keys: item_keys, items: items});
 });
 
 //displays our signup page

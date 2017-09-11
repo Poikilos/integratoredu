@@ -17,6 +17,7 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* Should save timestamp for each time day in entire data folder's dated filesystem is modified (see "if (selected_day)" in app.js), so doesn't relist files for day each time a backend ("read" group) page is loaded -- get timestamp with decimal seconds like: moment().format('X')
 * implement ".get_date()" function as field (get date from dated folder names)
 * for export, only fields from group_sheet_fields_names should be used (others displayed as gray on preview). SmartTuition requires (you have to email them the spreadsheet): Family ID, FirstName, LastName, GraveLevel, Total
 * implement overrides for editing and sheets--see group_fields_overrides (for editing, use stated time, but only if stated time exists. Also, only allow editing "time" field)
@@ -104,6 +105,10 @@ if [ -d ~/Applications/integratoredu ]; then
 else
   cd ~/Documents/GitHub/integratoredu
 fi
+#or on FreeBSD:
+#edit /etc/rc.conf and add: mongodb_enable="YES"
+#then
+sudo service mongodb enable
 #tell npm to get all dependencies (if no param after install, uses package.json to get list):
 npm install
 #on Ubuntu:
