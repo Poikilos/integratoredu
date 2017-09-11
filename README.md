@@ -32,6 +32,11 @@ http://github.com/expertmm/integratoredu
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
 
 ## Planned Features
+* clear cache method (set these globals to null):
+listed_year_on_month = null;
+listed_month_on_date = null;
+listed_day_on_date = null;
+
 * overtime penalties?
 * autocomplete history
 * record a copy of each report exported in order to retain record in case data is changed later
@@ -89,8 +94,10 @@ sudo apt-get install mongodb
 sudo apt-get install mongodb-server
 sudo apt-get install npm
 #on Ubuntu etc:
+sudo service mongodb enable
 sudo service mongodb start
 #or on Antergos:
+sudo systemctl enable mongodb
 sudo systemctl start mongodb
 if [ -d ~/Applications/integratoredu ]; then
   cd ~/Applications/integratoredu

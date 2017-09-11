@@ -1,5 +1,10 @@
 #!/bin/sh
-cd ..
+if [ -d ~/Applications/integratoredu ]; then
+  cd ~/Applications/integratoredu
+else
+  cd ~/Documents/GitHub/integratoredu
+fi
+
 if [ -f /usr/bin/node ]; then
   node app.js
 else

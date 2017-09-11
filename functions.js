@@ -12,36 +12,44 @@ exports.localReg = function (username, password) {
     if (password) {
         username = username.toLowerCase();
         MongoClient.connect(mongodbUrl, function (err, db) {
-            var collection = db.collection('localUsers');
-            //check if username is already assigned in our database
-            collection.findOne({'username' : username})
-            .then(function (result) {
-                if (null != result) {
-                console.log("USERNAME ALREADY EXISTS:", result.username);
-                //This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead)
-                //if (result.username=="attendance") {
-                //    console.log("DELETING attendance");
-                //    collection.remove();
-                //}
-                deferred.resolve(false); // username exists
-                }
-                else  {
-                var hash = bcrypt.hashSync(password, 8);
-                var user = {
-                    "username": username,
-                    "password": hash
-                    //"avatar": "sign/users/profilepics/" + username + ".jpg"
-                }
+			if (db) {
+				var collection = db.collection('localUsers');
+				//check if username is already assigned in our database
+				collection.findOne({'username' : username})
+				.then(function (result) {
+					if (null != result) {
+						console.log("USERNAME ALREADY EXISTS:", result.username);
+						//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead)
+						//if (result.username=="attendance") {
+						//    console.log("DELETING attendance");
+						//    collection.remove();
+						//}
+						deferred.resolve(false); // username exists
+					}
+					else { //else is a 
+						var hash = bcrypt.hashSync(password, 8);
+						var user = {
+							"username": username,
+							"password": hash
+							//"avatar": "sign/users/profilepics/" + username + ".jpg"
+					}
 
-                console.log("CREATING USER:", username);
+					console.log("CREATING USER:", username);
 
-                collection.insert(user)
-                    .then(function () {
-                    db.close();
-                    deferred.resolve(user);
-                    });
-                }
-            });
+					collection.insert(user)
+						.then(function () {
+						db.close();
+						deferred.resolve(user);
+						});
+					}
+				});
+			}
+			else {
+				console.log("localReg: CANNOT CONNECT TO DATABASE")
+				user = {};
+				user.error = "Cannot connect to database.";
+				deferred.resolve(user);
+			}
         });
     }
     else {
