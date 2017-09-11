@@ -1,0 +1,20 @@
+#!/bin/sh
+
+sudo service mongodb start
+sudo systemctl start mongodb
+
+#below is not needed since service started with sudo can create /data/db 
+in root directory
+#THIS_APP_PATH=$HOME/Documents/GitHub/integratoredu
+#if [ -d "$HOME/Applications/integratoredu" ]; then
+#THIS_APP_PATH=$HOME/Applications/integratoredu
+#fi
+#THIS_DATA_PATH=$THIS_APP_PATH/data
+#if [ ! -d "$THIS_DATA_PATH" ]; then
+#mkdir "$THIS_DATA_PATH"
+#fi
+#THIS_DB_PATH=$THIS_DATA_PATH/db
+#if [ ! -d "$THIS_DB_PATH" ]; then
+#mkdir "$THIS_DB_PATH"
+#fi
+#mongod --dbpath "$THIS_DB_PATH"
