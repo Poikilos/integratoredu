@@ -14,7 +14,10 @@ var express = require('express'),
 //    TwitterStrategy = require('passport-twitter'),
 //    GoogleStrategy = require('passport-google'),
 //    FacebookStrategy = require('passport-facebook');
+var path = require("path");
+var basePath = "./";
 
+var dat;
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
@@ -58,14 +61,19 @@ var data_dir_path = data_dir_name;
 
 //var prefill_enable = true;
 var prefill_data = {};
-var groups = {};
+var groups = {}; //which users can write to the section
 //Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
-groups["student-microevent"] = ["care", "commute"];
-groups["care"] = ["care"];
-groups["commute"] = ["commute"];
-groups["accounting"] = ["accounting"];
+groups["student-microevent"] = ["care", "commute", "admin"];
+groups["care"] = ["care", "admin"];
+groups["commute"] = ["commute", "admin"];
+groups["accounting"] = ["accounting", "admin"];
 groups["admin"] = ["admin"];
-groups["attendance"] = ["attendance"];
+groups["attendance"] = ["attendance", "admin"];
+
+var read_groups = {}; //which users can read all data from the section
+//care should see care info (who has logged in or out of care so far), but commute user (students) should not see other commutes:
+read_groups["care"] = ["accounting", "admin", "care"];
+read_groups["commute"] = ["attendance", "admin"];
 
 var group_required_fields = {};
 group_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
@@ -172,14 +180,20 @@ passport.use('local-signup', new LocalStrategy(
                 funct.localReg(username, password)
                 .then(function (user) {
                     if (!user) {
-                    console.log("* COULD NOT REGISTER");
-                    req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
-                    done(null, user);
+						console.log("* COULD NOT REGISTER");
+						req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
+						done(null, user);
                     }
                     else {//if (user) {
-                    console.log("* REGISTERED: " + user.username);
-                    req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
-                    done(null, user);
+						if (user.error) {
+							req.session.error = user.error;
+							done(null, null); //2nd param null means don't log in!
+						}
+						else {
+							console.log("* REGISTERED: " + user.username);
+							req.session.success = 'You are successfully registered and logged in ' + user.username + '!';
+							done(null, user);
+						}
                     }
                 })
                 .fail(function (err){
@@ -367,24 +381,148 @@ app.set('view engine', 'handlebars');
 //});
 //use like: {{plusone @index}}
 
+//from Titlacauan on https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs
+function getDirectories(path) {
+  return fs.readdirSync(path).filter(function (file) {
+    return fs.statSync(path+'/'+file).isDirectory();
+  });
+}
+
+
 //===============ROUTES===============
 
+//keep track of last listing (only refresh if data could have possibly changed naturally):
+var listed_year_on_month = null;
+var listed_month_on_date = null;
+var listed_day_on_date = null;
 
 //displays our homepage
 app.get('/', function(req, res){
-  res.render('home', {user: req.user});
+	var sections = [];
+	var years = [];
+	var months = [];
+	var days = [];
+	var items = [];
+	var section = null; //selected section
+	var selected_month = null;
+	var selected_year = null;
+	var selected_day = null;
+	var selected_item = null;
+	if (req.user && req.user.username) {
+		preload_table_names = ["care","commute"];
+		for (var index in preload_table_names) {
+			if (preload_table_names.hasOwnProperty(index)) {
+				var key = preload_table_names[index];
+				if (contains.call(read_groups[key], req.user.username)) {
+					sections.push(key);
+				}
+		// 		table_path = data_dir_path + "/" + key;
+		// 		if (fs.existsSync(table_path)) {
+		// 			var y_dir_name = moment().format("YYYY");
+		// 			var m_dir_name = moment().format("MM");
+		// 			var d_dir_name = moment().format("DD");
+		// 			dat[key] = {};
+		// 		}
+			}
+		}
+	}
+	if (req.query.section && asdf) {
+		section = req.query.section;
+	}
+	if (req.session.section) {
+		section = req.query.section;
+	}
+	if (req.query.selected_year) {
+		selected_year = req.query.selected_year;
+	}
+	if (req.session.selected_year) {
+		selected_year = req.query.selected_year;
+	}
+	if (section) {
+		req.session.section = section;
+		if (req.user && req.user.username) {
+			if (contains.call(read_groups[section], req.user.username)) {
+				var y_dir_name = moment().format("YYYY");
+				var m_dir_name = moment().format("MM");
+				var d_dir_name = moment().format("DD");
+				var year_month_string = moment().format("YYYY-MM");
+				var date_string = moment().format("YYYY-MM-DD");
+				if (!dat) {
+					dat = {};
+				}
+				table_path = data_dir_path + "/" + section;
+				if (!(dat[section]&&dat[section]["years"]) || !listed_year_on_month || (listed_year_on_month!=year_month_string)) {
+					listed_year_on_month = year_month_string;
+					if (fs.existsSync(table_path)) {
+						if (!dat[section]) dat[section] = {};
+						years = getDirectories(table_path);
+						dat[section]["years"] = years;
+						if (years.length==1) {
+							selected_year = years[0];
+							req.session.selected_year = selected_year;
+						}
+						//for (var y_i = 0; y_i < years.length; y_i++) {
+							//var this_year = years[y_i];
+							//dat[section][this_year] = {};
+						//}
+					}
+				}
+				else years = dat[section]["years"];
+				if (selected_year) {
+					var y_path = table_path + "/" + req.query.selected_year;
+					if (fs.existsSync(y_path)) {
+						if (!(dat[section][selected_year]&&dat[section][selected_year]["months"]) || !listed_month_on_date || (listed_month_on_date!=date_string) ) {
+							listed_month_on_date = date_string;
+							months = getDirectories(y_path);
+							if (!dat[section][selected_year]) dat[section][selected_year] = {};
+							dat[section][selected_year]["months"] = months;
+							if (months.length==1) {
+								selected_month = months[0];
+								req.session.selected_month = selected_month;
+							}
+							for (var m_i = 0; m_i < months.length; m_i++) {
+								var this_month = months[m_i];
+								dat[section][selected_year][this_month] = {};
+							}
+						}
+						else months = dat[section][selected_year]["months"];
+						if (req.query.selected_month) {
+							selected_month = req.query.selected_month;
+							var m_path = y_path + "/" + selected_month;
+							if (!(dat[section][selected_year][selected_month]&&dat[section][selected_year][selected_month]["days"])
+									|| !listed_day_on_date || listed_day_on_date!=date_string) {
+								listed_day_on_date=date_string;
+								days = getDirectories(m_path);
+								if (!dat[section][selected_year][selected_month]) dat[section][selected_year][selected_month]={};
+								dat[section][selected_year][selected_month]["days"] = days;
+							}
+							else days = dat[section][selected_year][selected_month]["days"];
+						}
+					}
+				}
+			}
+			else {
+				var error_string = " has no permission for " + section;
+				if (req.user && req.user.username) error_string = req.user.username + error_string;
+				else error_string = "Unauthenticated user" + error_string;
+				req.session.error = error_string;
+			}
+		}
+		
+	}
+	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item: selected_item, sections: sections, years: years, months: months, days: days, items: items});
 });
 
 //displays our signup page
 app.get('/login', function(req, res){
-  res.render('login');
+	res.render('login');
 });
 
 //sends the request through our local signup strategy, and if successful takes user to homepage, otherwise returns then to signin page
 app.post('/local-reg', passport.authenticate('local-signup', {
-  successRedirect: config.proxy_prefix_then_slash,
-  failureRedirect: config.proxy_prefix_then_slash  + 'login'
-  })
+	successRedirect: config.proxy_prefix_then_slash,
+	failureRedirect: config.proxy_prefix_then_slash  + 'login'
+	})
 );
 
 //function show_notice(msg) {
