@@ -408,8 +408,8 @@ app.get('/', function(req, res){
 	var years = [];
 	var months = [];
 	var days = [];
-	var items = [];
-    var item_keys = [];
+    var item_keys = []; // the associative array keys for accessing objects in the day
+    var items = []; //the entries
 	var section = null; //selected section
 	var selected_month = null;
 	var selected_year = null;
@@ -540,7 +540,7 @@ app.get('/', function(req, res){
 								dat[section][selected_year][selected_month]["days"] = days;
                                 for (var d_i = 0; d_i < days.length; d_i++) {
                                     var this_day = days[d_i];
-                                    console.log("this_day:"+this_day);
+                                    //console.log("this_day:"+this_day);
                                     dat[section][selected_year][selected_month][this_day] = {};
                                 }
 							}
@@ -552,36 +552,43 @@ app.get('/', function(req, res){
                             }
                             if (selected_day) {
                                 var d_path = m_path + "/" + selected_day;
-                                //if (!(dat[section][selected_year][selected_month][selected_day]&&dat[section][selected_year][selected_month][selected_day]["items"])
+                                //if (!(dat[section][selected_year][selected_month][selected_day]&&dat[section][selected_year][selected_month][selected_day]["item_keys"])
                                 //lists files every page load since modification not saved nor checked
                                 
                                 //subs = getDirectories(d_path);
-                                fs.readdir(d_path, function(err, these_items) {
+                                fs.readdir(d_path, function(err, these_item_keys) {
                                     if (err) {
                                         req.session.error = err;
                                         console.log("ERROR (readdir): "+err);
                                     }
                                     else {
-                                    //console.log(items);
-                                    for (var i=0; i<these_items.length; i++) {
-                                        //console.log("   * " + items[i]);
-                                        items.push(these_items[i]);
-                                    }
+                                        //console.log(item_keys);
+                                        for (var i=0; i<these_item_keys.length; i++) {
+                                            //console.log("   * " + item_keys[i]);
+                                            item_keys.push(these_item_keys[i]);
+                                        }
                                     }
                                 });
                                 
-                                for (var i=0; i<items.length; i++) {
-                                    console.log("   * " + items[i]);
-                                }
+                                //for (var i=0; i<item_keys.length; i++) {
+                                //    console.log("   * " + item_keys[i]);
+                                //}
                                 
                                 if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
-                                dat[section][selected_year][selected_month][selected_day]["items"] = items;
-                                for (var item_i = 0; item_i < items.length; item_i++) {
-                                    var this_item = days[item_i];
-                                    dat[section][selected_year][selected_month][selected_day][this_item] = {};
-                                    var item_path = d_path + "/" + this_item;
-                                    dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+                                dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
+                                for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
+                                    var this_item_key = days[item_key_i];
+                                    dat[section][selected_year][selected_month][selected_day][this_item_key] = {};
+                                    var item_key_path = d_path + "/" + this_item_key;
+                                    dat[section][selected_year][selected_month][selected_day][this_item_key] = yaml.readSync(item_path, "utf8");
+                                    dat[section][selected_year][selected_month][selected_day][this_item_key].key = item_key;
                                     //dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+                                }
+                                items = dat[section][selected_year][selected_month][selected_day];
+                                console.log("* KEYS: "+item_keys);
+                                console.log("  * ITEMS:"+items);
+                                for (var key_i = 0; key_i < items.length; key_i++) {
+                                    console.log("    * "+items[key_i]asdf
                                 }
                             }
 						}
@@ -597,7 +604,7 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item: selected_item, sections: sections, years: years, months: months, days: days, item_keys: item_keys, items: items});
+	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item: selected_item, sections: sections, years: years, months: months, days: days, items: items});
 });
 
 //displays our signup page

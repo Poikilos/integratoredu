@@ -56,19 +56,14 @@
 	<table>
 	{{#each items}}
 	<tr>
-        {{#each this}}
-        <td>
-        {{@index}}: {{this}}
-        </td>
-        {{/each}}
 	<td>
 	<form action="{{get_proxy_prefix_then_slash}}">
 	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 	<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
 	<input type="hidden" name="selected_day" id="selected_day" value="{{@root.selected_day}}" />
-	<input type="hidden" name="selected_item" id="selected_item" value="{{this}}" />
-	<input type="submit" value="{{this}}" />
+	<input type="hidden" name="selected_item" id="selected_item" value="{{this.key}}" />
+	<input type="submit" value="{{this.first_name}}" />
 	</form>
 	</td></tr>
 	{{/each}}
