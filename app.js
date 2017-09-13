@@ -587,8 +587,14 @@ app.get('/', function(req, res){
                                 items = dat[section][selected_year][selected_month][selected_day];
                                 console.log("* KEYS: "+item_keys);
                                 console.log("  * ITEMS:"+items);
-                                for (var key_i = 0; key_i < items.length; key_i++) {
-                                    console.log("    * "+items[key_i]asdf
+                                //for (var key_i = 0; key_i < items.length; key_i++) {
+                                //    console.log("    * "+items[key_i]asdf (iterate object members)
+                                //}
+                                for (var index in items) {
+                                    if (items.hasOwnProperty(index)) {
+                                        var key = items[index];
+                                        console.log("    - " + 
+                                    }
                                 }
                             }
 						}
