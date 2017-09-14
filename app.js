@@ -394,6 +394,11 @@ function getDirectories(path) {
   });
 }
 
+function getFiles(path) {
+  return fs.readdirSync(path).filter(function (file) {
+    return !fs.statSync(path+'/'+file).isDirectory();
+  });
+}
 
 //===============ROUTES===============
 
@@ -404,6 +409,7 @@ var listed_day_on_date = null;
 
 //displays our homepage
 app.get('/', function(req, res){
+	console.log("");
 	var sections = [];
 	var years = [];
 	var months = [];
@@ -414,21 +420,21 @@ app.get('/', function(req, res){
 	var selected_month = null;
 	var selected_year = null;
 	var selected_day = null;
-	var selected_item = null;
+	var selected_item_key = null;
 	if (req.user && req.user.username) {
 		preload_table_names = ["care","commute"];
 		for (var index in preload_table_names) {
 			if (preload_table_names.hasOwnProperty(index)) {
-				var key = preload_table_names[index];
-				if (contains.call(read_groups[key], req.user.username)) {
-					sections.push(key);
+				var val = preload_table_names[index];
+				if (contains.call(read_groups[val], req.user.username)) {
+					sections.push(val);
 				}
-		// 		table_path = data_dir_path + "/" + key;
+		// 		table_path = data_dir_path + "/" + val;
 		// 		if (fs.existsSync(table_path)) {
 		// 			var y_dir_name = moment().format("YYYY");
 		// 			var m_dir_name = moment().format("MM");
 		// 			var d_dir_name = moment().format("DD");
-		// 			dat[key] = {};
+		// 			dat[val] = {};
 		// 		}
 			}
 		}
@@ -469,13 +475,13 @@ app.get('/', function(req, res){
 	//console.log("req.query.selected_day:"+req.query.selected_day);
 	//console.log("req.session.selected_day:"+req.session.selected_day);
 	//console.log("selected_day:"+selected_day);
-	if (req.query.selected_item) {
-		selected_item = req.query.selected_item;
-        if (selected_item=="(none)") selected_item = null;
-        req.session.selected_item = selected_item;
+	if (req.query.selected_item_key) {
+		selected_item_key = req.query.selected_item_key;
+        if (selected_item_key=="(none)") selected_item_key = null;
+        req.session.selected_item_key = selected_item_key;
 	}
-	else if (req.session.selected_item) {
-		selected_item = req.session.selected_item;
+	else if (req.session.selected_item_key) {
+		selected_item_key = req.session.selected_item_key;
 	}
 	if (section) {
 		req.session.section = section;
@@ -521,14 +527,18 @@ app.get('/', function(req, res){
 							dat[section][selected_year]["months"] = months;
 							for (var m_i = 0; m_i < months.length; m_i++) {
 								var this_month = months[m_i];
+								//console.log("# FOUND MONTH "+this_month +" in "+y_path);
 								dat[section][selected_year][this_month] = {};
 							}
 						}
-						else months = dat[section][selected_year]["months"];
+						else {
+							months = dat[section][selected_year]["months"];
+							//console.log("(got cached months: "+funct.to_ecmascript_value(months));
+						}
                         if (months.length==1) {
                             selected_month = months[0];
                             req.session.selected_month = selected_month;
-                            console.log("Auto selected_month "+selected_month);
+                            //console.log("Auto selected_month "+selected_month);
                         }
 						if (selected_month) {
 							var m_path = y_path + "/" + selected_month;
@@ -548,7 +558,7 @@ app.get('/', function(req, res){
                             if (days.length==1) {
                                 selected_day = days[0];
                                 req.session.selected_day = selected_day;
-                                console.log("Auto selected_day="+selected_day);
+                                //console.log("     AUTO selected_day (key) ="+selected_day);
                             }
                             if (selected_day) {
                                 var d_path = m_path + "/" + selected_day;
@@ -556,19 +566,16 @@ app.get('/', function(req, res){
                                 //lists files every page load since modification not saved nor checked
                                 
                                 //subs = getDirectories(d_path);
-                                fs.readdir(d_path, function(err, these_item_keys) {
-                                    if (err) {
-                                        req.session.error = err;
-                                        console.log("ERROR (readdir): "+err);
-                                    }
-                                    else {
-                                        //console.log(item_keys);
-                                        for (var i=0; i<these_item_keys.length; i++) {
-                                            //console.log("   * " + item_keys[i]);
-                                            item_keys.push(these_item_keys[i]);
-                                        }
-                                    }
-                                });
+								//NOTE: fs.readdir is ASYNC! use getFiles which uses fs.readdirsync
+                                //fs.readdir(d_path, function(err, these_item_keys) {
+								//these_item_keys = getFiles(d_path);
+								//	for (var i=0; i<these_item_keys.length; i++) {
+								//for (var i = 0; i < these_item_keys.length; i++) {
+								//	var this_day = these_item_keys[i];
+								//	//console.log(item_keys);
+								//	item_keys.push(these_item_keys[i]);
+                                //}
+                                item_keys = getFiles(d_path);
                                 
                                 //for (var i=0; i<item_keys.length; i++) {
                                 //    console.log("   * " + item_keys[i]);
@@ -576,26 +583,33 @@ app.get('/', function(req, res){
                                 
                                 if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
                                 dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
-                                for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
-                                    var this_item_key = days[item_key_i];
-                                    dat[section][selected_year][selected_month][selected_day][this_item_key] = {};
-                                    var item_key_path = d_path + "/" + this_item_key;
-                                    dat[section][selected_year][selected_month][selected_day][this_item_key] = yaml.readSync(item_path, "utf8");
-                                    dat[section][selected_year][selected_month][selected_day][this_item_key].key = item_key;
+                                console.log("## ITEM KEYS: "+funct.to_ecmascript_value(item_keys));
+                                console.log("(ITEM KEYS.length:"+item_keys.length+")");
+								//console.log("## ITEMS:"+items);
+                                //for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
+								for (var item_key_i in item_keys) {
+                                    var item_key = item_keys[item_key_i];
+									var item_path = d_path + "/" + item_key;
+									//console.log("  - "+item_key);
+                                    dat[section][selected_year][selected_month][selected_day][item_key] = {};
+                                    dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+                                    dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
                                     //dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+									var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+									items.push(this_item);
+									for (var index in this_item) {
+										if (this_item.hasOwnProperty(index)) {
+											var val = this_item[index];
+											//var val = items[index];
+											//console.log("    " + index + ": " + val);
+										}
+									}
+									
                                 }
-                                items = dat[section][selected_year][selected_month][selected_day];
-                                console.log("* KEYS: "+item_keys);
-                                console.log("  * ITEMS:"+items);
+                                //TODO: find out why this doesn't work: items = dat[section][selected_year][selected_month][selected_day];
                                 //for (var key_i = 0; key_i < items.length; key_i++) {
                                 //    console.log("    * "+items[key_i]asdf (iterate object members)
                                 //}
-                                for (var index in items) {
-                                    if (items.hasOwnProperty(index)) {
-                                        var key = items[index];
-                                        console.log("    - " + 
-                                    }
-                                }
                             }
 						}
 					}
@@ -610,7 +624,7 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item: selected_item, sections: sections, years: years, months: months, days: days, items: items});
+	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: sections, years: years, months: months, days: days, objects: items});
 });
 
 //displays our signup page

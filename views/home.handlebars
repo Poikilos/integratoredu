@@ -15,58 +15,80 @@
 	</form>
 	{{/each}}
 	</div>
-	<div>Select Year: 
-	{{#each years}}
-	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
-	<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
-	<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
-	<input type="hidden" name="selected_item" id="selected_item" value="(none)" />
-	<input type="submit" value="{{this}}" />
-	</form>
-	{{/each}}
-	</div>
-	<div>Select Month:
-	{{#each months}}
-	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
-	<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
-	<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
-	<input type="hidden" name="selected_item" id="selected_item" value="(none)" />
-	<input type="submit" value="{{this}}" />
-	</form>
-	{{/each}}
-	</div>
-	<div>Select Day:
-	{{#each days}}
-	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
-	<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
-	<input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
-	<input type="hidden" name="selected_item" id="selected_item" value="(none)" />
-	<input type="submit" value="{{this}}" />
-	</form>
-	{{/each}}
-	</div>
-	
-	<div>Select event to edit:
 	<table>
-	{{#each items}}
 	<tr>
+	<td style="width:50%">
+		<div>Select Year: 
+		{{#each years}}
+		<form action="{{get_proxy_prefix_then_slash}}">
+		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+		<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
+		<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
+		<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+		<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+		<input type="submit" value="{{this}}" />
+		</form>
+		{{/each}}
+		</div>
+		<div>Select Month:
+		{{#each months}}
+		<form action="{{get_proxy_prefix_then_slash}}">
+		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+		<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+		<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
+		<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+		<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+		<input type="submit" value="{{this}}" />
+		</form>
+		{{/each}}
+		</div>
+		<div>Select Day:
+		{{#each days}}
+		<form action="{{get_proxy_prefix_then_slash}}">
+		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+		<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+		<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
+		<input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
+		<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+		<input type="submit" value="{{this}}" />
+		</form>
+		{{/each}}
+		</div>
+		
+		<div>Select event to edit:
+		<table>
+		<tr>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+			<td>Time</td>
+			<td>Name<br></td>
+			<td>Grade<br/>Level</td>
+		</tr>
+		</table>
+	</td>
 	<td>
-	<form action="{{get_proxy_prefix_then_slash}}">
-	<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-	<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
-	<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
-	<input type="hidden" name="selected_day" id="selected_day" value="{{@root.selected_day}}" />
-	<input type="hidden" name="selected_item" id="selected_item" value="{{this.key}}" />
-	<input type="submit" value="{{this.first_name}}" />
-	</form>
-	</td></tr>
-	{{/each}}
+		<table>
+		{{#each objects}}
+		<tr>
+			<td>{{!--
+			<form action="{{get_proxy_prefix_then_slash}}">
+			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+			<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
+			<input type="hidden" name="selected_day" id="selected_day" value="{{@root.selected_day}}" />
+			<input type="hidden" name="selected_item_key" id="selected_item_key" value="{{key}}" />
+			<input type="submit" value="{{key}}" />
+			</form>--}}
+			</td>
+			<td>{{heading}}</td>
+			<td>{{time}} </td>
+			<td> {{name}}</td>
+			<td>{{grade_level}}</td>
+		</tr>
+		{{/each}}
+		</table>
+	</td>
+	</tr>
 	</table>
 	</div>
     <nav class="navbar navbar-light bg-faded">
@@ -74,7 +96,7 @@
     <span> Year: {{selected_year}}</span>
     <span> Month: {{selected_month}}</span>
     <span> Day: {{selected_day}}</span>
-    <span> Item: {{selected_item}}</span>
+    <span> Item Key: {{selected_item_key}}</span>
 	</nav>
 	{{!--/groupContains--}}
 	{{#groupContains "student-microevent" user.username}}

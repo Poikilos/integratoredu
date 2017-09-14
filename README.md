@@ -17,6 +17,8 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* find out why items aren't being cached (see "find out why this doesn't work" in code)
+* Should block non-alphanumeric usernames from being created
 * Should save timestamp for each time day in entire data folder's dated filesystem is modified (see "if (selected_day)" in app.js), so doesn't relist files for day each time a backend ("read" group) page is loaded -- get timestamp with decimal seconds like: moment().format('X')
 * implement ".get_date()" function as field (get date from dated folder names)
 * for export, only fields from group_sheet_fields_names should be used (others displayed as gray on preview). SmartTuition requires (you have to email them the spreadsheet): Family ID, FirstName, LastName, GraveLevel, Total
@@ -122,6 +124,8 @@ sudo service apache2 restart
 ```
 
 Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5 such as on Ubuntu Xenial]):
+
+DON't ACTUALLY do any of the stuff below--just do ```npm install``` instead, which will read package names from package.json
 ```
 cd ~/Applications/integratoredu
 npm init

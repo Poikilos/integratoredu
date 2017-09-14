@@ -115,7 +115,14 @@ exports.localAuth = function (username, password) {
 
 
 
-
+exports.to_ecmascript_value = function (val) {
+	var result = "\"<error reading variable>\"";
+	if (val===null) result="null";
+	else if (val===undefined) result="null";
+	else if ((typeof val)=="string") result="\""+val+"\"";
+	else result = JSON.stringify(val);
+	return result;
+}
 
 
 	
