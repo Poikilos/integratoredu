@@ -1,12 +1,12 @@
 <!-- views/home.handlebars -->
 {{#if user}}
-	<div class="container-fluid">
+	<div class="container-fluid" style="width:100%">
 	{{!--#groupContains "attendance" user.username--}}
 	<nav class="navbar navbar-toggleable-md navbar-light bg-faded">
 	{{!--<a class="navbar-brand" href="#">Attendance</a>--}}
-	<div style="size:.8em; color:darkgray">This page should only be viewed by employees.
+	<div style="size:.8em; color:darkgray">Permission to view this should only be given to employees.
 	</div>
-	<div>
+	<div style="width:100%; text-align:right">
 	
 	{{#each sections}}
 	<form action="{{get_proxy_prefix_then_slash}}">
@@ -15,10 +15,14 @@
 	</form>
 	{{/each}}
 	</div>
-	<table>
+	<table style="width:100%">
 	<tr>
-	<td style="width:50%">
-		<div>Select Year: 
+	<td style="width:5%; vertical-align:top; horizontal-align:left">
+		<br/>
+		<br/>
+		<br/>
+		<br/>
+		<div>Year: 
 		{{#each years}}
 		<form action="{{get_proxy_prefix_then_slash}}">
 		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
@@ -30,7 +34,7 @@
 		</form>
 		{{/each}}
 		</div>
-		<div>Select Month:
+		<div>Month:
 		{{#each months}}
 		<form action="{{get_proxy_prefix_then_slash}}">
 		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
@@ -42,7 +46,7 @@
 		</form>
 		{{/each}}
 		</div>
-		<div>Select Day:
+		<div>Day:
 		{{#each days}}
 		<form action="{{get_proxy_prefix_then_slash}}">
 		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
@@ -55,19 +59,31 @@
 		{{/each}}
 		</div>
 		
-		<div>Select event to edit:
-		<table>
-		<tr>
-			<td>&nbsp;</td>
-			<td>&nbsp;</td>
-			<td>Time</td>
-			<td>Name<br></td>
-			<td>Grade<br/>Level</td>
-		</tr>
-		</table>
 	</td>
-	<td>
-		<table>
+	<td style="vertical-align:top; horizontal-align:left">
+	<div style="width:100%; text-align:center">
+	<br/>
+		<nav class="navbar navbar-light bg-faded" style="font-weight:bold">
+		{{!--<span> Section: {{section}}</span>--}}
+		<span> {{selected_year}}</span>
+		<span> {{selected_month}}</span>
+		<span> {{selected_day}}</span>
+		{{!--<span> Entry: {{selected_item_key}}</span>--}}
+		</nav>
+	</div>
+		{{!--<div>Select event to edit:--}}
+		<table class="table table-bordered" style="width:100%">
+		<thead class="thead-default">
+		<tr>
+			<td style="width:10em">&nbsp;</td>
+			<td style="width:8em">&nbsp;</td>
+			<td style="width:8em">Time</td>
+			<td style="">Name<br></td>
+			<td style="width:3em">Grade<br/>Level</td>
+			<td style="width:20em">Reason</td>
+		</tr>
+		</thead>
+		<tbody>
 		{{#each objects}}
 		<tr>
 			<td>{{!--
@@ -84,20 +100,15 @@
 			<td>{{time}} </td>
 			<td> {{name}}</td>
 			<td>{{grade_level}}</td>
+			<td>{{reason}}</td>
 		</tr>
 		{{/each}}
+		</tbody>
 		</table>
 	</td>
 	</tr>
 	</table>
 	</div>
-    <nav class="navbar navbar-light bg-faded">
-    <span> Section: {{section}}</span>
-    <span> Year: {{selected_year}}</span>
-    <span> Month: {{selected_month}}</span>
-    <span> Day: {{selected_day}}</span>
-    <span> Item Key: {{selected_item_key}}</span>
-	</nav>
 	{{!--/groupContains--}}
 	{{#groupContains "student-microevent" user.username}}
 		{{#groupContains "care" user.username}}

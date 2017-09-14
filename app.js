@@ -583,8 +583,8 @@ app.get('/', function(req, res){
                                 
                                 if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
                                 dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
-                                console.log("## ITEM KEYS: "+funct.to_ecmascript_value(item_keys));
-                                console.log("(ITEM KEYS.length:"+item_keys.length+")");
+                                //console.log("## ITEM KEYS: "+funct.to_ecmascript_value(item_keys));
+                                //console.log("(ITEM KEYS.length:"+item_keys.length+")");
 								//console.log("## ITEMS:"+items);
                                 //for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
 								for (var item_key_i in item_keys) {
