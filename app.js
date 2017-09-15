@@ -47,10 +47,16 @@ if (!Array.prototype.includes) { //if browser doesn't support ECMA 2016
     }
   });
 }
-    
+
+var contains = {};
+contains.call = function (haystack, needle) {
+	console.log("WARNING: contains.call is deprecated by integratoredu, so fun.contains.call (which is a reference to functions.js) should be used instead.");
+	return fun.contains.call(haystack, needle);
+}
+
 //We will be creating these two files shortly
 var config = require('./config.js'), //config file contains all tokens and other private info
-    funct = require('./functions.js'); //funct file contains our helper functions for our Passport and database work
+    fun = require('./functions.js'); //functions file contains our non-app-specific functions including those for our Passport and database work
 
 var app = express();
 
@@ -61,19 +67,52 @@ var data_dir_path = data_dir_name;
 
 //var prefill_enable = true;
 var prefill_data = {};
-var groups = {}; //which users can write to the section
+var create_groups = {}; //which users can create entries in which section
 //Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
-groups["student-microevent"] = ["care", "commute", "admin"];
-groups["care"] = ["care", "admin"];
-groups["commute"] = ["commute", "admin"];
-groups["accounting"] = ["accounting", "admin"];
-groups["admin"] = ["admin"];
-groups["attendance"] = ["attendance", "admin"];
+//create_groups["student-microevent"] = ["care", "commute", "admin"];
+create_groups["care"] = ["admin", "accounting", "care"];
+create_groups["commute"] = ["admin", "attendance", "commute"];
 
-var read_groups = {}; //which users can read all data from the section
+var read_groups = {}; //which users can read all data from which section
 //care should see care info (who has logged in or out of care so far), but commute user (students) should not see other commutes:
-read_groups["care"] = ["accounting", "admin", "care"];
-read_groups["commute"] = ["attendance", "admin"];
+read_groups["care"] = ["admin", "accounting", "care"];
+read_groups["commute"] = ["admin", "attendance"];
+
+var modify_groups = {}; //which users can modify existing data in which section
+modify_groups["care"] = ["admin", "accounting"]
+modify_groups["commute"] = ["admin", "attendance"]
+
+var _pinless_custom_time_groups_by_section = {};
+_pinless_custom_time_groups_by_section["care"] = ["admin", "care", "accounting"]; //allow these groups to enter a different time for care
+_pinless_custom_time_groups_by_section["commute"] = ["admin", "attendance"]; //if part of one of these groups
+
+function user_has_pinless_time(section, username) {
+	var result = false;
+	//for (var section_index in _pinless_custom_time_groups_by_section) {
+	//	if (_pinless_custom_time_groups_by_section.hasOwnProperty(section_index)) {
+			//var val = _pinless_custom_time_groups_by_section[section_index];
+	//		if (username in _pinless_custom_time_groups_by_section[section_index]) {
+	//			result = true;
+	//			break;
+	//		}
+			//for (var group_index in _pinless_custom_time_groups_by_section[section_index]) {
+			//	if (preload_table_names.hasOwnProperty(section_index)) {
+			//		var val = preload_table_names[section_index];
+			//	}
+			//}
+	//	}
+	//}
+	
+	if (section in _pinless_custom_time_groups_by_section) {
+		for (var group_index in _pinless_custom_time_groups_by_section[section]) { //for (group in _pinless_custom_time_groups_by_section["section"]) {
+			//var val = _pinless_custom_time_groups_by_section[section][group_index];
+			if (username in _pinless_custom_time_groups_by_section[section][group_index]) {
+				result = true;
+			}
+		}
+	}
+	return result;
+}
 
 var group_required_fields = {};
 group_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
@@ -84,13 +123,13 @@ group_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_leve
 group_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "pin"];
 
 var group_sheet_fields = {};
-group_sheet_fields["care"] = [".get_date()", "time", "first name", "last_name", "grade_level", "family_id", "chaperone"]
-group_sheet_fields["commute"] = [".get_date()", "time", "", "grade_level"]
+group_sheet_fields["care"] = ["=get_date_from_path()", "time", "first name", "last_name", "grade_level", "family_id", "chaperone"]
+group_sheet_fields["commute"] = ["=get_date_from_path()", "time", "", "grade_level"]
 
 var group_sheet_fields_names = {};
 group_sheet_fields_names["care"] = {};
 group_sheet_fields_names["care"]["time"] = "Time";
-group_sheet_fields_names["care"][".get_date()"] = "Date";
+group_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
 
 var group_fields_overrides = {};
 group_fields_overrides["care"] = {};
@@ -101,39 +140,12 @@ group_fields_overrides["commute"]["time"] = "stated_time";
 var fields_friendly_names = {};
 //fields_friendly_names["heading"] = "select arriving/departing";
 
-var never_save_fields = ["pin", "password", "transaction_type"];
+var never_save_fields = ["pin", "password", "transaction_section"];
 
-//function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
-//var contains = function(needle) {
-var contains = function(needle) {
-    // Per spec, the way to identify NaN is that it is not equal to itself
-    var findNaN = needle !== needle;
-    var indexOf;
+//these variables are not security groups--they only determine where to display security warning that only employees should be given the rights to current section
+var only_employee_read_sections = ["attendance"]; //NOTE: do not include care, since care (non-employee) user is allowed to list attendance
+var only_employee_modify_sections = ["attendance", "care"]; 
 
-    if(!findNaN && typeof Array.prototype.indexOf === 'function') {
-        indexOf = Array.prototype.indexOf;
-    } else {
-        indexOf = function(needle) {
-            var i = -1, index = -1;
-
-            for(i = 0; i < this.length; i++) {
-                var item = this[i];
-
-                if((findNaN && item !== item) || item === needle) {
-                    index = i;
-                    break;
-                }
-            }
-
-            return index;
-        };
-    }
-
-    return indexOf.call(this, needle) > -1;
-};
-//used like:
-//var myArray = [0,1,2];
-//var result = contains.call(myArray, needle); // true
 
 //===============PASSPORT===============
 
@@ -152,7 +164,7 @@ passport.deserializeUser(function(obj, done) {
 passport.use('local-login', new LocalStrategy(
   {passReqToCallback : true}, //allows us to pass back the request to the callback
   function(req, username, password, done) {
-    funct.localAuth(username, password)
+    fun.localAuth(username, password)
     .then(function (user) {
       if (user) {
         console.log("* LOGGED IN AS: " + user.username);
@@ -177,7 +189,7 @@ passport.use('local-signup', new LocalStrategy(
     if (password) {
         if (username) {
             if ( req.body.pin && (req.body.pin==config.it_pin)) {
-                funct.localReg(username, password)
+                fun.localReg(username, password)
                 .then(function (user) {
                     if (!user) {
 			console.log("* COULD NOT REGISTER");
@@ -253,6 +265,16 @@ app.use(function(req, res, next){
 //"It's important to note you're using express-handlebars, which is a plugin to allow using handlebars as a view engine in express. So the object you get from require('express-handlebars') won't be a Handlebars instance." - Tom Jardine-McNamara  on https://stackoverflow.com/questions/38488939/handlebars-registerhelper-error-registerhelper-is-not-a-function
 //Handlebars helpers added by Jake Gustafson
 
+function create_group_contains(section, username) {
+	return fun.contains.call(create_groups[section], username);
+}
+function read_group_contains(section, username) {
+	return fun.contains.call(read_groups[section], username);
+}
+function modify_group_contains(section, username) {
+	return fun.contains.call(modify_groups[section], username);
+}
+
 // Configure express to use handlebars templates
 var startTime = moment('08:10', "HH:mm").format("HH:mm");
 var endTime = moment('15:30', "HH:mm").format("HH:mm");
@@ -269,8 +291,38 @@ var hbs = exphbs.create({
 			else
 				return opts.inverse(this);
 		},
-		groupContains: function(haystack, needle, opts) {
-			if (contains.call(groups[haystack], needle))
+		createGroupContains: function(haystack, needle, opts) {
+			if (fun.contains.call(create_groups[haystack], needle))
+				return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		readGroupContains: function(haystack, needle, opts) {
+			if (fun.contains.call(read_groups[haystack], needle))
+				return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		modifyGroupContains: function(haystack, needle, opts) {
+			if (fun.contains.call(modify_groups[haystack], needle))
+				return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		//isReadableByUser: function(section, user, opts) {
+		//	if (fun.contains.call(, ))
+		//		return opts.fn(this);
+		//	else
+		//		return opts.inverse(this);
+		//},
+		isOnlyEmployeeReadSection: function(needle, opts) {
+			if (fun.contains.call(only_employee_read_sections, needle))
+				return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		isOnlyEmployeeModifySection: function(needle, opts) {
+			if (fun.contains.call(only_employee_modify_sections, needle))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -296,55 +348,61 @@ var hbs = exphbs.create({
 		},
 		prefill_form_field: function(fieldname, opts) {
 			if (fieldname in prefill_data)
-				return fieldname["prefill_data"]
+				return fieldname["prefill_data"];
 			else
 				return "";
 		},
 		prefill_name: function(opts) {
 			if (prefill_data.name)
-				return prefill_data.name
+				return prefill_data.name;
 			else
 				return "";
 		},
 		prefill_first_name: function(opts) {
 			if (prefill_data.first_name)
-				return prefill_data.first_name
+				return prefill_data.first_name;
 			else
 				return "";
 		},
 		prefill_last_name: function(opts) {
 			if (prefill_data.last_name)
-				return prefill_data.last_name
+				return prefill_data.last_name;
 			else
 				return "";
 		},
 		prefill_reason: function(opts) {
 			if (prefill_data.reason)
-				return prefill_data.reason
+				return prefill_data.reason;
 			else
 				return "";
 		},
 		prefill_chaperone: function(opts) {
 			if (prefill_data.chaperone)
-				return prefill_data.chaperone
+				return prefill_data.chaperone;
 			else
 				return "";
 		},
 		prefill_grade_level: function(opts) {
 			if (prefill_data.grade_level)
-				return prefill_data.grade_level
+				return prefill_data.grade_level;
 			else
 				return "";
 		},
 		prefill_family_id: function(opts) {
 			if (prefill_data.family_id)
-				return prefill_data.family_id
+				return prefill_data.family_id;
 			else
 				return "";
 		},
 		prefill_stated_time: function(opts) {
 			if (prefill_data.stated_time)
-				return prefill_data.stated_time
+				return prefill_data.stated_time;
+			else
+				return "";
+		},
+		prefill_stated_time: function(opts) {
+			if (prefill_data.stated_date)
+				return prefill_data.stated_date;
 			else
 				return "";
 		},
@@ -426,7 +484,7 @@ app.get('/', function(req, res){
 		for (var index in preload_table_names) {
 			if (preload_table_names.hasOwnProperty(index)) {
 				var val = preload_table_names[index];
-				if (contains.call(read_groups[val], req.user.username)) {
+				if (create_group_contains(val, req.user.username) || modify_group_contains(val, req.user.username) || read_group_contains(val, req.user.username)) {
 					sections.push(val);
 				}
 		// 		table_path = data_dir_path + "/" + val;
@@ -439,10 +497,10 @@ app.get('/', function(req, res){
 			}
 		}
 	}
-	if (is_not_blank(req.query.section)) {
+	if (fun.is_not_blank(req.query.section)) {
 		section = req.query.section;
 	}
-	else if (is_not_blank(req.session.section)) {
+	else if (fun.is_not_blank(req.session.section)) {
 		section = req.session.section;
 	}
 	if (req.query.selected_year) {
@@ -486,7 +544,7 @@ app.get('/', function(req, res){
 	if (section) {
 		req.session.section = section;
 		if (req.user && req.user.username) {
-			if (contains.call(read_groups[section], req.user.username)) {
+			if (read_group_contains(section, req.user.username)) {
 				var y_dir_name = moment().format("YYYY");
 				var m_dir_name = moment().format("MM");
 				var d_dir_name = moment().format("DD");
@@ -533,7 +591,7 @@ app.get('/', function(req, res){
 						}
 						else {
 							months = dat[section][selected_year]["months"];
-							//console.log("(got cached months: "+funct.to_ecmascript_value(months));
+							//console.log("(got cached months: "+fun.to_ecmascript_value(months));
 						}
                         if (months.length==1) {
                             selected_month = months[0];
@@ -583,7 +641,7 @@ app.get('/', function(req, res){
                                 
                                 if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
                                 dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
-                                //console.log("## ITEM KEYS: "+funct.to_ecmascript_value(item_keys));
+                                //console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
                                 //console.log("(ITEM KEYS.length:"+item_keys.length+")");
 								//console.log("## ITEMS:"+items);
                                 //for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
@@ -616,10 +674,12 @@ app.get('/', function(req, res){
 				}
 			}
 			else {
-				var error_string = " has no permission for " + section;
-				if (req.user && req.user.username) error_string = req.user.username + error_string;
-				else error_string = "Unauthenticated user" + error_string;
-				req.session.error = error_string;
+				//NOTE: Actually displaying the data cached above is managed separately, so do not show security errors below.
+				
+				//var error_string = " has no permission to read existing " + section;
+				//if (req.user && req.user.username) error_string = req.user.username + error_string;
+				//else error_string = "Unauthenticated user" + error_string;
+				//req.session.error = error_string;
 			}
 		}
 		
@@ -644,16 +704,13 @@ app.post('/local-reg', passport.authenticate('local-signup', {
 //	req.session.notice = msg;
 //}
 
-function is_not_blank(str) {
-	return str && str.trim();
-}
 
 app.post('/student-microevent', function(req, res){
 	//req is request, res is response
     if (("user" in req) && ("username" in req.user) ) {
-        console.log("* student-microevent by " + req.user.username);
+        console.log("* NOTE: student-microevent by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
-        if (is_not_blank(req.body.stated_time)) prefill_data.stated_time = req.body.stated_time.trim();
+        if (fun.is_not_blank(req.body.stated_time)) prefill_data.stated_time = req.body.stated_time.trim();
         else {
             delete prefill_data.stated_time;
         }
@@ -668,10 +725,10 @@ app.post('/student-microevent', function(req, res){
         var record = {};
         var custom_error = null;
         var missing_fields = "";
-        if (req.body.transaction_type in group_form_fields) {
-            for (var index in group_form_fields[req.body.transaction_type]) {
-                if (group_form_fields[req.body.transaction_type].hasOwnProperty(index)) {
-                    var key = group_form_fields[req.body.transaction_type][index];
+        if (req.body.transaction_section in group_form_fields) {
+            for (var index in group_form_fields[req.body.transaction_section]) {
+                if (group_form_fields[req.body.transaction_section].hasOwnProperty(index)) {
+                    var key = group_form_fields[req.body.transaction_section][index];
                     if (key in req.body) {
                         if (req.body[key]) {
                             prefill_data[key] = req.body[key];
@@ -686,12 +743,12 @@ app.post('/student-microevent', function(req, res){
             }
         }
         else {
-            custom_error = "unknown transaction_type '" + req.body.transaction_type + "'";
+            custom_error = "unknown transaction_section '" + req.body.transaction_section + "'";
         }
-        if (req.body.transaction_type in group_required_fields) {
-            for (var index in group_required_fields[req.body.transaction_type]) {
-                if (group_required_fields[req.body.transaction_type].hasOwnProperty(index)) {
-                    var key = group_required_fields[req.body.transaction_type][index];
+        if (req.body.transaction_section in group_required_fields) {
+            for (var index in group_required_fields[req.body.transaction_section]) {
+                if (group_required_fields[req.body.transaction_section].hasOwnProperty(index)) {
+                    var key = group_required_fields[req.body.transaction_section][index];
                     if (!(key in prefill_data)) {
                         custom_error = "MISSING: ";
                         if (missing_fields!="") missing_fields += ",";
@@ -706,8 +763,8 @@ app.post('/student-microevent', function(req, res){
             }
         }
         else {
-            console.log("WARNING: no required fields are specified for transaction_type '" + req.body.transaction_type + "'.");
-            custom_error = "unknown transaction_type '" + req.body.transaction_type + "'";
+            console.log("WARNING: no required fields are specified for transaction_section '" + req.body.transaction_section + "'.");
+            custom_error = "unknown transaction_section '" + req.body.transaction_section + "'";
         }
         
         //console.log(req.body.family_id);
@@ -718,14 +775,52 @@ app.post('/student-microevent', function(req, res){
             if ("chaperone" in prefill_data) record.chaperone=prefill_data.chaperone;
             record.grade_level=prefill_data.grade_level;
             if ("family_id" in prefill_data) record.family_id=prefill_data.family_id;
+			
+            if ("stated_date" in prefill_data) {
+				var stated_date_enable = false;
+				if (prefill_data.stated_date.length==10) {
+					if (prefill_data.stated_date.substring(2,3)=="/"
+						&& prefill_data.stated_date.substring(5,6)=="/"
+						&& fun.only_contains_any_char(prefill_data.stated_date.substring(0,2), "0123456789")
+						&& fun.only_contains_any_char(prefill_data.stated_date.substring(3,5), "0123456789")
+						&& fun.only_contains_any_char(prefill_data.stated_date.substring(6), "0123456789")
+						) {
+						//convert MM/DD/YYYY to YYYY-MM-DD:
+						original_stated_date = prefill_data.stated_date;
+						prefill_data.stated_date = prefill_data.stated_date.substring(6) + "-" + prefill_data.stated_date.substring(0,2) + "-" + prefill_data.stated_date.substring(3,5);
+						stated_date_enable = true;
+						console.log("  * NOTE: converted date " + original_stated_date + " to " + prefill_data.stated_date)
+					}
+					else if (prefill_data.stated_date.substring(4,5)=="-"
+						&& prefill_data.stated_date.substring(7,8)=="-"
+						&& fun.only_contains_any_char(prefill_data.stated_date.substring(0,4), "0123456789")
+						&& fun.only_contains_any_char(prefill_data.stated_date.substring(5,7), "0123456789")
+						&& fun.only_contains_any_char(prefill_data.stated_date.substring(8), "0123456789")
+						) {
+						stated_date_enable = true;
+					}
+				}
+				if (!stated_date_enable) {
+					custom_error = "custom date must be in YYYY-MM-DD or MM/DD/YYYY format";
+				}
+				else {
+					if (
+					record.stated_date=prefill_data.stated_date;
+				}
+			}
             //var uac_error = null;
             if ("stated_time" in prefill_data) {
                 if (prefill_data.stated_time.toLowerCase().match("am")
                     || prefill_data.stated_time.toLowerCase().match("pm") ) {
-                    if (  (req.body.transaction_type=="commute")  &&  ( (!req.body.pin) || (req.body.pin!=config.office_pin))  ) {
-                        custom_error="INCORRECT PIN: To use custom time, office must enter the correct pin (otherwise leave time blank for current).";
-                        if (!config.office_pin) custom_error = custom_error + "; website administrator has not yet set office_pin in config.json";
-                        custom_error = custom_error + ".";
+                    if (  (req.body.transaction_section=="commute") &&  ( (!req.body.pin) || (req.body.pin!=config.office_pin))  ) {
+						if (fun.contains.call(modify_groups["commute"], req.user.username)) {
+							console.log("  * NOTE: PIN skipped for commute custom time: "+req.user.username+" (this is ok since user has modify priv for this section)");
+						}
+						else {
+							custom_error="INCORRECT PIN: To use custom time, office must enter the correct pin (otherwise leave time blank for current).";
+							if (!config.office_pin) custom_error = custom_error + "; website administrator has not yet set office_pin in config.json";
+							custom_error = custom_error + ".";
+						}
                     }
                 }
                 else {
@@ -742,8 +837,9 @@ app.post('/student-microevent', function(req, res){
                 if (!fs.existsSync(data_dir_path))
                     fs.mkdirSync(data_dir_path);
                 var signs_dir_name = null;
-                if (contains.call(groups[req.body.transaction_type],req.user.username)) {
-                    signs_dir_name = req.body.transaction_type;
+				//NOTE: if key is specified, then check modify_groups instead, and edit same file instead.
+                if (fun.contains.call(create_groups[req.body.transaction_section],req.user.username)) {
+                    signs_dir_name = req.body.transaction_section;
                     var signs_dir_path = data_dir_path + "/" + signs_dir_name;
                     if (!fs.existsSync(signs_dir_path))
                         fs.mkdirSync(signs_dir_path);
@@ -785,7 +881,7 @@ app.post('/student-microevent', function(req, res){
                     for (var member in prefill_data) delete prefill_data[member];
                 }
                 else {
-                    req.session.error = "not authorized to modify data for '" + req.body.transaction_type + "'";
+                    req.session.error = "not authorized to modify data for '" + req.body.transaction_section + "'";
                     delete prefill_data.pin;
                     delete prefill_data.heading;
                 }
@@ -818,8 +914,13 @@ app.post('/login', passport.authenticate('local-login', {
 
 //logs user out of site, deleting them from the session, and returns to homepage
 app.get('/logout', function(req, res){
-  var name = req.user.username;
-  console.log("LOGGING OUT " + req.user.username)
+  if (req.user) {
+	var name = req.user.username;
+	console.log("LOGGING OUT " + req.user.username)
+  }
+  else {
+	console.log("* LOGGING OUT but no user is loaded (that's ok--server was probably reset since last page refresh, then user clicked logout)")
+  }
   req.logout();
   res.redirect(config.proxy_prefix_then_slash);
   req.session.notice = "You have successfully been logged out " + name + "!";

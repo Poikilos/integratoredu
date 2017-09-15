@@ -4,6 +4,9 @@ http://github.com/expertmm/integratoredu
 
 
 ## Changes
+* (2017-09-15) standardized UAC for pin vs no-pin custom date and custom time entry (istead of hard-coding name of group allowed to do no-pin)
+* (2017-09-15) renamed transaction_type to transaction_section for clarity
+* (2017-09-15) simplified but expanded potential of UAC by limiting group names to section names but having separate create_groups, read_groups, and modify_groups.
 * (2017-09-01) do not allow making same username with different case, and allow different case when logging in
 * (2017-08-31) condense and clean up web gui; make use of bootstrap classes
 * (2017-08-31) trimmed redundant code from form handling now that form validation code and UAC are both based on predefined transaction_type and respective form specification

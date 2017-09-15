@@ -112,8 +112,57 @@ exports.localAuth = function (username, password) {
 
 
 ////// GENERAL FUNCTIONS ///////
+//function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
+//var contains = function(needle) {
+exports.contains = function(needle) {
+    // Per spec, the way to identify NaN is that it is not equal to itself
+    var findNaN = needle !== needle;
+    var indexOf;
+
+    if(!findNaN && typeof Array.prototype.indexOf === 'function') {
+        indexOf = Array.prototype.indexOf;
+    } else {
+        indexOf = function(needle) {
+            var i = -1, index = -1;
+
+            for(i = 0; i < this.length; i++) {
+                var item = this[i];
+
+                if((findNaN && item !== item) || item === needle) {
+                    index = i;
+                    break;
+                }
+            }
+
+            return index;
+        };
+    }
+
+    return indexOf.call(this, needle) > -1;
+};
+//used like:
+//fun = require('./functions.js');
+//var myArray = [0,1,2];
+//var result = fun.contains.call(myArray, needle); // true
+
+///returns: whether the haystack only contains characters from needle_chars_as_string
+///(false if haystack has any other characters)
+exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
+	var result = true;
+	for (i = 0; i < needle_chars_as_string.length; i++) {
+		//if criteria does not contain haystack (yes, this is correct), return false
+		if (!exports.contains.call(needle_chars_as_string, haystack.substring(i,i+1))) {
+			result = false;
+			break;
+		}
+	}
+	return result;
+}
 
 
+exports.is_not_blank = function (str) {
+	return str && str.trim();
+}
 
 exports.to_ecmascript_value = function (val) {
 	var result = "\"<error reading variable>\"";

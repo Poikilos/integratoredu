@@ -1,13 +1,22 @@
 <!-- views/home.handlebars -->
 {{#if user}}
 	<div class="container-fluid" style="width:100%">
-	{{!--#groupContains "attendance" user.username--}}
-	<nav class="navbar navbar-toggleable-md navbar-light bg-faded">
-	{{!--<a class="navbar-brand" href="#">Attendance</a>--}}
-	<div style="size:.8em; color:darkgray">Permission to view this should only be given to employees.
-	</div>
+	{{#if section}}
+		{{#readGroupContains section user.username}}
+			{{#isOnlyEmployeeReadSection section}}
+			<div style="size:.8em; color:darkgray">Permission to view {{section}} this should only be given to employees.
+			</div>
+			{{/isOnlyEmployeeReadSection}}
+		{{else}}
+			{{#modifyGroupContains section user.username}}
+				{{#isOnlyEmployeeModifySection section}}
+				<div style="size:.8em; color:darkgray">Permission to modify {{section}} should only be given to employees.
+				</div>
+				{{/isOnlyEmployeeModifySection}}
+			{{/modifyGroupContains}}
+		{{/readGroupContains}}
+	{{/if}}
 	<div style="width:100%; text-align:right">
-	
 	{{#each sections}}
 	<form action="{{get_proxy_prefix_then_slash}}">
 	<input type="hidden" name="section" id="section" value="{{this}}"/>
@@ -15,6 +24,9 @@
 	</form>
 	{{/each}}
 	</div>
+	{{#createGroupContains "attendance" user.username}}
+	{{!--<nav class="navbar navbar-toggleable-md navbar-light bg-faded"></nav>--}}
+	{{!--<a class="navbar-brand" href="#">Attendance</a>--}}
 	<table style="width:100%">
 	<tr>
 	<td style="width:5%; vertical-align:top; horizontal-align:left">
@@ -109,134 +121,138 @@
 	</tr>
 	</table>
 	</div>
-	{{!--/groupContains--}}
-	{{#groupContains "student-microevent" user.username}}
-		{{#groupContains "care" user.username}}
-		<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
-			<input type="hidden" name="transaction_type" value="care"/>
-			<div class="form-group">
-				<label class="control-label col-sm-2" >Student First Name:</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="first_name" value="{{prefill_first_name}}"/>
-                </div>
-			</div>
-			<div class="form-group">
-				<label class="control-label col-sm-2" >Student Last Name:</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="last_name" value="{{prefill_last_name}}"/>
-                </div>
-			</div>
-			<div class="form-group">
-				<label class="control-label col-sm-2" >Grade:</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="grade_level" value="{{prefill_grade_level}}"/>
-                </div>
-			</div>
-			<div class="form-group">
-				<label class="control-label col-sm-2" >Pickup/Dropoff by:</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="chaperone" value="{{prefill_chaperone}}"/>
-                </div>
-			</div>
-
-			<div class="form-group">
-				<label class="control-label col-sm-2" style="color:darkgray">Time (blank for auto, else include AM/PM):</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="stated_time" value="{{prefill_stated_time}}"/>
-                </div>
-			</div>
-			<div class="form-group">
-				<label class="control-label col-sm-2" style="color:darkgray">Family ID (if applicable):</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="family_id" value="{{prefill_family_id}}"/>
-                </div>
-			</div>
-			<div class="form-group">
-				<div class="col-sm-10" style="text-align:center">
-                    <input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
-                </div>
-			</div>			
+	{{/createGroupContains}}
+	{{#createGroupContains "care" user.username}}
+	<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
+		<input type="hidden" name="transaction_section" value="care"/>
 		<div class="form-group">
-		{{#is_after_school}}
-		<div class="col-sm-10" style="text-align:center" style="font-style:italic;">Sign student out</div>
-		{{else}}
-		<div class="col-sm-10" style="text-align:center" style="font-style:italic;">Sign student in</div>
-		{{/is_after_school}}
+			<label class="control-label col-sm-2" >Student First Name:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="first_name" value="{{prefill_first_name}}"/>
+			</div>
 		</div>
-            <span style="color:darkgray">{{show_time}}</span>
-		</form>
-		
-		{{/groupContains}}
-		{{#groupContains "commute" user.username}}
-		<!--<h1>Student Commute</h1>-->
-		<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
-			<input type="hidden" name="transaction_type" value="commute"/>
-			<div class="form-group">
-				<label class="control-label col-sm-2" >Student Name:</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="name" value="{{prefill_name}}"/>
-                </div>
-				<label class="control-label col-sm-2" > &nbsp;Grade:</label>
-				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="grade_level" value="{{prefill_grade_level}}"/>
-                </div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" >Student Last Name:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="last_name" value="{{prefill_last_name}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" >Grade:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" >Pickup/Dropoff by:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="chaperone" value="{{prefill_chaperone}}"/>
+			</div>
+		</div>
+
+		<div class="form-group">
+			<label class="control-label col-sm-2" style="color:darkgray">Time (blank for auto, else include AM/PM):</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" style="color:darkgray">Time (blank for auto, else include MM/DD/YYYY):</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="stated_date" value="{{prefill_stated_date}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" style="color:darkgray">Family ID (if applicable):</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="family_id" value="{{prefill_family_id}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<div class="col-sm-10" style="text-align:center">
+				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+			</div>
+		</div>			
+	<div class="form-group">
+	{{#is_after_school}}
+	<div class="col-sm-10" style="text-align:center" style="font-style:italic;">Sign student out</div>
+	{{else}}
+	<div class="col-sm-10" style="text-align:center" style="font-style:italic;">Sign student in</div>
+	{{/is_after_school}}
+	</div>
+		<span style="color:darkgray">{{show_time}}</span>
+	</form>
+	
+	{{/createGroupContains}}
+	{{#createGroupContains "commute" user.username}}
+	<!--<h1>Student Commute</h1>-->
+	<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
+		<input type="hidden" name="transaction_section" value="commute"/>
+		<div class="form-group">
+			<label class="control-label col-sm-2" >Student Name:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="name" value="{{prefill_name}}"/>
+			</div>
+			<label class="control-label col-sm-2" > &nbsp;Grade:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="grade_level" value="{{prefill_grade_level}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" >Heading:</label>
+			<div class="col-sm-10">
+				<div class="btn-group" data-toggle="buttons">
+					<label class="btn btn-primary"><input type="radio" name="heading" value="in"/>in</label>
+					<label class="btn btn-primary"><input type="radio" name="heading" value="out"/>out</label>
+				</div>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="control-label col-sm-2" >Reason:</label>
+			<div class="col-sm-10">
+				<input class="form-control" type="text" name="reason" value="{{prefill_reason}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<div class="col-sm-10" style="text-align:center">
+				<input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
+				<a data-toggle="collapse" href="#custom-time" class="btn btn-default btn-md" role="button">More Options</a>
+			</div>
+		</div>
+		<div name="custom-time" class="collapse" id="custom-time">
+			<div style="text-align:center; color:darkgray">{{show_time}}
 			</div>
 			<div class="form-group">
-                <label class="control-label col-sm-2" >Heading:</label>
-                <div class="col-sm-10">
-                    <div class="btn-group" data-toggle="buttons">
-                        <label class="btn btn-primary"><input type="radio" name="heading" value="in"/>in</label>
-                        <label class="btn btn-primary"><input type="radio" name="heading" value="out"/>out</label>
-                    </div>
-                </div>
-            </div>
-			<div class="form-group">
-				<label class="control-label col-sm-2" >Reason:</label>
+				<label class="control-label col-sm-2" style="color:darkgray">Custom Time:</label>
 				<div class="col-sm-10">
-                    <input class="form-control" type="text" name="reason" value="{{prefill_reason}}"/>
-                </div>
+					<input class="form-control" type="text" name="stated_time" value="{{prefill_stated_time}}"/>
+				</div>
 			</div>
 			<div class="form-group">
-                <div class="col-sm-10" style="text-align:center">
-                    <input type="submit" class="btn btn-primary btn-sm" value="Enter"/>
-                    <a data-toggle="collapse" href="#custom-time" class="btn btn-default btn-md" role="button">More Options</a>
-                </div>
+				<label class="control-label col-sm-2" style="color:darkgray">override pin:</label>
+				<div class="col-sm-10">
+					<input class="form-control" type="password" name="pin" value=""/>
+				</div>
 			</div>
-			<div name="custom-time" class="collapse" id="custom-time">
-                <div style="text-align:center; color:darkgray">{{show_time}}
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-sm-2" style="color:darkgray">Custom Time:</label>
-                    <div class="col-sm-10">
-                        <input class="form-control" type="text" name="stated_time" value="{{prefill_stated_time}}"/>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-sm-2" style="color:darkgray">override pin:</label>
-                    <div class="col-sm-10">
-                        <input class="form-control" type="password" name="pin" value=""/>
-                    </div>
-                </div>
-            </div>
-		</form>
-		{{/groupContains}}
-        <br/>
-        {{#groupContains "admin" user.username}}
-        <div class="panel panel-default">
-            <div class="panel-heading">
-            <h3 class="panel-title">Student Commuting Records</h3>
-            </div>
-            <div class="panel-body">
-            <p></p>
-            <!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
-            </div>
-        </div>
-        {{/groupContains}}
-	{{/groupContains}}{{!--end student-microevent--}}
+		</div>
+	</form>
+	{{/createGroupContains}}
+	<br/>
+	{{#readGroupContains "commute" user.username}}
+	<div class="panel panel-default">
+		<div class="panel-heading">
+		<h3 class="panel-title">Student Commuting Records</h3>
+		</div>
+		<div class="panel-body">
+		<p></p>
+		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
+		</div>
+	</div>
+	{{/readGroupContains}}
 	</div><!--end jumbotron-->
-	{{#groupContains "admin" user.username}}
+	{{#modifyGroupContains "commute" user.username}}
 	<div class="jumbotron">
-		<h1>Administration</h1>
+		<h1>Commute Editor</h1>
 		<p>(not yet implemented)</p>
 	</div>
 	<br/>
@@ -249,11 +265,11 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>
 	</div>
-	{{/groupContains}}
-	{{#groupContains "accounting" user.username}}
+	{{/modifyGroupContains}}
+	{{#modifyGroupContains "care" user.username}}
 	<div class="jumbotron">
 		<h1>Accounting</h1>
-		<p>Before/After School Care Data (not yet implemented)</p>
+		<p>Before/After School Care Data editing (not yet implemented)</p>
 	</div>
 	<br/>
 	<div class="panel panel-default">
@@ -265,7 +281,7 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>
 	</div>
-	{{/groupContains}}
+	{{/modifyGroupContains}}
 {{else}}
   <div class="jumbotron">
     <h1>IntegratorEdu</h1>
