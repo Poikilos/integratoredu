@@ -20,6 +20,8 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* history viewing should use res.write so that all sections can use the same handlebars code
+* bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/
 * Change Y/M/D selection to highlight current one using helper: https://stackoverflow.com/questions/13046401/how-to-set-selected-select-option-in-handlebars-template
 * Change section chooser from button to drop-down: https://www.w3schools.com/bootstrap/bootstrap_dropdowns.asp
 * find out why items aren't being cached (see "find out why this doesn't work" in code)
