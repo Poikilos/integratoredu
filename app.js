@@ -804,7 +804,8 @@ app.post('/student-microevent', function(req, res){
 					custom_error = "custom date must be in YYYY-MM-DD or MM/DD/YYYY format";
 				}
 				else {
-					if (
+					//if (prefill_data.stated_date) {
+					//}
 					record.stated_date=prefill_data.stated_date;
 				}
 			}
