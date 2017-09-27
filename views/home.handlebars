@@ -24,7 +24,13 @@
 	</form>
 	{{/each}}
 	</div>
-	{{#createGroupContains "attendance" user.username}}
+	{{#readGroupContains "commute" user.username}}
+	<div class="panel panel-default">
+		<div class="panel-heading">
+		<h3 class="panel-title">Student Commuting Records</h3>
+		</div>
+		<div class="panel-body">
+	
 	{{!--<nav class="navbar navbar-toggleable-md navbar-light bg-faded"></nav>--}}
 	{{!--<a class="navbar-brand" href="#">Attendance</a>--}}
 	<table style="width:100%">
@@ -81,6 +87,14 @@
 		<span> {{selected_month}}</span>
 		<span> {{selected_day}}</span>
 		{{!--<span> Entry: {{selected_item_key}}</span>--}}
+		{{#if selected_day}}
+		{{else}}
+            {{#if_eq section "commute"}}
+            &nbsp;(select a day)
+            {{else}}
+            (click commute above to list entries)
+            {{/if_eq}}
+		{{/if}}
 		</nav>
 	</div>
 		{{!--<div>Select event to edit:--}}
@@ -121,7 +135,13 @@
 	</tr>
 	</table>
 	</div>
-	{{/createGroupContains}}
+	
+		<p></p>
+		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
+		</div>
+	</div>
+	
+	{{/readGroupContains}}
 	{{#createGroupContains "care" user.username}}
 	<form class="form-horizontal" id="student-microevent" action="{{get_proxy_prefix_then_slash}}student-microevent" method="post">
 		<input type="hidden" name="transaction_section" value="care"/>
@@ -157,7 +177,7 @@
 			</div>
 		</div>
 		<div class="form-group">
-			<label class="control-label col-sm-2" style="color:darkgray">Time (blank for auto, else include MM/DD/YYYY):</label>
+			<label class="control-label col-sm-2" style="color:darkgray">Date (blank for auto, else include MM/DD/YYYY):</label>
 			<div class="col-sm-10">
 				<input class="form-control" type="text" name="stated_date" value="{{prefill_stated_date}}"/>
 			</div>
@@ -238,40 +258,20 @@
 	</form>
 	{{/createGroupContains}}
 	<br/>
-	{{#readGroupContains "commute" user.username}}
-	<div class="panel panel-default">
-		<div class="panel-heading">
-		<h3 class="panel-title">Student Commuting Records</h3>
-		</div>
-		<div class="panel-body">
-		<p></p>
-		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
-		</div>
-	</div>
-	{{/readGroupContains}}
 	</div><!--end jumbotron-->
 	{{#modifyGroupContains "commute" user.username}}
 	<div class="jumbotron">
-		<h1>Commute Editor</h1>
-		<p>(not yet implemented)</p>
+		<p>(Commute editing not yet implemented)</p>
 	</div>
 	<br/>
-	<div class="panel panel-default">
-		<div class="panel-heading">
-		<h3 class="panel-title">Profile</h3>
-		</div>
-		<div class="panel-body">
-		<p>Username: {{user.username}}</p>
-		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
-		</div>
-	</div>
 	{{/modifyGroupContains}}
 	{{#modifyGroupContains "care" user.username}}
 	<div class="jumbotron">
-		<h1>Accounting</h1>
-		<p>Before/After School Care Data editing (not yet implemented)</p>
+		<p>(Before/After School Care Data editing not yet implemented)</p>
 	</div>
 	<br/>
+	{{/modifyGroupContains}}
+
 	<div class="panel panel-default">
 		<div class="panel-heading">
 		<h3 class="panel-title">Profile</h3>
@@ -281,7 +281,6 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>
 	</div>
-	{{/modifyGroupContains}}
 {{else}}
   <div class="jumbotron">
     <h1>IntegratorEdu</h1>

@@ -143,8 +143,8 @@ var fields_friendly_names = {};
 var never_save_fields = ["pin", "password", "transaction_section"];
 
 //these variables are not security groups--they only determine where to display security warning that only employees should be given the rights to current section
-var only_employee_read_sections = ["attendance"]; //NOTE: do not include care, since care (non-employee) user is allowed to list attendance
-var only_employee_modify_sections = ["attendance", "care"]; 
+var only_employee_read_sections = ["commute"]; //NOTE: do not include care, since care (non-employee) user is allowed to list attendance
+var only_employee_modify_sections = ["commute", "care"]; 
 
 
 //===============PASSPORT===============
