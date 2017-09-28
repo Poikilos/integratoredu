@@ -34,30 +34,53 @@
 
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav">
-            <li>
-              {{#if user}}
-                <p class="navbar-text">
-                  {{!--<strong>Hi,</strong>--}}
-                  {{!--<img src="{{user.avatar}}" width="20" height="20">--}}
-                  {{user.username}} on IntegratorEdu
-                </p>
-                </li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                  <li>
-                    <a href="{{get_proxy_prefix_then_slash}}logout">Log Out</a>
-                  </li>
-              {{else}}
-                <p class="navbar-text">
-                IntegratorEdu
-                </p>
-                {{!--<a href="{{get_proxy_prefix_then_slash}}login">Log In to IntegratorEdu</a>--}}
-                </li>
-              {{/if}}
-          </ul>
-        </div><!-- /.navbar-collapse -->
-      </div><!-- /.container-fluid -->
+			<span class="navbar-brand">IntegratorEdu</span>
+		<ul class="nav navbar-nav">
+			{{#if user}}
+			{{#each sections}}
+			{{#if_eq this @root.section}}
+			<li class="nav-item active"><p class="navbar-text">
+			{{friendlySectionName this}}
+			</p></li>
+			{{else}}
+			<li class="nav-item"><p class="navbar-text">
+			<a href="{{get_proxy_prefix_then_slash}}?section={{this}}">{{friendlySectionName this}}</a>
+			</p></li>
+			{{/if_eq}}
+			{{/each}}
+			
+			<li><p class="navbar-text">:
+			</li>
+			
+			{{#each user_selectable_modes}}
+			{{#if_eq this @root.mode}}
+			<li class="nav-item active"><p class="navbar-text">
+			{{friendlyModeName this}}
+			</p></li>
+			{{else}}
+			<li class="nav-item"><p class="navbar-text">
+			<a href="{{get_proxy_prefix_then_slash}}?section={{@root.section}}&mode={{this}}">{{friendlyModeName this}}</a>
+			</p></li>
+			{{/if_eq}}
+			{{/each}}
+		</ul>
+                
+		<ul class="nav navbar-nav navbar-right">
+		<li class="navbar-text">
+		{{user.username}}
+		</li>
+		<li>
+		<a href="{{get_proxy_prefix_then_slash}}logout">Log Out</a>
+		</li>
+		{{else}}
+		<p class="navbar-text">
+		</p>
+		{{!--<a href="{{get_proxy_prefix_then_slash}}login">Log In to IntegratorEdu</a>--}}
+		</li>
+		{{/if}}
+		</ul>
+        </div>{{!--end navbar-collapse--}}
+      </div>{{!--end container-fluid--}}
     </nav>
 
     {{#if error}}

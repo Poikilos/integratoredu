@@ -1,8 +1,1 @@
-	{{#each sections}}
-	<input name="section-{{this}}" id="section-{{this}}" value="{{this}}" type="submit" />
-    <script>
-        $("#section-{{this}}").click(function(){
-            $.post("{{get_proxy_prefix_then_slash}}?section={{this}}&select_year={{select_year}}")
-        });
-    </script>
-	{{/each}}
+see "1.Node.js Caveats.md" under "Can't prefill form using mustaches"

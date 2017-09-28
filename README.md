@@ -4,6 +4,8 @@ http://github.com/expertmm/integratoredu
 
 
 ## Changes
+* (2017-09-28) correct user_has_pinless_time function
+* (2017-09-28) [URGENT security fix] remove prefill globals
 * (2017-09-15) standardized UAC for pin vs no-pin custom date and custom time entry (istead of hard-coding name of group allowed to do no-pin)
 * (2017-09-15) renamed transaction_type to transaction_section for clarity
 * (2017-09-15) simplified but expanded potential of UAC by limiting group names to section names but having separate create_groups, read_groups, and modify_groups.
@@ -20,6 +22,9 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* Reading (incorrectly formatted?) YAML can crash app on line: yaml.readSync(item_path, "utf8");
+* Edit button should prefill the "create" form and additionally store date and primary key in hidden fields (pass along and use all prefills the same way prefill_mode is used correctly, ensuring variables are either defined or passed along in prefill_data class)
+* validate date by exploding by slash or hyphen, then adding zero padding.
 * history viewing should use res.write so that all sections can use the same handlebars code
 * bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/
 * Change Y/M/D selection to highlight current one using helper: https://stackoverflow.com/questions/13046401/how-to-set-selected-select-option-in-handlebars-template

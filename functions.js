@@ -149,7 +149,7 @@ exports.contains = function(needle) {
 ///(false if haystack has any other characters)
 exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
 	var result = true;
-	for (i = 0; i < needle_chars_as_string.length; i++) {
+	for (i = 0; i < haystack.length; i++) {
 		//if criteria does not contain haystack (yes, this is correct), return false
 		if (!exports.contains.call(needle_chars_as_string, haystack.substring(i,i+1))) {
 			result = false;
@@ -162,6 +162,10 @@ exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
 
 exports.is_not_blank = function (str) {
 	return str && str.trim();
+}
+
+exports.is_blank = function (str) {
+	return (str===undefined) || (str===null) || (!str) || (!str.trim());
 }
 
 exports.to_ecmascript_value = function (val) {

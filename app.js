@@ -62,11 +62,29 @@ var app = express();
 
 if (!config.proxy_prefix_then_slash) proxy_prefix_with_slash = "/";
 
+
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
 
-//var prefill_enable = true;
-var prefill_data = {};
+var sections = ["care", "commute"];
+var friendly_section_names = {"care":"Extended Care","commute":"Commute"};
+
+var modes = ["create", "read", "modify"];
+var transient_modes = ["modify"]; //modes only used during operation of other modes
+var transient_modes_return = {};
+transient_modes_return["modify"] = "read";
+
+var friendly_mode_names = {};
+friendly_mode_names["create"] = "Entry Form";
+friendly_mode_names["read"] = "History";
+friendly_mode_names["modify"] = "Edit";
+
+var default_mode_by_user = {};
+default_mode_by_user["care"] = "create";
+default_mode_by_user["commute"] = "create";
+default_mode_by_user["attendance"] = "read";
+default_mode_by_user["accounting"] = "read";
+
 var create_groups = {}; //which users can create entries in which section
 //Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
 //create_groups["student-microevent"] = ["care", "commute", "admin"];
@@ -74,7 +92,7 @@ create_groups["care"] = ["admin", "accounting", "care"];
 create_groups["commute"] = ["admin", "attendance", "commute"];
 
 var read_groups = {}; //which users can read all data from which section
-//care should see care info (who has logged in or out of care so far), but commute user (students) should not see other commutes:
+//care should see care info (who has logged in or out of care so far) but NOT costs, but commute user (students) should not see other commutes:
 read_groups["care"] = ["admin", "accounting", "care"];
 read_groups["commute"] = ["admin", "attendance"];
 
@@ -95,21 +113,22 @@ function user_has_pinless_time(section, username) {
 	//			result = true;
 	//			break;
 	//		}
-			//for (var group_index in _pinless_custom_time_groups_by_section[section_index]) {
-			//	if (preload_table_names.hasOwnProperty(section_index)) {
-			//		var val = preload_table_names[section_index];
+			//for (var group_index in _pinless_custom_time_groups_by_section[group_index]) {
+			//	if (_pinless_custom_time_groups_by_section.hasOwnProperty(group_index)) {
+			//		var val = _pinless_custom_time_groups_by_section[group_index];
 			//	}
 			//}
 	//	}
 	//}
 	
 	if (section in _pinless_custom_time_groups_by_section) {
-		for (var group_index in _pinless_custom_time_groups_by_section[section]) { //for (group in _pinless_custom_time_groups_by_section["section"]) {
+		//for (var group_index in _pinless_custom_time_groups_by_section[section]) { //for (group in _pinless_custom_time_groups_by_section["section"]) {
 			//var val = _pinless_custom_time_groups_by_section[section][group_index];
-			if (username in _pinless_custom_time_groups_by_section[section][group_index]) {
-				result = true;
-			}
+		//if (contains.call(_pinless_custom_time_groups_by_section[section][group_index], username)) {
+		if (contains.call(_pinless_custom_time_groups_by_section[section], username)) {
+			result = true;
 		}
+		//}
 	}
 	return result;
 }
@@ -119,12 +138,24 @@ group_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_
 group_required_fields["commute"] = ["name", "grade_level", "heading", "reason"];
 
 var group_form_fields = {};
-group_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time"];
-group_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "pin"];
+group_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
+group_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
+
 
 var group_sheet_fields = {};
-group_sheet_fields["care"] = ["=get_date_from_path()", "time", "first name", "last_name", "grade_level", "family_id", "chaperone"]
-group_sheet_fields["commute"] = ["=get_date_from_path()", "time", "", "grade_level"]
+group_sheet_fields["care"] = ["=get_date_from_path()", "time", "first_name", "last_name", "grade_level", "family_id", "chaperone", "modified_by"]
+group_sheet_fields["commute"] = ["=get_date_from_path()", "time", "name", "grade_level"]
+
+var group_sheet_fields_friendly_names = {}
+group_sheet_fields_friendly_names["care"] = {}
+group_sheet_fields_friendly_names["care"]["=get_date_from_path()"] = "Date";
+group_sheet_fields_friendly_names["care"]["first_name"] = "First";
+group_sheet_fields_friendly_names["care"]["last_name"] = "Last";
+group_sheet_fields_friendly_names["care"]["grade_level"] = "Grade Level";
+group_sheet_fields_friendly_names["commute"] = {}
+group_sheet_fields_friendly_names["commute"]["=get_date_from_path()"] = "Date";
+group_sheet_fields_friendly_names["commute"]["grade_level"] = "Grade Level";
+
 
 var group_sheet_fields_names = {};
 group_sheet_fields_names["care"] = {};
@@ -134,13 +165,15 @@ group_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
 var group_fields_overrides = {};
 group_fields_overrides["care"] = {};
 group_fields_overrides["care"]["time"] = "stated_time";
+group_fields_overrides["care"]["date"] = "stated_date";
 group_fields_overrides["commute"] = {};
 group_fields_overrides["commute"]["time"] = "stated_time";
+group_fields_overrides["commute"]["date"] = "stated_date";
 
 var fields_friendly_names = {};
 //fields_friendly_names["heading"] = "select arriving/departing";
 
-var never_save_fields = ["pin", "password", "transaction_section"];
+var never_save_fields = ["pin", "password", "section", "mode"]; //and formerly "transaction_section"
 
 //these variables are not security groups--they only determine where to display security warning that only employees should be given the rights to current section
 var only_employee_read_sections = ["commute"]; //NOTE: do not include care, since care (non-employee) user is allowed to list attendance
@@ -291,6 +324,46 @@ var hbs = exphbs.create({
 			else
 				return opts.inverse(this);
 		},
+		if_formula: function(a, opts) {
+			if (a.startsWith("="))
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		get_member: function(a, name, opts) {
+			return (name in a) ? a.name : "";
+		},
+		eachProperty: function(context, options) {
+			//see Ben on https://stackoverflow.com/questions/9058774/handlebars-mustache-is-there-a-built-in-way-to-loop-through-the-properties-of
+			var ret = "";
+			for(var prop in context)
+			{
+				ret = ret + options.fn({property:prop,value:context[prop]});
+			}
+			return ret;
+		},
+		user_has_pinless_time: function(section, username, opts) {
+			if (user_has_pinless_time(section, username)) // Or === 
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		if_undefined: function(a, opts) {
+			//NOTE: Never use this, since sending undefined variables to render causes failure to render!
+			//      Ensure variable exists, and then use is_blank instead.
+			//console.log("* checking if_eq while user is " + a);
+			if (a === undefined) // Or === 
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		if_blank: function(a, opts) {
+			//console.log("* checking if_eq while user is " + a);
+			if (fun.is_blank(a))
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
 		createGroupContains: function(haystack, needle, opts) {
 			if (fun.contains.call(create_groups[haystack], needle))
 				return opts.fn(this);
@@ -308,6 +381,18 @@ var hbs = exphbs.create({
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
+		},
+		friendlyModeName: function(needle, opts) {
+			if (needle in friendly_mode_names)
+				return friendly_mode_names[needle];
+			else
+				return needle;
+		},
+		friendlySectionName: function(needle, opts) {
+			if (needle in friendly_section_names)
+				return friendly_section_names[needle];
+			else
+				return needle;
 		},
 		//isReadableByUser: function(section, user, opts) {
 		//	if (fun.contains.call(, ))
@@ -345,66 +430,6 @@ var hbs = exphbs.create({
 			//return "Time of last change: " + moment().format("HH:mm");
  			//return moment().format("h:mm a") + " (will be updated on refresh or enter)";
             return "";
-		},
-		prefill_form_field: function(fieldname, opts) {
-			if (fieldname in prefill_data)
-				return fieldname["prefill_data"];
-			else
-				return "";
-		},
-		prefill_name: function(opts) {
-			if (prefill_data.name)
-				return prefill_data.name;
-			else
-				return "";
-		},
-		prefill_first_name: function(opts) {
-			if (prefill_data.first_name)
-				return prefill_data.first_name;
-			else
-				return "";
-		},
-		prefill_last_name: function(opts) {
-			if (prefill_data.last_name)
-				return prefill_data.last_name;
-			else
-				return "";
-		},
-		prefill_reason: function(opts) {
-			if (prefill_data.reason)
-				return prefill_data.reason;
-			else
-				return "";
-		},
-		prefill_chaperone: function(opts) {
-			if (prefill_data.chaperone)
-				return prefill_data.chaperone;
-			else
-				return "";
-		},
-		prefill_grade_level: function(opts) {
-			if (prefill_data.grade_level)
-				return prefill_data.grade_level;
-			else
-				return "";
-		},
-		prefill_family_id: function(opts) {
-			if (prefill_data.family_id)
-				return prefill_data.family_id;
-			else
-				return "";
-		},
-		prefill_stated_time: function(opts) {
-			if (prefill_data.stated_time)
-				return prefill_data.stated_time;
-			else
-				return "";
-		},
-		prefill_stated_time: function(opts) {
-			if (prefill_data.stated_date)
-				return prefill_data.stated_date;
-			else
-				return "";
 		},
 		get_proxy_prefix_then_slash: function(opts) {
 			if (config.proxy_prefix_then_slash.trim())
@@ -468,24 +493,40 @@ var listed_day_on_date = null;
 //displays our homepage
 app.get('/', function(req, res){
 	console.log("");
-	var sections = [];
+	var user_sections = [];
+	var user_modes_by_section = {};
 	var years = [];
 	var months = [];
 	var days = [];
     var item_keys = []; // the associative array keys for accessing objects in the day
     var items = []; //the entries
 	var section = null; //selected section
+	var mode = null; //selected mode
 	var selected_month = null;
 	var selected_year = null;
 	var selected_day = null;
 	var selected_item_key = null;
+	var user_selectable_modes = [];  //similar to entry in user_modes_by_section that corresponds to section, except excludes transient modes
+	var this_sheet_field_names = [];
+	var this_sheet_field_friendly_names = [];
 	if (req.user && req.user.username) {
-		preload_table_names = ["care","commute"];
+		
+		var preload_table_names = sections; //["care","commute"];
 		for (var index in preload_table_names) {
 			if (preload_table_names.hasOwnProperty(index)) {
 				var val = preload_table_names[index];
-				if (create_group_contains(val, req.user.username) || modify_group_contains(val, req.user.username) || read_group_contains(val, req.user.username)) {
-					sections.push(val);
+				if ( create_group_contains(val, req.user.username) || read_group_contains(val, req.user.username) || modify_group_contains(val, req.user.username) ) {
+					user_sections.push(val);
+					if (!(val in user_modes_by_section)) user_modes_by_section[val] = [];
+					if (create_group_contains(val, req.user.username)) {
+						user_modes_by_section[val].push("create");
+					}
+					if (read_group_contains(val, req.user.username)) {
+						user_modes_by_section[val].push("read");
+					}
+					if (modify_group_contains(val, req.user.username)) {
+						user_modes_by_section[val].push("modify");
+					}
 				}
 		// 		table_path = data_dir_path + "/" + val;
 		// 		if (fs.existsSync(table_path)) {
@@ -499,10 +540,60 @@ app.get('/', function(req, res){
 	}
 	if (fun.is_not_blank(req.query.section)) {
 		section = req.query.section;
+		req.session.section = section;
 	}
 	else if (fun.is_not_blank(req.session.section)) {
 		section = req.session.section;
 	}
+	else if (user_sections && (user_sections.length>=1)) {
+		section = user_sections[0];
+		req.session.section = section;
+	}
+	
+	if (section) {
+		if (section in group_sheet_fields) {
+			for (var indexer in group_sheet_fields[section]) {
+				var val = group_sheet_fields[section][indexer];
+				this_sheet_field_names.push(val);
+				if (val in group_sheet_fields_friendly_names[section]) val = group_sheet_fields_friendly_names[section][val];
+				this_sheet_field_friendly_names.push(val);
+			}
+		}
+		if (section in user_modes_by_section) {
+			for (var indexer in user_modes_by_section[section]) { //for (group in user_modes_by_section["section"]) {
+				if (!contains.call(transient_modes, user_modes_by_section[section][indexer])) {
+					user_selectable_modes.push(user_modes_by_section[section][indexer]);
+				}
+			}
+		}
+	}
+	
+	if (fun.is_not_blank(req.query.mode)) {
+		mode = req.query.mode;
+		req.session.mode = mode;
+	}
+	else if (fun.is_not_blank(req.session.mode)) {
+		mode = req.session.mode;
+	}
+	else if (user_selectable_modes && (user_selectable_modes.length>=1)) {
+		if (req.user && req.user.username && (req.user.username in default_mode_by_user)) mode=default_mode_by_user[req.user.username];
+		else mode = user_selectable_modes[user_selectable_modes.length-1];
+		req.session.mode = mode;
+	}
+	
+	var prefill_mode = "";
+	if (fun.is_not_blank(req.query.prefill_mode)) {
+		prefill_mode = req.query.prefill_mode;
+		req.session.prefill_mode = prefill_mode;
+	}
+	if (fun.is_not_blank(req.body.prefill_mode)) {
+		prefill_mode = req.body.prefill_mode;
+		req.session.prefill_mode = prefill_mode;
+	}
+	else if (fun.is_not_blank(req.session.prefill_mode)) {
+		prefill_mode = req.session.prefill_mode;
+	}
+	
 	if (req.query.selected_year) {
 		selected_year = req.query.selected_year;
         if (selected_year = "(none)") selected_year = null;
@@ -572,6 +663,11 @@ app.get('/', function(req, res){
                     req.session.selected_year = selected_year;
                     if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
                 }
+                else if (!selected_year && years.length>0) {
+					selected_year = years[years.length-1];
+                    req.session.selected_year = selected_year;
+                    if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
+				}
                 if (!years) {
                     console.log("WARNING: no years (no data or cache fail)");
                 }
@@ -598,6 +694,12 @@ app.get('/', function(req, res){
                             req.session.selected_month = selected_month;
                             //console.log("Auto selected_month "+selected_month);
                         }
+						else if (!selected_month && months.length>0) {
+							selected_month = months[months.length-1];
+							req.session.selected_month = selected_month;
+							if (!selected_month) console.log("ERROR: blanked out on month (cache fail)");
+						}
+                        
 						if (selected_month) {
 							var m_path = y_path + "/" + selected_month;
 							if (!(dat[section][selected_year][selected_month]&&dat[section][selected_year][selected_month]["days"])
@@ -618,6 +720,11 @@ app.get('/', function(req, res){
                                 req.session.selected_day = selected_day;
                                 //console.log("     AUTO selected_day (key) ="+selected_day);
                             }
+							else if (!selected_day && days.length>0) {
+								selected_day = days[days.length-1];
+								req.session.selected_day = selected_day;
+								if (!selected_day) console.log("ERROR: blanked out on day (cache fail)");
+							}
                             if (selected_day) {
                                 var d_path = m_path + "/" + selected_day;
                                 //if (!(dat[section][selected_year][selected_month][selected_day]&&dat[section][selected_year][selected_month][selected_day]["item_keys"])
@@ -645,25 +752,31 @@ app.get('/', function(req, res){
                                 //console.log("(ITEM KEYS.length:"+item_keys.length+")");
 								//console.log("## ITEMS:"+items);
                                 //for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
+								var msg = "";
 								for (var item_key_i in item_keys) {
                                     var item_key = item_keys[item_key_i];
 									var item_path = d_path + "/" + item_key;
 									//console.log("  - "+item_key);
                                     dat[section][selected_year][selected_month][selected_day][item_key] = {};
-                                    dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
-                                    dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
-                                    //dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
-									var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
-									items.push(this_item);
-									for (var index in this_item) {
-										if (this_item.hasOwnProperty(index)) {
-											var val = this_item[index];
-											//var val = items[index];
-											//console.log("    " + index + ": " + val);
+									if (fs.statSync(item_path).isFile()) {
+										dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+										dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
+										//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+										var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+										items.push(this_item);
+										for (var index in this_item) {
+											if (this_item.hasOwnProperty(index)) {
+												var val = this_item[index];
+												//var val = items[index];
+												//console.log("    " + index + ": " + val);
+											}
 										}
 									}
-									
+									else {
+										msg += " ...missing file "+item_path+" ";
+									}
                                 }
+                                if (msg.length>0) res.session.error=msg;
                                 //TODO: find out why this doesn't work: items = dat[section][selected_year][selected_month][selected_day];
                                 //for (var key_i = 0; key_i < items.length; key_i++) {
                                 //    console.log("    * "+items[key_i]asdf (iterate object members)
@@ -684,7 +797,7 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: sections, years: years, months: months, days: days, objects: items});
+	res.render('home', {user: req.user, section: section, mode: mode, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
 });
 
 //displays our signup page
@@ -710,29 +823,42 @@ app.post('/student-microevent', function(req, res){
     if (("user" in req) && ("username" in req.user) ) {
         console.log("* NOTE: student-microevent by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
-        if (fun.is_not_blank(req.body.stated_time)) prefill_data.stated_time = req.body.stated_time.trim();
+		//var prefill_stated_time;
+        if (fun.is_not_blank(req.body.stated_time)) req.session.prefill_stated_time = req.body.stated_time.trim();
         else {
-            delete prefill_data.stated_time;
+            delete req.session.prefill_stated_time;
         }
-        //else prefill_data.stated_time = moment().format("HH:mm:ss");
+        //else req.session.prefill_stated_time = moment().format("HH:mm:ss");
         
-        //if (("family_id" in req.body) ) prefill_data.family_id = req.body.family_id.trim();
-        //if ("first_name" in req.body) prefill_data.first_name = req.body.first_name.trim();
-        //if ("last_name" in req.body) prefill_data.last_name = req.body.last_name.trim();
-        //if ("grade_level" in req.body) prefill_data.grade_level = req.body.grade_level.trim();
-        //if ("chaperone" in req.body) prefill_data.chaperone = req.body.chaperone.trim();
-        //if ("reason" in req.body) prefill_data.reason = req.body.reason.trim();
+        if (fun.is_not_blank(req.body.stated_date)) req.session.prefill_stated_date = req.body.stated_date.trim();
+        else {
+            delete req.session.prefill_stated_date;
+        }
+        //else req.session.prefill_stated_date = moment().format("YYYY-MM-DD");
+        
+        //if (("family_id" in req.body) ) req.session.prefill_family_id = req.body.family_id.trim();
+        //if ("first_name" in req.body) req.session.prefill_first_name = req.body.first_name.trim();
+        //if ("last_name" in req.body) req.session.prefill_last_name = req.body.last_name.trim();
+        //if ("grade_level" in req.body) req.session.prefill_grade_level = req.body.grade_level.trim();
+        //if ("chaperone" in req.body) req.session.prefill_chaperone = req.body.chaperone.trim();
+        //if ("reason" in req.body) req.session.prefill_reason = req.body.reason.trim();
         var record = {};
         var custom_error = null;
         var missing_fields = "";
-        if (req.body.transaction_section in group_form_fields) {
-            for (var index in group_form_fields[req.body.transaction_section]) {
-                if (group_form_fields[req.body.transaction_section].hasOwnProperty(index)) {
-                    var key = group_form_fields[req.body.transaction_section][index];
+		
+		req.session.section = req.body.section;
+		req.session.mode = req.body.mode;
+		 
+        if (req.body.section in group_form_fields) {
+            for (var index in group_form_fields[req.body.section]) {
+                if (group_form_fields[req.body.section].hasOwnProperty(index)) {
+                    var key = group_form_fields[req.body.section][index];
                     if (key in req.body) {
                         if (req.body[key]) {
-                            prefill_data[key] = req.body[key];
-                            if (!never_save_fields.includes(key)) record[key] = req.body[key];
+							if (req.body[key].substring(0,8)!="prefill_") {
+								req.session["prefill_"+key] = req.body[key];
+								if (!never_save_fields.includes(key)) record[key] = req.body[key];
+							}
                             //console.log(key + " is filled in");
                         }
                         //console.log(key + " is in body");
@@ -743,13 +869,13 @@ app.post('/student-microevent', function(req, res){
             }
         }
         else {
-            custom_error = "unknown transaction_section '" + req.body.transaction_section + "'";
+            custom_error = "unknown section '" + req.body.section + "'";
         }
-        if (req.body.transaction_section in group_required_fields) {
-            for (var index in group_required_fields[req.body.transaction_section]) {
-                if (group_required_fields[req.body.transaction_section].hasOwnProperty(index)) {
-                    var key = group_required_fields[req.body.transaction_section][index];
-                    if (!(key in prefill_data)) {
+        if (req.body.section in group_required_fields) {
+            for (var index in group_required_fields[req.body.section]) {
+                if (group_required_fields[req.body.section].hasOwnProperty(index)) {
+                    var key = group_required_fields[req.body.section][index];
+                    if (!(("prefill_"+key) in req.session)) {
                         custom_error = "MISSING: ";
                         if (missing_fields!="") missing_fields += ",";
                         key_friendly_name = key;
@@ -763,57 +889,83 @@ app.post('/student-microevent', function(req, res){
             }
         }
         else {
-            console.log("WARNING: no required fields are specified for transaction_section '" + req.body.transaction_section + "'.");
-            custom_error = "unknown transaction_section '" + req.body.transaction_section + "'";
+            console.log("WARNING: no required fields are specified for section '" + req.body.section + "'.");
+            custom_error = "unknown section '" + req.body.section + "'";
         }
         
         //console.log(req.body.family_id);
         if (!custom_error) {
-            if ("name" in prefill_data) record.name=prefill_data.name;
-            if ("first_name" in prefill_data) record.first_name=prefill_data.first_name;
-            if ("last_name" in prefill_data) record.last_name=prefill_data.last_name;
-            if ("chaperone" in prefill_data) record.chaperone=prefill_data.chaperone;
-            record.grade_level=prefill_data.grade_level;
-            if ("family_id" in prefill_data) record.family_id=prefill_data.family_id;
 			
-            if ("stated_date" in prefill_data) {
-				var stated_date_enable = false;
-				if (prefill_data.stated_date.length==10) {
-					if (prefill_data.stated_date.substring(2,3)=="/"
-						&& prefill_data.stated_date.substring(5,6)=="/"
-						&& fun.only_contains_any_char(prefill_data.stated_date.substring(0,2), "0123456789")
-						&& fun.only_contains_any_char(prefill_data.stated_date.substring(3,5), "0123456789")
-						&& fun.only_contains_any_char(prefill_data.stated_date.substring(6), "0123456789")
+			//already done above?
+			//for (var indexer in req.session) {
+			//	if (req.session.hasOwnProperty(indexer)) {
+			//		if (indexer.startsWith("prefill_")) {
+			//			record[indexer.substring(8)] = req.session.indexer;
+			//		}
+			//	}
+			//}
+			
+			//if already done above, why was this code here before the loop was (NOTE: commented code updated for non-global prefill data as writing this comment)?
+            //if ("prefill_name" in req.session) record.name=req.session.prefill_name;
+            //if ("prefill_first_name" in req.session) record.first_name=req.session.prefill_first_name;
+            //if ("prefill_last_name" in req.session) record.last_name=req.session.prefill_last_name;
+            //if ("prefill_chaperone" in req.session) record.chaperone=req.session.prefill_chaperone;
+            //record.grade_level=req.session.prefill_grade_level;
+            //if ("prefill_family_id" in req.session) record.family_id=req.session.prefill_family_id;
+			var stated_date_enable = false;
+            if ("prefill_stated_date" in req.session) {
+				
+				if (req.session.prefill_stated_date.length==10) {
+					if (req.session.prefill_stated_date.substring(2,3)=="/"
+						&& req.session.prefill_stated_date.substring(5,6)=="/"
+						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(0,2), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(3,5), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(6), "0123456789")
 						) {
 						//convert MM/DD/YYYY to YYYY-MM-DD:
-						original_stated_date = prefill_data.stated_date;
-						prefill_data.stated_date = prefill_data.stated_date.substring(6) + "-" + prefill_data.stated_date.substring(0,2) + "-" + prefill_data.stated_date.substring(3,5);
+						original_stated_date = req.session.prefill_stated_date;
+						req.session.prefill_stated_date = req.session.prefill_stated_date.substring(6) + "-" + req.session.prefill_stated_date.substring(0,2) + "-" + req.session.prefill_stated_date.substring(3,5);
 						stated_date_enable = true;
-						console.log("  * NOTE: converted date " + original_stated_date + " to " + prefill_data.stated_date)
+						console.log("  * NOTE: converted date " + original_stated_date + " to " + req.session.prefill_stated_date)
 					}
-					else if (prefill_data.stated_date.substring(4,5)=="-"
-						&& prefill_data.stated_date.substring(7,8)=="-"
-						&& fun.only_contains_any_char(prefill_data.stated_date.substring(0,4), "0123456789")
-						&& fun.only_contains_any_char(prefill_data.stated_date.substring(5,7), "0123456789")
-						&& fun.only_contains_any_char(prefill_data.stated_date.substring(8), "0123456789")
+					else if (req.session.prefill_stated_date.substring(4,5)=="-"
+						&& req.session.prefill_stated_date.substring(7,8)=="-"
+						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(0,4), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(5,7), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(8), "0123456789")
 						) {
 						stated_date_enable = true;
 					}
 				}
 				if (!stated_date_enable) {
-					custom_error = "custom date must be in YYYY-MM-DD or MM/DD/YYYY format";
+					custom_error = "custom date " + req.session.prefill_stated_date + " must be in YYYY-MM-DD or MM/DD/YYYY format";
+					//var details = " ... ";
+					//if (!fun.only_contains_any_char(req.session.prefill_stated_date.substring(6), "0123456789")) details += "non-number in last 4 digits; ";
+					//if (!fun.only_contains_any_char(req.session.prefill_stated_date.substring(0,4), "0123456789")) details += "non-number in first 4 digits; ";
+					//custom_error += details;
 				}
 				else {
-					//if (prefill_data.stated_date) {
-					//}
-					record.stated_date=prefill_data.stated_date;
+					if (user_has_pinless_time(req.body.section, req.user.username)) {
+						console.log("  * NOTE: PIN skipped for commute custom date: "+req.user.username+" (this is ok since user has pinless custom time for this section)");
+					}
+					else if (modify_group_contains(req.body.section, req.user.username)) {
+						console.log("  * NOTE: PIN skipped for commute custom date: "+req.user.username+" (this is ok since user has modify priv for this section)");
+					}
+					else if (req.body.pin && config.office_pin && (req.body.pin==config.office_pin)) {
+					}
+					else {
+						custom_error="INCORRECT PIN: To use custom time, office must enter the correct pin (otherwise leave time blank for current).";
+						if (!config.office_pin) custom_error = custom_error + "; website administrator has not yet set office_pin in config.json";
+						stated_date_enable = false;
+					}
+					if (stated_date_enable) record.stated_date=req.session.prefill_stated_date;
 				}
 			}
             //var uac_error = null;
-            if ("stated_time" in prefill_data) {
-                if (prefill_data.stated_time.toLowerCase().match("am")
-                    || prefill_data.stated_time.toLowerCase().match("pm") ) {
-                    if (  (req.body.transaction_section=="commute") &&  ( (!req.body.pin) || (req.body.pin!=config.office_pin))  ) {
+            if (req.session.prefill_stated_time !== undefined) {
+                if (req.session.prefill_stated_time.toLowerCase().match("am")
+                    || req.session.prefill_stated_time.toLowerCase().match("pm") ) {
+                    if (  (req.body.section=="commute") &&  ( (!req.body.pin) || (req.body.pin!=config.office_pin))  ) {
 						if (fun.contains.call(modify_groups["commute"], req.user.username)) {
 							console.log("  * NOTE: PIN skipped for commute custom time: "+req.user.username+" (this is ok since user has modify priv for this section)");
 						}
@@ -839,20 +991,23 @@ app.post('/student-microevent', function(req, res){
                     fs.mkdirSync(data_dir_path);
                 var signs_dir_name = null;
 				//NOTE: if key is specified, then check modify_groups instead, and edit same file instead.
-                if (fun.contains.call(create_groups[req.body.transaction_section],req.user.username)) {
-                    signs_dir_name = req.body.transaction_section;
+                if (fun.contains.call(create_groups[req.body.section],req.user.username)) {
+                    signs_dir_name = req.body.section;
                     var signs_dir_path = data_dir_path + "/" + signs_dir_name;
                     if (!fs.existsSync(signs_dir_path))
                         fs.mkdirSync(signs_dir_path);
                     var y_dir_name = moment().format("YYYY");
+					if (stated_date_enable) y_dir_name = req.session.prefill_stated_date.substring(0,4);
                     var y_dir_path = signs_dir_path + "/" + y_dir_name;
                     if (!fs.existsSync(y_dir_path))
                         fs.mkdirSync(y_dir_path);
                     var m_dir_name = moment().format("MM");
+					if (stated_date_enable) m_dir_name = req.session.prefill_stated_date.substring(5,7);
                     var m_dir_path = y_dir_path + "/" + m_dir_name;
                     if (!fs.existsSync(m_dir_path))
                         fs.mkdirSync(m_dir_path);
                     var d_dir_name = moment().format("DD");
+					if (stated_date_enable) d_dir_name = req.session.prefill_stated_date.substring(8,10);
                     var d_dir_path = m_dir_path + "/" + d_dir_name;
                     if (!fs.existsSync(d_dir_path))
                         fs.mkdirSync(d_dir_path);
@@ -867,42 +1022,49 @@ app.post('/student-microevent', function(req, res){
                     var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
                     if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
                     req.session.notice = msg; //+"<!--" + out_path + "-->.";
-                    //prefill_enable = false;
-                    
-                    //delete prefill_data.time;
-                    //delete prefill_data.family_id;
-                    //delete prefill_data.first_name;
-                    //delete prefill_data.last_name;
-                    //delete prefill_data.grade_level;
-                    //delete prefill_data.chaperone;
-                    //delete prefill_data.reason;
-                    //delete prefill_data.time;
-                    //delete prefill_data.ctime;
-                    //delete prefill_data.stated_time;
-                    for (var member in prefill_data) delete prefill_data[member];
+					
+					for (var indexer in req.session) {
+						if (req.session.hasOwnProperty(indexer)) {
+							if (indexer.startsWith("prefill_")) delete req.session.indexer;
+						}
+					}
+                    //delete req.session.prefill_time;
+                    //delete req.session.prefill_family_id;
+                    //delete req.session.prefill_first_name;
+                    //delete req.session.prefill_last_name;
+                    //delete req.session.prefill_grade_level;
+                    //delete req.session.prefill_chaperone;
+                    //delete req.session.prefill_reason;
+                    //delete req.session.prefill_time;
+                    //delete req.session.prefill_ctime;
+                    //delete req.session.prefill_stated_time;
+                    //delete req.session.prefill_stated_date;
                 }
                 else {
-                    req.session.error = "not authorized to modify data for '" + req.body.transaction_section + "'";
-                    delete prefill_data.pin;
-                    delete prefill_data.heading;
+                    req.session.error = "not authorized to modify data for '" + req.body.section + "'";
+                    delete req.session.prefill_pin;
+                    delete req.session.prefill_heading;
                 }
             }
             else {
                 req.session.error = custom_error;
-                delete prefill_data.pin;
-                delete prefill_data.heading;
+                delete req.session.prefill_pin;
+                delete req.session.prefill_heading;
             }
         }
         else {
-            delete prefill_data.pin;
-            delete prefill_data.heading;
+            delete req.session.prefill_pin;
+            delete req.session.prefill_heading;
             req.session.error = custom_error + missing_fields;
         }
     }
     else {
-        for (var member in prefill_data) delete prefill_data[member];
+        for (var member in req.session) {
+			if (member.substring(0,8)=="prefill_") delete req.session.member;
+		}
         req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
     }
+	if (contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
@@ -922,8 +1084,15 @@ app.get('/logout', function(req, res){
   else {
 	console.log("* LOGGING OUT but no user is loaded (that's ok--server was probably reset since last page refresh, then user clicked logout)")
   }
-  req.logout();
-  res.redirect(config.proxy_prefix_then_slash);
+  //req.logout();
+  //res.redirect(config.proxy_prefix_then_slash);
+  //req.logout() doesn't clear session variables, so do manual logout instead (see below), using jlmakes implementation of Brice's suggestion from https://stackoverflow.com/questions/13758207/why-is-passportjs-in-node-not-removing-session-on-logout
+  delete req.session.selected_day;
+  delete req.session.selected_month;
+  delete req.session.selected_year;
+  req.session.destroy(function (err) {
+    res.redirect(config.proxy_prefix_then_slash.trim()); //Inside a callback… bulletproof!
+  });
   req.session.notice = "You have successfully been logged out " + name + "!";
 });
 
