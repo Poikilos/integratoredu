@@ -2,6 +2,9 @@
 {{#if user}}
 <div class="container-fluid" style="width:100%">
 	{{#if section}}
+        {{#createGroupContains section user.username}}
+        {{get_section_form section mode user.username}}
+        {{/createGroupContains}}
 		{{#readGroupContains section user.username}}
 		{{#isOnlyEmployeeReadSection section}}
 		<div style="size:.8em; color:darkgray">Permission to view {{section}} history should only be given to employees.

@@ -4,6 +4,7 @@ http://github.com/expertmm/integratoredu
 
 
 ## Changes
+* (2017-09-28) renamed group_*_fields to section_*_fields and group_fields_overrides to section_fields_overrides
 * (2017-09-28) correct user_has_pinless_time function
 * (2017-09-28) [URGENT security fix] remove prefill globals
 * (2017-09-15) standardized UAC for pin vs no-pin custom date and custom time entry (istead of hard-coding name of group allowed to do no-pin)
@@ -22,6 +23,8 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* session.runme and other direct usages of session as if it were a session (as opposed to using req.session) may not be ok
+* There is no code to serve the wav files referenced by the javascript that is in body onload after an error occurs.
 * Reading (incorrectly formatted?) YAML can crash app on line: yaml.readSync(item_path, "utf8");
 * Edit button should prefill the "create" form and additionally store date and primary key in hidden fields (pass along and use all prefills the same way prefill_mode is used correctly, ensuring variables are either defined or passed along in prefill_data class)
 * validate date by exploding by slash or hyphen, then adding zero padding.
@@ -91,6 +94,7 @@ see LICENSE file for license
 
 ## Developer Notes
 ### Security
+* use "req.sanitizeBody('name').escape();" from express-validator (see https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/forms )
 * Security checking must be done using groups["group name"] where each group name contains an array of users
 * student-microevent is only a group for display, not for security. 
 ### First-time setup (no longer needed)

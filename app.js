@@ -15,6 +15,18 @@ var express = require('express'),
 //    GoogleStrategy = require('passport-google'),
 //    FacebookStrategy = require('passport-facebook');
 var path = require("path");
+var Handlebars = require('handlebars');
+
+//Speech.init({
+//    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
+//    'lang': 'en-GB', // specify en-GB language (no detection applied)
+//    'volume': 0.5,
+//    'rate': 0.8,
+//    'pitch': 0.8
+//});
+//if(Speech.browserSupport()) {
+//    console.log("speech synthesis supported")
+//}
 var basePath = "./";
 
 var dat;
@@ -50,7 +62,7 @@ if (!Array.prototype.includes) { //if browser doesn't support ECMA 2016
 
 var contains = {};
 contains.call = function (haystack, needle) {
-	console.log("WARNING: contains.call is deprecated by integratoredu, so fun.contains.call (which is a reference to functions.js) should be used instead.");
+	//console.log("WARNING: contains.call is deprecated by integratoredu, so fun.contains.call (which is a reference to functions.js) should be used instead.");
 	return fun.contains.call(haystack, needle);
 }
 
@@ -60,8 +72,7 @@ var config = require('./config.js'), //config file contains all tokens and other
 
 var app = express();
 
-if (!config.proxy_prefix_then_slash) proxy_prefix_with_slash = "/";
-
+if (!config.proxy_prefix_then_slash) config.proxy_prefix_then_slash = "/";
 
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
@@ -79,11 +90,18 @@ friendly_mode_names["create"] = "Entry Form";
 friendly_mode_names["read"] = "History";
 friendly_mode_names["modify"] = "Edit";
 
+var friendly_mode_action_text = {};
+friendly_mode_action_text["create"] = "Enter";
+friendly_mode_action_text["read"] = "Save"; //save button since read will show editable fields if user has write priv to the section
+friendly_mode_action_text["modify"] = "Save";
+
 var default_mode_by_user = {};
 default_mode_by_user["care"] = "create";
 default_mode_by_user["commute"] = "create";
 default_mode_by_user["attendance"] = "read";
 default_mode_by_user["accounting"] = "read";
+
+var prefill_data_by_user = {};
 
 var create_groups = {}; //which users can create entries in which section
 //Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
@@ -133,42 +151,68 @@ function user_has_pinless_time(section, username) {
 	return result;
 }
 
-var group_required_fields = {};
-group_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
-group_required_fields["commute"] = ["name", "grade_level", "heading", "reason"];
+var section_required_fields = {};
+section_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
+section_required_fields["commute"] = ["name", "grade_level", "heading", "reason"];
 
-var group_form_fields = {};
-group_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
-group_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
+var section_form_fields = {};
+section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
+section_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
+
+var choices_by_field = {};
+choices_by_field["heading"] = ["in", "out"]
+
+var section_form_collapsed_fields = {};
+section_form_collapsed_fields["care"] = ["family_id", "stated_time", "stated_date"];
+section_form_collapsed_fields["commute"] = ["stated_time", "stated_date", "pin"];
+
+var section_form_friendly_names = {};
+section_form_friendly_names["care"] = {};
+section_form_friendly_names["care"]["first_name"] = "Student First Name";
+section_form_friendly_names["care"]["last_name"] = "Student Last Name";
+section_form_friendly_names["care"]["chaperone"] = "Pickup/Dropoff By";
+section_form_friendly_names["care"]["grade_level"] = "Grade";
+section_form_friendly_names["care"]["stated_time"] = "Time (blank for auto, otherwise specify AM or PM)";
+section_form_friendly_names["care"]["stated_date"] = "Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
+section_form_friendly_names["care"]["family_id"] = "Family ID (if applicable)";
+section_form_friendly_names["care"]["pin"] = "override pin";
+section_form_friendly_names["commute"] = {};
+section_form_friendly_names["commute"]["name"] = "Name";
+section_form_friendly_names["commute"]["grade_level"] = "Grade";
+section_form_friendly_names["commute"]["heading"] = "Heading";
+section_form_friendly_names["commute"]["reason"] = "Reason";
+section_form_friendly_names["commute"]["stated_time"] = "Custom Time (blank for auto, otherwise specify AM or PM)";
+section_form_friendly_names["commute"]["stated_date"] = "Custom Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
+section_form_friendly_names["commute"]["pin"] = "override pin";
+
+var section_sheet_fields = {};
+section_sheet_fields["care"] = ["=get_date_from_path()", "time", "first_name", "last_name", "grade_level", "family_id", "chaperone", "modified_by"]
+section_sheet_fields["commute"] = ["=get_date_from_path()", "time", "name", "grade_level"]
+
+var section_sheet_fields_friendly_names = {}
+section_sheet_fields_friendly_names["care"] = {}
+section_sheet_fields_friendly_names["care"]["=get_date_from_path()"] = "Date";
+section_sheet_fields_friendly_names["care"]["first_name"] = "First";
+section_sheet_fields_friendly_names["care"]["last_name"] = "Last";
+section_sheet_fields_friendly_names["care"]["grade_level"] = "Grade Level";
+section_sheet_fields_friendly_names["commute"] = {}
+section_sheet_fields_friendly_names["commute"]["=get_date_from_path()"] = "Date";
+section_sheet_fields_friendly_names["commute"]["grade_level"] = "Grade Level";
 
 
-var group_sheet_fields = {};
-group_sheet_fields["care"] = ["=get_date_from_path()", "time", "first_name", "last_name", "grade_level", "family_id", "chaperone", "modified_by"]
-group_sheet_fields["commute"] = ["=get_date_from_path()", "time", "name", "grade_level"]
+var section_sheet_fields_names = {};
+section_sheet_fields_names["care"] = {};
+section_sheet_fields_names["care"]["time"] = "Time";
+section_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
 
-var group_sheet_fields_friendly_names = {}
-group_sheet_fields_friendly_names["care"] = {}
-group_sheet_fields_friendly_names["care"]["=get_date_from_path()"] = "Date";
-group_sheet_fields_friendly_names["care"]["first_name"] = "First";
-group_sheet_fields_friendly_names["care"]["last_name"] = "Last";
-group_sheet_fields_friendly_names["care"]["grade_level"] = "Grade Level";
-group_sheet_fields_friendly_names["commute"] = {}
-group_sheet_fields_friendly_names["commute"]["=get_date_from_path()"] = "Date";
-group_sheet_fields_friendly_names["commute"]["grade_level"] = "Grade Level";
-
-
-var group_sheet_fields_names = {};
-group_sheet_fields_names["care"] = {};
-group_sheet_fields_names["care"]["time"] = "Time";
-group_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
-
-var group_fields_overrides = {};
-group_fields_overrides["care"] = {};
-group_fields_overrides["care"]["time"] = "stated_time";
-group_fields_overrides["care"]["date"] = "stated_date";
-group_fields_overrides["commute"] = {};
-group_fields_overrides["commute"]["time"] = "stated_time";
-group_fields_overrides["commute"]["date"] = "stated_date";
+//used for spreadsheet view/export (such as: change time to stated_time if stated_time was specified by user)
+var section_fields_overrides = {};
+section_fields_overrides["care"] = {};
+section_fields_overrides["care"]["time"] = "stated_time";
+section_fields_overrides["care"]["date"] = "stated_date";
+section_fields_overrides["commute"] = {};
+section_fields_overrides["commute"]["time"] = "stated_time";
+section_fields_overrides["commute"]["date"] = "stated_date";
 
 var fields_friendly_names = {};
 //fields_friendly_names["heading"] = "select arriving/departing";
@@ -308,6 +352,46 @@ function modify_group_contains(section, username) {
 	return fun.contains.call(modify_groups[section], username);
 }
 
+function get_filtered_form_fields_html(section, mode, username, show_collapsed_only_enable) {
+    var ret="";
+    for (var i = 0, len = section_form_fields[section].length; i < len; i++) {
+        var friendly_name = section_form_fields[section][i];
+        var field_name = section_form_fields[section][i];
+        if ( !contains.call(section_form_collapsed_fields, section) && show_collapsed_only_enable)
+            return ret; //only show fields once if no collapsed fields are specified (return blank here since called twice once true once false)
+        if ( !contains.call(section_form_collapsed_fields, section)
+            || (!show_collapsed_only_enable && !contains.call(section_form_collapsed_fields["section"], field_name ))
+            || (show_collapsed_only_enable && contains.call(section_form_collapsed_fields["section"], field_name )) ) {
+            
+            if (friendly_name in section_form_friendly_names[section]) friendly_name = section_form_friendly_names[section][friendly_name];
+            var prefill_value = "";
+            if ((username in prefill_data_by_user) && (field_name in prefill_data_by_user[username])) prefill_value = prefill_data_by_user[username][field_name];
+            if (field_name in choices_by_field) {
+                ret += "\n" + '<div class="form-group">';
+                ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
+                ret += "\n" + '  <div class="col-sm-10">';
+                ret += "\n" + '    <div class="btn-group" data-toggle="buttons">';
+                for (var choice_i = 0, choice_len = choices_by_field[field_name].length; choice_i < choice_len; choice_i++) {
+                    var friendly_name = choices_by_field[field_name][i];
+                    ret += "\n" + '      <label class="btn btn-primary"><input type="radio" name="'+field_name+'" value="'+choices_by_field[field_name][i]+'"/>'+friendly_name+'</label>';
+                }
+                ret += "\n" + '    </div>';
+                ret += "\n" + '  </div>';
+                ret += "\n" + '</div>';
+            }
+            else {
+                ret += "\n" + '  <div class="form-group">';
+                ret += "\n" + '    <label class="control-label col-sm-2" >'+friendly_name+':</label>';
+                ret += "\n" + '    <div class="col-sm-10">';
+                ret += "\n" + '      <input class="form-control" type="text" name="'+field_name+'" value="'+prefill_value+'"/>';
+                ret += "\n" + '    </div>';
+                ret += "\n" + '  </div>';
+            }
+        }
+    }    
+    return ret;
+}
+
 // Configure express to use handlebars templates
 var startTime = moment('08:10', "HH:mm").format("HH:mm");
 var endTime = moment('15:30', "HH:mm").format("HH:mm");
@@ -333,6 +417,47 @@ var hbs = exphbs.create({
 		get_member: function(a, name, opts) {
 			return (name in a) ? a.name : "";
 		},
+        get_section_form: function(section, mode, username, opts) {
+            //globals of note:
+            //section_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
+            //section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
+            //choices_by_field["heading"] = ["in", "out"]
+            //section_form_collapsed_fields["care"] = ["family_id", "stated_time", "stated_date"];
+            //section_form_friendly_names["care"]["first_name"] = "Student First Name";
+            //prefill_data_by_user
+            var ret = "No form implemented ("+section+")";
+            if (section in section_form_fields) {
+                ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">';
+                
+                ret += "\n" + '  <input type="hidden" name="section" value="'+section+'"/>';
+                if (!(username in prefill_data_by_user) || !("mode" in prefill_data_by_user[username])) {
+                    ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="create"/>';
+                }
+                else {
+                    ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="'+prefill_data_by_user[username]["mode"]+'"/>';
+                }
+                
+                //for (index in section_form_fields[section]) {
+                ret += get_filtered_form_fields_html(section, mode, username, false);
+                ret += '  <div class="form-group">';
+                ret += '    <div class="col-sm-10" style="text-align:center">';
+                var friendly_action_name = "Enter";
+                if (mode && (mode in friendly_mode_action_text)) friendly_action_name=friendly_mode_action_text[mode];
+                ret += '      <input type="submit" class="btn btn-primary btn-sm" value="'+friendly_action_name+'"/>';
+                var more_fields_html = get_filtered_form_fields_html(section, mode, username, true);
+                if (more_fields_html.length>0) ret += '      <a data-toggle="collapse" href="#extra-fields" class="btn btn-default btn-md" role="button">More Options</a>'
+                ret += '    </div>';
+                ret += '  </div>';
+                if (more_fields_html.length>0) {
+                    ret += '  <div name="extra-fields" class="collapse" id="extra-fields">';
+                    ret += more_fields_html;
+                    ret += '  </div>';
+                }
+                ret += "\n  </form>"
+            }
+            return new Handlebars.SafeString(ret); // mark as already escaped (so that literal html can be pushed) -- normally new Handlebars.SafeString
+;
+        },
 		eachProperty: function(context, options) {
 			//see Ben on https://stackoverflow.com/questions/9058774/handlebars-mustache-is-there-a-built-in-way-to-loop-through-the-properties-of
 			var ret = "";
@@ -439,6 +564,9 @@ var hbs = exphbs.create({
 		},
         get_tz_offset_mins: function(opts) {
             return moment().utcOffset();
+        },
+        get_startup_js_code: function(opts) {
+            return session.runme;
         },
         get_session_field: function(fieldname, opts) {
             return session[fieldname];  // DOESN'T WORK
@@ -551,11 +679,11 @@ app.get('/', function(req, res){
 	}
 	
 	if (section) {
-		if (section in group_sheet_fields) {
-			for (var indexer in group_sheet_fields[section]) {
-				var val = group_sheet_fields[section][indexer];
+		if (section in section_sheet_fields) {
+			for (var indexer in section_sheet_fields[section]) {
+				var val = section_sheet_fields[section][indexer];
 				this_sheet_field_names.push(val);
-				if (val in group_sheet_fields_friendly_names[section]) val = group_sheet_fields_friendly_names[section][val];
+				if (val in section_sheet_fields_friendly_names[section]) val = section_sheet_fields_friendly_names[section][val];
 				this_sheet_field_friendly_names.push(val);
 			}
 		}
@@ -781,8 +909,8 @@ app.get('/', function(req, res){
                                 //for (var key_i = 0; key_i < items.length; key_i++) {
                                 //    console.log("    * "+items[key_i]asdf (iterate object members)
                                 //}
-                            }
-						}
+                            }//end if selected_day
+						}//end if selected_month
 					}
 				}
 			}
@@ -849,10 +977,10 @@ app.post('/student-microevent', function(req, res){
 		req.session.section = req.body.section;
 		req.session.mode = req.body.mode;
 		 
-        if (req.body.section in group_form_fields) {
-            for (var index in group_form_fields[req.body.section]) {
-                if (group_form_fields[req.body.section].hasOwnProperty(index)) {
-                    var key = group_form_fields[req.body.section][index];
+        if (req.body.section in section_form_fields) {
+            for (var index in section_form_fields[req.body.section]) {
+                if (section_form_fields[req.body.section].hasOwnProperty(index)) {
+                    var key = section_form_fields[req.body.section][index];
                     if (key in req.body) {
                         if (req.body[key]) {
 							if (req.body[key].substring(0,8)!="prefill_") {
@@ -871,10 +999,10 @@ app.post('/student-microevent', function(req, res){
         else {
             custom_error = "unknown section '" + req.body.section + "'";
         }
-        if (req.body.section in group_required_fields) {
-            for (var index in group_required_fields[req.body.section]) {
-                if (group_required_fields[req.body.section].hasOwnProperty(index)) {
-                    var key = group_required_fields[req.body.section][index];
+        if (req.body.section in section_required_fields) {
+            for (var index in section_required_fields[req.body.section]) {
+                if (section_required_fields[req.body.section].hasOwnProperty(index)) {
+                    var key = section_required_fields[req.body.section][index];
                     if (!(("prefill_"+key) in req.session)) {
                         custom_error = "MISSING: ";
                         if (missing_fields!="") missing_fields += ",";
@@ -1022,7 +1150,7 @@ app.post('/student-microevent', function(req, res){
                     var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
                     if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
                     req.session.notice = msg; //+"<!--" + out_path + "-->.";
-					
+					session.runme = new Handlebars.SafeString("var audio = new Audio('success.wav'); audio.play();");
 					for (var indexer in req.session) {
 						if (req.session.hasOwnProperty(indexer)) {
 							if (indexer.startsWith("prefill_")) delete req.session.indexer;
@@ -1039,23 +1167,34 @@ app.post('/student-microevent', function(req, res){
                     //delete req.session.prefill_ctime;
                     //delete req.session.prefill_stated_time;
                     //delete req.session.prefill_stated_date;
+                    delete session.runme;
                 }
                 else {
                     req.session.error = "not authorized to modify data for '" + req.body.section + "'";
+                    session.runme = new Handlebars.SafeString("var audio = new Audio('security-warning.wav'); audio.play();");
                     delete req.session.prefill_pin;
                     delete req.session.prefill_heading;
                 }
             }
-            else {
-                req.session.error = custom_error;
+            else {//formatting error
+                
+                req.session.error = custom_error;//+ "<script>var Speech = require('speak-tts'); Speech.init({'onVoicesLoaded': (data) => {console.log('voices', data.voices)},'lang': 'en-US','volume': 0.5,'rate': 0.8,'pitch': 0.8});"+'Speech.speak({text: "'+custom_error+'" })</script>';
+                session.runme = new Handlebars.SafeString("var audio = new Audio('missing-information.wav'); audio.play();");
                 delete req.session.prefill_pin;
                 delete req.session.prefill_heading;
             }
         }
         else {
+            for (var index in req.body) {
+                if ( contains.call(section_form_fields[req.body.section], index) ) {
+                    req.session["prefill_"+index] = req.body[index];
+                }
+            }
             delete req.session.prefill_pin;
             delete req.session.prefill_heading;
+            //req.session.error = new Handlebars.SafeString(custom_error + missing_fields + "<script>var audio = new Audio('missing-information.wav'); audio.play();</script>");
             req.session.error = custom_error + missing_fields;
+            session.runme = new Handlebars.SafeString("var audio = new Audio('missing-information.wav'); audio.play();");
         }
     }
     else {
@@ -1063,6 +1202,7 @@ app.post('/student-microevent', function(req, res){
 			if (member.substring(0,8)=="prefill_") delete req.session.member;
 		}
         req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
+        delete session.runme;
     }
 	if (contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
@@ -1090,6 +1230,7 @@ app.get('/logout', function(req, res){
   delete req.session.selected_day;
   delete req.session.selected_month;
   delete req.session.selected_year;
+  delete session.runme;
   req.session.destroy(function (err) {
     res.redirect(config.proxy_prefix_then_slash.trim()); //Inside a callback… bulletproof!
   });
