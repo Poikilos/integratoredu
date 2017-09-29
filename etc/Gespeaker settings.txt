@@ -1,0 +1,8 @@
+(requires packages: mbrola, us-mbrola-1)
+
+Language: us-mbrola-1
+Voice: N/A
+Pitch: 50
+Volume: 100
+Speed: 180
+Delay: 1

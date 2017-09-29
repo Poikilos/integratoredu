@@ -6,4 +6,5 @@ module.exports = {
   "proxy_prefix_then_slash" : "/",
   "office_pin" : "7364",
   "it_pin" : "9979",
+  "audio_enable" : true,
 };

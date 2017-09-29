@@ -16,7 +16,6 @@ var express = require('express'),
 //    FacebookStrategy = require('passport-facebook');
 var path = require("path");
 var Handlebars = require('handlebars');
-
 //Speech.init({
 //    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
 //    'lang': 'en-GB', // specify en-GB language (no detection applied)
@@ -28,6 +27,7 @@ var Handlebars = require('handlebars');
 //    console.log("speech synthesis supported")
 //}
 var basePath = "./";
+
 
 var dat;
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
@@ -71,8 +71,11 @@ var config = require('./config.js'), //config file contains all tokens and other
     fun = require('./functions.js'); //functions file contains our non-app-specific functions including those for our Passport and database work
 
 var app = express();
+app.use(express.static(__dirname + '/public'));
+//app.listen(8080);
 
 if (!config.proxy_prefix_then_slash) config.proxy_prefix_then_slash = "/";
+if (!("audio_enable" in config)) config.audio_enable = true;
 
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
@@ -352,23 +355,28 @@ function modify_group_contains(section, username) {
 	return fun.contains.call(modify_groups[section], username);
 }
 
+//Generate and return only html form fields of a certain subset, for multi-part (for layout purposes only) but single-page forms
 function get_filtered_form_fields_html(section, mode, username, show_collapsed_only_enable) {
     var ret="";
     for (var i = 0, len = section_form_fields[section].length; i < len; i++) {
         var friendly_name = section_form_fields[section][i];
         var field_name = section_form_fields[section][i];
-        if ( !contains.call(section_form_collapsed_fields, section) && show_collapsed_only_enable)
+        
+        if (!(section in section_form_collapsed_fields)) console.log("Warning: missing optional section_form_collapsed_fields for section: "+section)
+        
+        if ( !(section in section_form_collapsed_fields) && show_collapsed_only_enable)
             return ret; //only show fields once if no collapsed fields are specified (return blank here since called twice once true once false)
-        if ( !contains.call(section_form_collapsed_fields, section)
-            || (!show_collapsed_only_enable && !contains.call(section_form_collapsed_fields["section"], field_name ))
-            || (show_collapsed_only_enable && contains.call(section_form_collapsed_fields["section"], field_name )) ) {
+        if ( !(section in section_form_collapsed_fields)
+            || (!show_collapsed_only_enable && !contains.call(section_form_collapsed_fields[section], field_name ))
+            || (show_collapsed_only_enable && contains.call(section_form_collapsed_fields[section], field_name )) ) {
             
             if (friendly_name in section_form_friendly_names[section]) friendly_name = section_form_friendly_names[section][friendly_name];
             var prefill_value = "";
             if ((username in prefill_data_by_user) && (field_name in prefill_data_by_user[username])) prefill_value = prefill_data_by_user[username][field_name];
             if (field_name in choices_by_field) {
                 ret += "\n" + '<div class="form-group">';
-                ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
+                if (show_collapsed_only_enable) ret += "\n" + '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+':</label>';
+                else ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
                 ret += "\n" + '  <div class="col-sm-10">';
                 ret += "\n" + '    <div class="btn-group" data-toggle="buttons">';
                 for (var choice_i = 0, choice_len = choices_by_field[field_name].length; choice_i < choice_len; choice_i++) {
@@ -381,7 +389,8 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
             }
             else {
                 ret += "\n" + '  <div class="form-group">';
-                ret += "\n" + '    <label class="control-label col-sm-2" >'+friendly_name+':</label>';
+                if (show_collapsed_only_enable) ret += "\n" + '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+':</label>';
+                else ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
                 ret += "\n" + '    <div class="col-sm-10">';
                 ret += "\n" + '      <input class="form-control" type="text" name="'+field_name+'" value="'+prefill_value+'"/>';
                 ret += "\n" + '    </div>';
@@ -397,6 +406,9 @@ var startTime = moment('08:10', "HH:mm").format("HH:mm");
 var endTime = moment('15:30', "HH:mm").format("HH:mm");
 var hbs = exphbs.create({
 	 helpers: {
+         remove_audio_message: function() {
+             delete session.runme;
+         },
         sayHello: function () { alert("Hello") },
         getStringifiedJson: function (value) {
             return JSON.stringify(value);
@@ -404,6 +416,23 @@ var hbs = exphbs.create({
 		if_eq: function(a, b, opts) {
 			//console.log("* checking if_eq while user is " + a);
 			if (a == b) // Or === 
+			    return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		if_is_any_form_mode: function(mode, opts) {
+			//console.log("* checking if_eq while user is " + a);
+            var is_match = false;
+            var arr = ["create", "modify"];
+            //if (Array.isArray(arr)) {
+            for (i=0, len=arr.length; i<len; i++) {
+                if (mode==arr[i]) {
+                    is_match = true;
+                    break;
+                }
+            }
+            //}
+			if (is_match) // Or === 
 			    return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -617,6 +646,44 @@ function getFiles(path) {
 var listed_year_on_month = null;
 var listed_month_on_date = null;
 var listed_day_on_date = null;
+/*
+//use app.use(express.static(__dirname + '/public')); // instead of below (see above)
+app.get('/public/sounds/missing-information.wav', function(req, res){
+    //see also https://stackoverflow.com/questions/5823722/how-to-serve-an-image-using-nodejs
+    var request = url.parse(req.url, true);
+    var action = request.pathname;
+    console.log("action: "+action);
+    //if (action == '/logo.gif') {
+        //var img = fs.readFileSync('./logo.gif');
+        //res.writeHead(200, {'Content-Type': 'image/gif' });
+        //res.end(img, 'binary');
+    //} else {
+    var wav = fs.readFileSync('./public/sounds/missing-information.wav');
+    res.writeHead(200, {'Content-Type': 'audio/wav'});
+    res.end(wav, 'binary');
+    //}
+    //} else { 
+    //    res.writeHead(200, {'Content-Type': 'text/plain' });
+    //    res.end('Hello World \n');
+    //}
+});
+app.get('/public/sounds/security-warning.wav', function(req, res){
+    var request = url.parse(req.url, true);
+    var action = request.pathname;
+    console.log("action: "+action);
+    var wav = fs.readFileSync('./public/sounds/security-warning.wav');
+    res.writeHead(200, {'Content-Type': 'audio/wav'});
+    res.end(wav, 'binary');
+});
+app.get('/public/sounds/success.wav', function(req, res){
+    var request = url.parse(req.url, true);
+    var action = request.pathname;
+    console.log("action: "+action);
+    var wav = fs.readFileSync('./public/sounds/success.wav');
+    res.writeHead(200, {'Content-Type': 'audio/wav'});
+    res.end(wav, 'binary');
+});
+*/
 
 //displays our homepage
 app.get('/', function(req, res){
@@ -887,18 +954,23 @@ app.get('/', function(req, res){
 									//console.log("  - "+item_key);
                                     dat[section][selected_year][selected_month][selected_day][item_key] = {};
 									if (fs.statSync(item_path).isFile()) {
-										dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
-										dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
-										//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
-										var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
-										items.push(this_item);
-										for (var index in this_item) {
-											if (this_item.hasOwnProperty(index)) {
-												var val = this_item[index];
-												//var val = items[index];
-												//console.log("    " + index + ": " + val);
-											}
-										}
+                                        try {
+                                            dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+                                            dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
+                                            //dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+                                            var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+                                            items.push(this_item);
+                                            for (var index in this_item) {
+                                                if (this_item.hasOwnProperty(index)) {
+                                                    var val = this_item[index];
+                                                    //var val = items[index];
+                                                    //console.log("    " + index + ": " + val);
+                                                }
+                                            }
+                                        }
+                                        catch (err) {
+                                            req.session.error = "\nCould not finish reading "+item_path+": "+err;
+                                        }
 									}
 									else {
 										msg += " ...missing file "+item_path+" ";
@@ -1003,6 +1075,9 @@ app.post('/student-microevent', function(req, res){
             for (var index in section_required_fields[req.body.section]) {
                 if (section_required_fields[req.body.section].hasOwnProperty(index)) {
                     var key = section_required_fields[req.body.section][index];
+                    if (("prefill_"+key) in req.session) {
+                        if (fun.is_blank(req.session["prefill_"+key])) delete req.session["prefill_"+key];
+                    }
                     if (!(("prefill_"+key) in req.session)) {
                         custom_error = "MISSING: ";
                         if (missing_fields!="") missing_fields += ",";
@@ -1010,9 +1085,9 @@ app.post('/student-microevent', function(req, res){
                         if (fields_friendly_names.key) key_friendly_name = fields_friendly_names.key;
                         missing_fields += " " + key;
                     }
-                    //else {
-                     //   console.log(key + " is in prefill_data");
-                    //}
+                    else {
+                        console.log("prefill_"+key + " is in session with value "+req.session["prefill_"+key]);
+                    }
                 }
             }
         }
@@ -1150,7 +1225,7 @@ app.post('/student-microevent', function(req, res){
                     var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
                     if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
                     req.session.notice = msg; //+"<!--" + out_path + "-->.";
-					session.runme = new Handlebars.SafeString("var audio = new Audio('success.wav'); audio.play();");
+					if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/success.wav'); audio.play();");
 					for (var indexer in req.session) {
 						if (req.session.hasOwnProperty(indexer)) {
 							if (indexer.startsWith("prefill_")) delete req.session.indexer;
@@ -1171,7 +1246,7 @@ app.post('/student-microevent', function(req, res){
                 }
                 else {
                     req.session.error = "not authorized to modify data for '" + req.body.section + "'";
-                    session.runme = new Handlebars.SafeString("var audio = new Audio('security-warning.wav'); audio.play();");
+                    if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/security-warning.wav'); audio.play();");
                     delete req.session.prefill_pin;
                     delete req.session.prefill_heading;
                 }
@@ -1179,7 +1254,7 @@ app.post('/student-microevent', function(req, res){
             else {//formatting error
                 
                 req.session.error = custom_error;//+ "<script>var Speech = require('speak-tts'); Speech.init({'onVoicesLoaded': (data) => {console.log('voices', data.voices)},'lang': 'en-US','volume': 0.5,'rate': 0.8,'pitch': 0.8});"+'Speech.speak({text: "'+custom_error+'" })</script>';
-                session.runme = new Handlebars.SafeString("var audio = new Audio('missing-information.wav'); audio.play();");
+                if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/missing-information.wav'); audio.play();");
                 delete req.session.prefill_pin;
                 delete req.session.prefill_heading;
             }
@@ -1194,7 +1269,7 @@ app.post('/student-microevent', function(req, res){
             delete req.session.prefill_heading;
             //req.session.error = new Handlebars.SafeString(custom_error + missing_fields + "<script>var audio = new Audio('missing-information.wav'); audio.play();</script>");
             req.session.error = custom_error + missing_fields;
-            session.runme = new Handlebars.SafeString("var audio = new Audio('missing-information.wav'); audio.play();");
+            if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/missing-information.wav'); audio.play();");
         }
     }
     else {

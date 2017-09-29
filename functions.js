@@ -160,13 +160,15 @@ exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
 }
 
 
-exports.is_not_blank = function (str) {
-	return str && str.trim();
+exports.is_blank = function (str) {
+	return (!str) || (str.trim()===""); //|| (str===undefined) || (str===null) || (str==="") 
 }
 
-exports.is_blank = function (str) {
-	return (str===undefined) || (str===null) || (!str) || (!str.trim());
+exports.is_not_blank = function (str) {
+	//return str && str.trim();
+    return !exports.is_blank(str);
 }
+
 
 exports.to_ecmascript_value = function (val) {
 	var result = "\"<error reading variable>\"";

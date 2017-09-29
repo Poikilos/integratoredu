@@ -16,7 +16,7 @@
   </head>
 
   <body onload="{{get_startup_js_code}}">
-
+    {{remove_audio_message}}
     <div class="container" style="width:80%">
 
       <nav class="navbar navbar-default" role="navigation">
@@ -82,7 +82,9 @@
         </div>{{!--end navbar-collapse--}}
       </div>{{!--end container-fluid--}}
     </nav>
-
+    <!--where our other templates will insert-->
+    {{{body}}}
+    
     {{#if error}}
       <p class="alert alert-warning">{{error}}</p>
     {{/if}}
@@ -94,9 +96,6 @@
     {{#if notice}}
       <p class="alert alert-info">{{notice}}</p>
     {{/if}}
-
-    <!--where our other templates will insert-->
-    {{{body}}}
 
     </div> <!-- /container -->
     <br/>

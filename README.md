@@ -4,6 +4,8 @@ http://github.com/expertmm/integratoredu
 
 
 ## Changes
+* (2017-09-29) added new boolean config.audio_enable (see config.js) -- default is true -- for playing sound on success (success.wav), missing form data (missing-information.wav), or potential hacking attempt otherwise bug (security-warning.wav)
+* (2017-09-29) added packages for image serving: url, http
 * (2017-09-28) renamed group_*_fields to section_*_fields and group_fields_overrides to section_fields_overrides
 * (2017-09-28) correct user_has_pinless_time function
 * (2017-09-28) [URGENT security fix] remove prefill globals
@@ -23,6 +25,7 @@ http://github.com/expertmm/integratoredu
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
+* should display all fields are missing if all fields are blank, instead of only showing heading is missing
 * session.runme and other direct usages of session as if it were a session (as opposed to using req.session) may not be ok
 * There is no code to serve the wav files referenced by the javascript that is in body onload after an error occurs.
 * Reading (incorrectly formatted?) YAML can crash app on line: yaml.readSync(item_path, "utf8");
