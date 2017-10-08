@@ -489,6 +489,7 @@ var hbs = exphbs.create({
         },
 		eachProperty: function(context, options) {
 			//see Ben on https://stackoverflow.com/questions/9058774/handlebars-mustache-is-there-a-built-in-way-to-loop-through-the-properties-of
+			//NOTE: This is needed since builtin each didn't work though according to  "each" can iterate objects as @key : {{this}} (whereas array is iterated as @index : {{this}})
 			var ret = "";
 			for(var prop in context)
 			{
