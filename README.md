@@ -2,6 +2,7 @@
 Tracker for learning community micro events (changes or interactions that occur more frequently than once a day)
 http://github.com/expertmm/integratoredu
 
+This web app is in heavy development. Please use a release version (releases are, however, not production ready) by clicking "Releases" above.
 
 ## Changes
 * (2017-09-29) added new boolean config.audio_enable (see config.js) -- default is true -- for playing sound on success (success.wav), missing form data (missing-information.wav), or potential hacking attempt otherwise bug (security-warning.wav)
