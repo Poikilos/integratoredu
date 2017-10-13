@@ -104,7 +104,7 @@ default_mode_by_user["commute"] = "create";
 default_mode_by_user["attendance"] = "read";
 default_mode_by_user["accounting"] = "read";
 
-var prefill_data_by_user = {};
+//var prefill_data_by_user = {};
 
 var create_groups = {}; //which users can create entries in which section
 //Any usernames added to groups via code should be created (using the create username form while web app is running) before web app is made accessible to anyone other than those setting up the web app.
@@ -356,7 +356,7 @@ function modify_group_contains(section, username) {
 }
 
 //Generate and return only html form fields of a certain subset, for multi-part (for layout purposes only) but single-page forms
-function get_filtered_form_fields_html(section, mode, username, show_collapsed_only_enable) {
+function get_filtered_form_fields_html(section, mode, username, show_collapsed_only_enable, prefill) {
     var ret="";
     for (var i = 0, len = section_form_fields[section].length; i < len; i++) {
         var friendly_name = section_form_fields[section][i];
@@ -372,7 +372,7 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
             
             if (friendly_name in section_form_friendly_names[section]) friendly_name = section_form_friendly_names[section][friendly_name];
             var prefill_value = "";
-            if ((username in prefill_data_by_user) && (field_name in prefill_data_by_user[username])) prefill_value = prefill_data_by_user[username][field_name];
+            if (prefill && (field_name in prefill)) prefill_value = prefill[field_name];
             if (field_name in choices_by_field) {
                 ret += "\n" + '<div class="form-group">';
                 if (show_collapsed_only_enable) ret += "\n" + '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+':</label>';
@@ -380,8 +380,8 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
                 ret += "\n" + '  <div class="col-sm-10">';
                 ret += "\n" + '    <div class="btn-group" data-toggle="buttons">';
                 for (var choice_i = 0, choice_len = choices_by_field[field_name].length; choice_i < choice_len; choice_i++) {
-                    var friendly_name = choices_by_field[field_name][i];
-                    ret += "\n" + '      <label class="btn btn-primary"><input type="radio" name="'+field_name+'" value="'+choices_by_field[field_name][i]+'"/>'+friendly_name+'</label>';
+                    var friendly_name = choices_by_field[field_name][choice_i];
+                    ret += "\n" + '      <label class="btn btn-primary"><input type="radio" name="'+field_name+'" value="'+choices_by_field[field_name][choice_i]+'"/>'+friendly_name+'</label>';
                 }
                 ret += "\n" + '    </div>';
                 ret += "\n" + '  </div>';
@@ -446,7 +446,7 @@ var hbs = exphbs.create({
 		get_member: function(a, name, opts) {
 			return (name in a) ? a.name : "";
 		},
-        get_section_form: function(section, mode, username, opts) {
+        get_section_form: function(section, mode, username, prefill, opts) {
             //globals of note:
             //section_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
             //section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
@@ -456,24 +456,30 @@ var hbs = exphbs.create({
             //prefill_data_by_user
             var ret = "No form implemented ("+section+")";
             if (section in section_form_fields) {
+                //console.log("get_section_form...");
+                //for (var index in prefill) {
+                //    if (prefill.hasOwnProperty(index)) {
+                //        console.log("_ (get_section_form) prefill."+index + " is in session with value "+prefill[index]);
+                //    }
+                //}
                 ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">';
                 
                 ret += "\n" + '  <input type="hidden" name="section" value="'+section+'"/>';
-                if (!(username in prefill_data_by_user) || !("mode" in prefill_data_by_user[username])) {
+                if (!("prefill" in session) || !("mode" in prefill)) {
                     ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="create"/>';
                 }
                 else {
-                    ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="'+prefill_data_by_user[username]["mode"]+'"/>';
+                    ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="'+prefill["mode"]+'"/>';
                 }
                 
                 //for (index in section_form_fields[section]) {
-                ret += get_filtered_form_fields_html(section, mode, username, false);
+                ret += get_filtered_form_fields_html(section, mode, username, false, prefill);
                 ret += '  <div class="form-group">';
                 ret += '    <div class="col-sm-10" style="text-align:center">';
                 var friendly_action_name = "Enter";
                 if (mode && (mode in friendly_mode_action_text)) friendly_action_name=friendly_mode_action_text[mode];
                 ret += '      <input type="submit" class="btn btn-primary btn-sm" value="'+friendly_action_name+'"/>';
-                var more_fields_html = get_filtered_form_fields_html(section, mode, username, true);
+                var more_fields_html = get_filtered_form_fields_html(section, mode, username, true, prefill);
                 if (more_fields_html.length>0) ret += '      <a data-toggle="collapse" href="#extra-fields" class="btn btn-default btn-md" role="button">More Options</a>'
                 ret += '    </div>';
                 ret += '  </div>';
@@ -483,6 +489,9 @@ var hbs = exphbs.create({
                     ret += '  </div>';
                 }
                 ret += "\n  </form>"
+            }
+            else {
+                console.log("WARNING: There is no form for section " + section);
             }
             return new Handlebars.SafeString(ret); // mark as already escaped (so that literal html can be pushed) -- normally new Handlebars.SafeString
 ;
@@ -786,7 +795,7 @@ app.get('/', function(req, res){
 		prefill_mode = req.body.prefill_mode;
 		req.session.prefill_mode = prefill_mode;
 	}
-	else if (fun.is_not_blank(req.session.prefill_mode)) {
+	else if (("prefill" in req.session) && ("mode" in req.session.prefill) && fun.is_not_blank(req.session.prefill.mode)) {
 		prefill_mode = req.session.prefill_mode;
 	}
 	
@@ -998,7 +1007,7 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, mode: mode, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	res.render('home', {user: req.user, section: section, mode: mode, prefill: req.session.prefill, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
 });
 
 //displays our signup page
@@ -1025,24 +1034,24 @@ app.post('/student-microevent', function(req, res){
         console.log("* NOTE: student-microevent by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
 		//var prefill_stated_time;
-        if (fun.is_not_blank(req.body.stated_time)) req.session.prefill_stated_time = req.body.stated_time.trim();
+        if (fun.is_not_blank(req.body.stated_time)) req.session.prefill.stated_time = req.body.stated_time.trim();
         else {
-            delete req.session.prefill_stated_time;
+            if ("prefill" in req.session) delete req.session.prefill.stated_time;
         }
-        //else req.session.prefill_stated_time = moment().format("HH:mm:ss");
+        //else req.session.prefill.stated_time = moment().format("HH:mm:ss");
         
-        if (fun.is_not_blank(req.body.stated_date)) req.session.prefill_stated_date = req.body.stated_date.trim();
+        if (fun.is_not_blank(req.body.stated_date)) req.session.prefill.stated_date = req.body.stated_date.trim();
         else {
-            delete req.session.prefill_stated_date;
+            if ("prefill" in req.session) delete req.session.prefill.stated_date;
         }
-        //else req.session.prefill_stated_date = moment().format("YYYY-MM-DD");
+        //else req.session.prefill.stated_date = moment().format("YYYY-MM-DD");
         
-        //if (("family_id" in req.body) ) req.session.prefill_family_id = req.body.family_id.trim();
-        //if ("first_name" in req.body) req.session.prefill_first_name = req.body.first_name.trim();
-        //if ("last_name" in req.body) req.session.prefill_last_name = req.body.last_name.trim();
-        //if ("grade_level" in req.body) req.session.prefill_grade_level = req.body.grade_level.trim();
-        //if ("chaperone" in req.body) req.session.prefill_chaperone = req.body.chaperone.trim();
-        //if ("reason" in req.body) req.session.prefill_reason = req.body.reason.trim();
+        //if (("family_id" in req.body) ) req.session.prefill.family_id = req.body.family_id.trim();
+        //if ("first_name" in req.body) req.session.prefill.first_name = req.body.first_name.trim();
+        //if ("last_name" in req.body) req.session.prefill.last_name = req.body.last_name.trim();
+        //if ("grade_level" in req.body) req.session.prefill.grade_level = req.body.grade_level.trim();
+        //if ("chaperone" in req.body) req.session.prefill.chaperone = req.body.chaperone.trim();
+        //if ("reason" in req.body) req.session.prefill.reason = req.body.reason.trim();
         var record = {};
         var custom_error = null;
         var missing_fields = "";
@@ -1057,7 +1066,8 @@ app.post('/student-microevent', function(req, res){
                     if (key in req.body) {
                         if (req.body[key]) {
 							if (req.body[key].substring(0,8)!="prefill_") {
-								req.session["prefill_"+key] = req.body[key];
+                                if (!("prefill" in req.session)) req.session.prefill = {}; 
+								req.session.prefill[key] = req.body[key];
 								if (!never_save_fields.includes(key)) record[key] = req.body[key];
 							}
                             //console.log(key + " is filled in");
@@ -1076,19 +1086,19 @@ app.post('/student-microevent', function(req, res){
             for (var index in section_required_fields[req.body.section]) {
                 if (section_required_fields[req.body.section].hasOwnProperty(index)) {
                     var key = section_required_fields[req.body.section][index];
-                    if (("prefill_"+key) in req.session) {
-                        if (fun.is_blank(req.session["prefill_"+key])) delete req.session["prefill_"+key];
+                    if (("prefill" in req.session) && (key in req.session.prefill)) {
+                        if (fun.is_blank(req.session.prefill[key])) delete req.session.prefill[key];
                     }
-                    if (!(("prefill_"+key) in req.session)) {
+                    if (!("prefill" in req.session) || !(key in req.session.prefill)) {
                         custom_error = "MISSING: ";
                         if (missing_fields!="") missing_fields += ",";
                         key_friendly_name = key;
                         if (fields_friendly_names.key) key_friendly_name = fields_friendly_names.key;
                         missing_fields += " " + key;
                     }
-                    else {
-                        console.log("prefill_"+key + " is in session with value "+req.session["prefill_"+key]);
-                    }
+                    //else {
+                    //    console.log("_ prefill."+key + " is in session with value "+req.session.prefill[key]);
+                    //}
                 }
             }
         }
@@ -1101,51 +1111,49 @@ app.post('/student-microevent', function(req, res){
         if (!custom_error) {
 			
 			//already done above?
-			//for (var indexer in req.session) {
-			//	if (req.session.hasOwnProperty(indexer)) {
-			//		if (indexer.startsWith("prefill_")) {
-			//			record[indexer.substring(8)] = req.session.indexer;
-			//		}
+			//for (var indexer in req.session.prefill) {
+			//	if (req.session.prefill.hasOwnProperty(indexer)) {
+			//		record[indexer] = req.session.prefill[indexer];
 			//	}
 			//}
 			
 			//if already done above, why was this code here before the loop was (NOTE: commented code updated for non-global prefill data as writing this comment)?
-            //if ("prefill_name" in req.session) record.name=req.session.prefill_name;
-            //if ("prefill_first_name" in req.session) record.first_name=req.session.prefill_first_name;
-            //if ("prefill_last_name" in req.session) record.last_name=req.session.prefill_last_name;
-            //if ("prefill_chaperone" in req.session) record.chaperone=req.session.prefill_chaperone;
-            //record.grade_level=req.session.prefill_grade_level;
-            //if ("prefill_family_id" in req.session) record.family_id=req.session.prefill_family_id;
+            //if ("name" in req.session.prefill) record.name=req.session.prefill.name;
+            //if ("first_name" in req.session.prefill) record.first_name=req.session.prefill.first_name;
+            //if ("last_name" in req.session.prefill) record.last_name=req.session.prefill.last_name;
+            //if ("chaperone" in req.session.prefill) record.chaperone=req.session.prefill.chaperone;
+            //record.grade_level=req.session.prefill.grade_level;
+            //if ("family_id" in req.session.prefill) record.family_id=req.session.prefill.family_id;
 			var stated_date_enable = false;
-            if ("prefill_stated_date" in req.session) {
+            if (("prefill" in req.session) && ("stated_date" in req.session.prefill)) {
 				
-				if (req.session.prefill_stated_date.length==10) {
-					if (req.session.prefill_stated_date.substring(2,3)=="/"
-						&& req.session.prefill_stated_date.substring(5,6)=="/"
-						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(0,2), "0123456789")
-						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(3,5), "0123456789")
-						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(6), "0123456789")
+				if (req.session.prefill.stated_date.length==10) {
+					if (req.session.prefill.stated_date.substring(2,3)=="/"
+						&& req.session.prefill.stated_date.substring(5,6)=="/"
+						&& fun.only_contains_any_char(req.session.prefill.stated_date.substring(0,2), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill.stated_date.substring(3,5), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill.stated_date.substring(6), "0123456789")
 						) {
 						//convert MM/DD/YYYY to YYYY-MM-DD:
-						original_stated_date = req.session.prefill_stated_date;
-						req.session.prefill_stated_date = req.session.prefill_stated_date.substring(6) + "-" + req.session.prefill_stated_date.substring(0,2) + "-" + req.session.prefill_stated_date.substring(3,5);
+						original_stated_date = req.session.prefill.stated_date;
+						req.session.prefill.stated_date = req.session.prefill.stated_date.substring(6) + "-" + req.session.prefill.stated_date.substring(0,2) + "-" + req.session.prefill.stated_date.substring(3,5);
 						stated_date_enable = true;
-						console.log("  * NOTE: converted date " + original_stated_date + " to " + req.session.prefill_stated_date)
+						console.log("  * NOTE: converted date " + original_stated_date + " to " + req.session.prefill.stated_date)
 					}
-					else if (req.session.prefill_stated_date.substring(4,5)=="-"
-						&& req.session.prefill_stated_date.substring(7,8)=="-"
-						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(0,4), "0123456789")
-						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(5,7), "0123456789")
-						&& fun.only_contains_any_char(req.session.prefill_stated_date.substring(8), "0123456789")
+					else if (req.session.prefill.stated_date.substring(4,5)=="-"
+						&& req.session.prefill.stated_date.substring(7,8)=="-"
+						&& fun.only_contains_any_char(req.session.prefill.stated_date.substring(0,4), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill.stated_date.substring(5,7), "0123456789")
+						&& fun.only_contains_any_char(req.session.prefill.stated_date.substring(8), "0123456789")
 						) {
 						stated_date_enable = true;
 					}
 				}
 				if (!stated_date_enable) {
-					custom_error = "custom date " + req.session.prefill_stated_date + " must be in YYYY-MM-DD or MM/DD/YYYY format";
+					custom_error = "custom date " + req.session.prefill.stated_date + " must be in YYYY-MM-DD or MM/DD/YYYY format";
 					//var details = " ... ";
-					//if (!fun.only_contains_any_char(req.session.prefill_stated_date.substring(6), "0123456789")) details += "non-number in last 4 digits; ";
-					//if (!fun.only_contains_any_char(req.session.prefill_stated_date.substring(0,4), "0123456789")) details += "non-number in first 4 digits; ";
+					//if (!fun.only_contains_any_char(req.session.prefill.stated_date.substring(6), "0123456789")) details += "non-number in last 4 digits; ";
+					//if (!fun.only_contains_any_char(req.session.prefill.stated_date.substring(0,4), "0123456789")) details += "non-number in first 4 digits; ";
 					//custom_error += details;
 				}
 				else {
@@ -1162,13 +1170,13 @@ app.post('/student-microevent', function(req, res){
 						if (!config.office_pin) custom_error = custom_error + "; website administrator has not yet set office_pin in config.json";
 						stated_date_enable = false;
 					}
-					if (stated_date_enable) record.stated_date=req.session.prefill_stated_date;
+					if (stated_date_enable) record.stated_date=req.session.prefill.stated_date;
 				}
 			}
             //var uac_error = null;
-            if (req.session.prefill_stated_time !== undefined) {
-                if (req.session.prefill_stated_time.toLowerCase().match("am")
-                    || req.session.prefill_stated_time.toLowerCase().match("pm") ) {
+            if (req.session.prefill.stated_time !== undefined) {
+                if (req.session.prefill.stated_time.toLowerCase().match("am")
+                    || req.session.prefill.stated_time.toLowerCase().match("pm") ) {
                     if (  (req.body.section=="commute") &&  ( (!req.body.pin) || (req.body.pin!=config.office_pin))  ) {
 						if (fun.contains.call(modify_groups["commute"], req.user.username)) {
 							console.log("  * NOTE: PIN skipped for commute custom time: "+req.user.username+" (this is ok since user has modify priv for this section)");
@@ -1201,17 +1209,17 @@ app.post('/student-microevent', function(req, res){
                     if (!fs.existsSync(signs_dir_path))
                         fs.mkdirSync(signs_dir_path);
                     var y_dir_name = moment().format("YYYY");
-					if (stated_date_enable) y_dir_name = req.session.prefill_stated_date.substring(0,4);
+					if (stated_date_enable) y_dir_name = req.session.prefill.stated_date.substring(0,4);
                     var y_dir_path = signs_dir_path + "/" + y_dir_name;
                     if (!fs.existsSync(y_dir_path))
                         fs.mkdirSync(y_dir_path);
                     var m_dir_name = moment().format("MM");
-					if (stated_date_enable) m_dir_name = req.session.prefill_stated_date.substring(5,7);
+					if (stated_date_enable) m_dir_name = req.session.prefill.stated_date.substring(5,7);
                     var m_dir_path = y_dir_path + "/" + m_dir_name;
                     if (!fs.existsSync(m_dir_path))
                         fs.mkdirSync(m_dir_path);
                     var d_dir_name = moment().format("DD");
-					if (stated_date_enable) d_dir_name = req.session.prefill_stated_date.substring(8,10);
+					if (stated_date_enable) d_dir_name = req.session.prefill.stated_date.substring(8,10);
                     var d_dir_path = m_dir_path + "/" + d_dir_name;
                     if (!fs.existsSync(d_dir_path))
                         fs.mkdirSync(d_dir_path);
@@ -1227,55 +1235,56 @@ app.post('/student-microevent', function(req, res){
                     if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
                     req.session.notice = msg; //+"<!--" + out_path + "-->.";
 					if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/success.wav'); audio.play();");
-					for (var indexer in req.session) {
-						if (req.session.hasOwnProperty(indexer)) {
-							if (indexer.startsWith("prefill_")) delete req.session.indexer;
+					for (var indexer in req.session.prefill) {
+						if (req.session.prefill.hasOwnProperty(indexer)) {
+                            console.log("- deleting "+indexer);
+							delete req.session.prefill.indexer;
 						}
 					}
-                    //delete req.session.prefill_time;
-                    //delete req.session.prefill_family_id;
-                    //delete req.session.prefill_first_name;
-                    //delete req.session.prefill_last_name;
-                    //delete req.session.prefill_grade_level;
-                    //delete req.session.prefill_chaperone;
-                    //delete req.session.prefill_reason;
-                    //delete req.session.prefill_time;
-                    //delete req.session.prefill_ctime;
-                    //delete req.session.prefill_stated_time;
-                    //delete req.session.prefill_stated_date;
-                    delete session.runme;
+                    //delete req.session.prefill.time;
+                    //delete req.session.prefill.family_id;
+                    //delete req.session.prefill.first_name;
+                    //delete req.session.prefill.last_name;
+                    //delete req.session.prefill.grade_level;
+                    //delete req.session.prefill.chaperone;
+                    //delete req.session.prefill.reason;
+                    //delete req.session.prefill.time;
+                    //delete req.session.prefill.ctime;
+                    //delete req.session.prefill.stated_time;
+                    //delete req.session.prefill.stated_date;
+                    //delete session.runme;
                 }
                 else {
                     req.session.error = "not authorized to modify data for '" + req.body.section + "'";
                     if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/security-warning.wav'); audio.play();");
-                    delete req.session.prefill_pin;
-                    delete req.session.prefill_heading;
+                    delete req.session.prefill.pin;
+                    delete req.session.prefill.heading;
                 }
             }
             else {//formatting error
                 
                 req.session.error = custom_error;//+ "<script>var Speech = require('speak-tts'); Speech.init({'onVoicesLoaded': (data) => {console.log('voices', data.voices)},'lang': 'en-US','volume': 0.5,'rate': 0.8,'pitch': 0.8});"+'Speech.speak({text: "'+custom_error+'" })</script>';
                 if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/missing-information.wav'); audio.play();");
-                delete req.session.prefill_pin;
-                delete req.session.prefill_heading;
+                delete req.session.prefill.pin;
+                delete req.session.prefill.heading;
             }
         }
         else {
             for (var index in req.body) {
                 if ( contains.call(section_form_fields[req.body.section], index) ) {
-                    req.session["prefill_"+index] = req.body[index];
+                    req.session.prefill[index] = req.body[index];
                 }
             }
-            delete req.session.prefill_pin;
-            delete req.session.prefill_heading;
+            delete req.session.prefill.pin;
+            delete req.session.prefill.heading;
             //req.session.error = new Handlebars.SafeString(custom_error + missing_fields + "<script>var audio = new Audio('missing-information.wav'); audio.play();</script>");
             req.session.error = custom_error + missing_fields;
             if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/missing-information.wav'); audio.play();");
         }
     }
     else {
-        for (var member in req.session) {
-			if (member.substring(0,8)=="prefill_") delete req.session.member;
+        for (var member in req.session.prefill) {
+			delete req.session.prefill.member;
 		}
         req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
         delete session.runme;
