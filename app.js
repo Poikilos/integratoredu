@@ -379,15 +379,27 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
                 else ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
                 ret += "\n" + '  <div class="col-sm-10">';
                 ret += "\n" + '    <div class="btn-group" data-toggle="buttons">';
+				var precheck="";
+				var precheck_class="";
                 for (var choice_i = 0, choice_len = choices_by_field[field_name].length; choice_i < choice_len; choice_i++) {
+					if (prefill_value==choices_by_field[field_name][choice_i]) {
+						precheck=' checked="checked"';// aria-pressed="true" is not required except for button
+						precheck_class=' active';
+					}
+					else {
+						precheck='';
+						console.log("prefill_value:"+prefill_value)
+						console.log("  choices_by_field[field_name][choice_i]:"+choices_by_field[field_name][choice_i])
+					}
                     var friendly_name = choices_by_field[field_name][choice_i];
-                    ret += "\n" + '      <label class="btn btn-primary"><input type="radio" name="'+field_name+'" value="'+choices_by_field[field_name][choice_i]+'"/>'+friendly_name+'</label>';
+                    ret += "\n" + '      <label class="btn btn-primary'+precheck_class+'"><input type="radio" name="'+field_name+'" value="'+choices_by_field[field_name][choice_i]+'"'+precheck+'>'+friendly_name+'</label>';
                 }
                 ret += "\n" + '    </div>';
                 ret += "\n" + '  </div>';
                 ret += "\n" + '</div>';
             }
             else {
+				console.log("prefill_value:"+prefill_value)
                 ret += "\n" + '  <div class="form-group">';
                 if (show_collapsed_only_enable) ret += "\n" + '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+':</label>';
                 else ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
@@ -447,6 +459,7 @@ var hbs = exphbs.create({
 			return (name in a) ? a.name : "";
 		},
         get_section_form: function(section, mode, username, prefill, opts) {
+			//aka get_form
             //globals of note:
             //section_required_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level"];
             //section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
@@ -454,6 +467,10 @@ var hbs = exphbs.create({
             //section_form_collapsed_fields["care"] = ["family_id", "stated_time", "stated_date"];
             //section_form_friendly_names["care"]["first_name"] = "Student First Name";
             //prefill_data_by_user
+			if (!prefill) {
+				prefill={}; //prevent crashes related to "in" keyword
+				console.log("WARNING: prefill was false in get_section_form");
+			}
             var ret = "No form implemented ("+section+")";
             if (section in section_form_fields) {
                 //console.log("get_section_form...");
@@ -465,7 +482,7 @@ var hbs = exphbs.create({
                 ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">';
                 
                 ret += "\n" + '  <input type="hidden" name="section" value="'+section+'"/>';
-                if (!("prefill" in session) || !("mode" in prefill)) {
+                if (!("mode" in prefill)) {
                     ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="create"/>';
                 }
                 else {
@@ -714,8 +731,8 @@ app.get('/', function(req, res){
 	var user_selectable_modes = [];  //similar to entry in user_modes_by_section that corresponds to section, except excludes transient modes
 	var this_sheet_field_names = [];
 	var this_sheet_field_friendly_names = [];
+	if (!("prefill" in req.session)) req.session.prefill={};
 	if (req.user && req.user.username) {
-		
 		var preload_table_names = sections; //["care","commute"];
 		for (var index in preload_table_names) {
 			if (preload_table_names.hasOwnProperty(index)) {
@@ -786,7 +803,7 @@ app.get('/', function(req, res){
 		req.session.mode = mode;
 	}
 	
-	var prefill_mode = "";
+	var prefill_mode = ""; //differs from prefill.mode in that prefill_mode specifies what mode the form should post as
 	if (fun.is_not_blank(req.query.prefill_mode)) {
 		prefill_mode = req.query.prefill_mode;
 		req.session.prefill_mode = prefill_mode;
@@ -795,7 +812,7 @@ app.get('/', function(req, res){
 		prefill_mode = req.body.prefill_mode;
 		req.session.prefill_mode = prefill_mode;
 	}
-	else if (("prefill" in req.session) && ("mode" in req.session.prefill) && fun.is_not_blank(req.session.prefill.mode)) {
+	else if (("mode" in req.session.prefill) && fun.is_not_blank(req.session.prefill.mode)) {
 		prefill_mode = req.session.prefill_mode;
 	}
 	
@@ -1034,15 +1051,16 @@ app.post('/student-microevent', function(req, res){
         console.log("* NOTE: student-microevent by " + req.user.username);
         //if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
 		//var prefill_stated_time;
+		if (!("prefill" in req.session)) req.session.prefill = {};
         if (fun.is_not_blank(req.body.stated_time)) req.session.prefill.stated_time = req.body.stated_time.trim();
         else {
-            if ("prefill" in req.session) delete req.session.prefill.stated_time;
+            delete req.session.prefill.stated_time;
         }
         //else req.session.prefill.stated_time = moment().format("HH:mm:ss");
         
         if (fun.is_not_blank(req.body.stated_date)) req.session.prefill.stated_date = req.body.stated_date.trim();
         else {
-            if ("prefill" in req.session) delete req.session.prefill.stated_date;
+            delete req.session.prefill.stated_date;
         }
         //else req.session.prefill.stated_date = moment().format("YYYY-MM-DD");
         
@@ -1066,7 +1084,6 @@ app.post('/student-microevent', function(req, res){
                     if (key in req.body) {
                         if (req.body[key]) {
 							if (req.body[key].substring(0,8)!="prefill_") {
-                                if (!("prefill" in req.session)) req.session.prefill = {}; 
 								req.session.prefill[key] = req.body[key];
 								if (!never_save_fields.includes(key)) record[key] = req.body[key];
 							}
@@ -1086,10 +1103,10 @@ app.post('/student-microevent', function(req, res){
             for (var index in section_required_fields[req.body.section]) {
                 if (section_required_fields[req.body.section].hasOwnProperty(index)) {
                     var key = section_required_fields[req.body.section][index];
-                    if (("prefill" in req.session) && (key in req.session.prefill)) {
+                    if ((key in req.session.prefill)) {
                         if (fun.is_blank(req.session.prefill[key])) delete req.session.prefill[key];
                     }
-                    if (!("prefill" in req.session) || !(key in req.session.prefill)) {
+                    if (!(key in req.session.prefill)) {
                         custom_error = "MISSING: ";
                         if (missing_fields!="") missing_fields += ",";
                         key_friendly_name = key;
@@ -1125,7 +1142,7 @@ app.post('/student-microevent', function(req, res){
             //record.grade_level=req.session.prefill.grade_level;
             //if ("family_id" in req.session.prefill) record.family_id=req.session.prefill.family_id;
 			var stated_date_enable = false;
-            if (("prefill" in req.session) && ("stated_date" in req.session.prefill)) {
+            if ("stated_date" in req.session.prefill) {
 				
 				if (req.session.prefill.stated_date.length==10) {
 					if (req.session.prefill.stated_date.substring(2,3)=="/"
@@ -1235,12 +1252,19 @@ app.post('/student-microevent', function(req, res){
                     if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
                     req.session.notice = msg; //+"<!--" + out_path + "-->.";
 					if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/success.wav'); audio.play();");
-					for (var indexer in req.session.prefill) {
-						if (req.session.prefill.hasOwnProperty(indexer)) {
-                            console.log("- deleting "+indexer);
-							delete req.session.prefill.indexer;
-						}
-					}
+					//for (var indexer in req.session.prefill) {
+					//	if (req.session.prefill.hasOwnProperty(indexer)) {
+					//		console.log("- deleting "+indexer);
+					//		delete req.session.prefill.indexer;
+					//	}
+					//	else console.log("- oops not deleting "+indexer);
+					//}
+					//TODO: find out why deleting them doesn't work (listing them below, they still exist, but are "undefined")
+					req.session.prefill = {};
+					//console.log("  new values:")
+					//for (var indexer in req.session.prefill) {
+					//	console.log("    prefill."+indexer+":"+req.session.prefill.indexer);
+					//}
                     //delete req.session.prefill.time;
                     //delete req.session.prefill.family_id;
                     //delete req.session.prefill.first_name;
@@ -1258,7 +1282,7 @@ app.post('/student-microevent', function(req, res){
                     req.session.error = "not authorized to modify data for '" + req.body.section + "'";
                     if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/security-warning.wav'); audio.play();");
                     delete req.session.prefill.pin;
-                    delete req.session.prefill.heading;
+                    //delete req.session.prefill.heading;
                 }
             }
             else {//formatting error
@@ -1266,7 +1290,7 @@ app.post('/student-microevent', function(req, res){
                 req.session.error = custom_error;//+ "<script>var Speech = require('speak-tts'); Speech.init({'onVoicesLoaded': (data) => {console.log('voices', data.voices)},'lang': 'en-US','volume': 0.5,'rate': 0.8,'pitch': 0.8});"+'Speech.speak({text: "'+custom_error+'" })</script>';
                 if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/missing-information.wav'); audio.play();");
                 delete req.session.prefill.pin;
-                delete req.session.prefill.heading;
+                //delete req.session.prefill.heading;
             }
         }
         else {
@@ -1276,7 +1300,7 @@ app.post('/student-microevent', function(req, res){
                 }
             }
             delete req.session.prefill.pin;
-            delete req.session.prefill.heading;
+            //delete req.session.prefill.heading;
             //req.session.error = new Handlebars.SafeString(custom_error + missing_fields + "<script>var audio = new Audio('missing-information.wav'); audio.play();</script>");
             req.session.error = custom_error + missing_fields;
             if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('sounds/missing-information.wav'); audio.play();");

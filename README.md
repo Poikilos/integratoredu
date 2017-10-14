@@ -6,6 +6,10 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (<2017-10-13) should display all fields are missing if all fields are blank, instead of only showing heading is missing
+* (2017-10-13) implemented prefill as object in session (gets passed to render and then to helper so that get_section_form form generator can use it)
+* (<2017-10-13) Change Y/M/D selection to highlight current one using helper: https://stackoverflow.com/questions/13046401/how-to-set-selected-select-option-in-handlebars-template
+* (<2017-10-13) (resolved by: check if user object exists in session) fix Exception on Logout if node instance has been restarted
 * (2017-09-29) added new boolean config.audio_enable (see config.js) -- default is true -- for playing sound on success (success.wav), missing form data (missing-information.wav), or potential hacking attempt otherwise bug (security-warning.wav)
 * (2017-09-29) added packages for image serving: url, http
 * (2017-09-28) renamed group_*_fields to section_*_fields and group_fields_overrides to section_fields_overrides
@@ -27,32 +31,33 @@ For release notes, see a release or the "etc" folder.
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Known Issues
-* should display all fields are missing if all fields are blank, instead of only showing heading is missing
+~=low-priority
+?=needs verification in current git version
 * session.runme and other direct usages of session as if it were a session (as opposed to using req.session) may not be ok
 * There is no code to serve the wav files referenced by the javascript that is in body onload after an error occurs.
-* Reading (incorrectly formatted?) YAML can crash app on line: yaml.readSync(item_path, "utf8");
-* Edit button should prefill the "create" form and additionally store date and primary key in hidden fields (pass along and use all prefills the same way prefill_mode is used correctly, ensuring variables are either defined or passed along in prefill_data class)
-* validate date by exploding by slash or hyphen, then adding zero padding.
-* history viewing should use res.write so that all sections can use the same handlebars code
-* bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/
-* Change Y/M/D selection to highlight current one using helper: https://stackoverflow.com/questions/13046401/how-to-set-selected-select-option-in-handlebars-template
-* Change section chooser from button to drop-down: https://www.w3schools.com/bootstrap/bootstrap_dropdowns.asp
-* find out why items aren't being cached (see "find out why this doesn't work" in code)
+html tag) data is written sometimes (but not anymore?)
+* Edit button should prefill the "create" form and additionally store date and primary key in hidden fields (pass along and use all prefills the same way prefill_mode is used correctly, ensuring variables are either defined or passed along in prefill object)
+* history viewing should use res.write so that all sections can use the same handlebars code (and so columns can be aligned regardless of order)
+* find out why items aren't being cached--can't see days past current day (see "find out why this doesn't work" in code)
+	* Should save timestamp for each time day in entire data folder's dated filesystem is modified (see "if (selected_day)" in app.js), so doesn't relist files for day each time a backend ("read" group) page is loaded -- get timestamp with decimal seconds like: moment().format('X')
 * Should block non-alphanumeric usernames from being created
-* Should save timestamp for each time day in entire data folder's dated filesystem is modified (see "if (selected_day)" in app.js), so doesn't relist files for day each time a backend ("read" group) page is loaded -- get timestamp with decimal seconds like: moment().format('X')
 * implement ".get_date()" function as field (get date from dated folder names)
 * for export, only fields from group_sheet_fields_names should be used (others displayed as gray on preview). SmartTuition requires (you have to email them the spreadsheet): Family ID, FirstName, LastName, GraveLevel, Total
 * implement overrides for editing and sheets--see group_fields_overrides (for editing, use stated time, but only if stated time exists. Also, only allow editing "time" field)
 * allow changing password (see "This is how to change the password" in app.js)
-* repeat password on registration
-* display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
+* type password twice to verify during registration
 * care form should have a drawing pad for signing
 * pin should be stored in database, encrypted
 * improve form repopulation such as with express-forms, or flashify as per Jason Gelinas at https://stackoverflow.com/questions/10706588/how-do-i-repopulate-form-fields-after-validation-errors-with-express-form
 * Clicking create account followed by "I have an account..." leaves both the New and login subpanels open (each is only closed by clicking again on the same button)
-* Don't know how to serve images (browser shows missing image symbol, and show image in new tab says "http://192.168.1.5/sign/users/profilepics/admin.jpg" where http://192.168.1.5/sign is a working reverse http proxy redirect that points to node running on 8080)
-* Exception on Logout if node instance has been restarted (probably no fix exists for this, but make sure user loses credentials when server restarts in case point of restarting was resolving security issues in code)
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
+
+* (?) Reading incorrectly formatted YAML can crash app on line: yaml.readSync(item_path, "utf8"); -- for some reason bad (some kind of error flag that looks like an * (~) validate date by exploding by slash or hyphen, then adding zero padding.
+* (~) bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/
+* (~) Change section chooser from button to drop-down: https://www.w3schools.com/bootstrap/bootstrap_dropdowns.asp
+* (~ partially resolved by having section name have display name [friendly_section_names]) display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
+* (~) serve files from database (browser shows missing image symbol, and show image in new tab says "http://192.168.1.5/sign/users/profilepics/admin.jpg" where http://192.168.1.5/sign is a working reverse http proxy redirect that points to node running on 8080)
+
 
 ## Planned Features
 * clear cache method (set these globals to null):

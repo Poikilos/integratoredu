@@ -19,10 +19,10 @@ exports.localReg = function (username, password) {
 			.then(function (result) {
 				if (null != result) {
 					console.log("USERNAME ALREADY EXISTS:", result.username);
-					//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead)
+					//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead--removing the collection removes all users)
 					//if (result.username=="attendance") {
 					//    console.log("DELETING attendance");
-					//    collection.remove();
+					//    collection.remove(); //removes all users!
 					//}
 					deferred.resolve(false); // username exists
 				}
@@ -65,7 +65,6 @@ exports.localReg = function (username, password) {
 
   return deferred.promise;
 };
-
 
 //check if user exists
     //if user exists check if passwords match (use bcrypt.compareSync(password, hash); // true where 'hash' is password in DB)
