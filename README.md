@@ -6,6 +6,8 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-15) renamed choices_by_field to field_lookup_values
+* (2017-10-14) changed permissions to use only two objects (_permissions and _groups) with universal permission checking function (user_has_section_permission)
 * (<2017-10-13) should display all fields are missing if all fields are blank, instead of only showing heading is missing
 * (2017-10-13) implemented prefill as object in session (gets passed to render and then to helper so that get_section_form form generator can use it)
 * (<2017-10-13) Change Y/M/D selection to highlight current one using helper: https://stackoverflow.com/questions/13046401/how-to-set-selected-select-option-in-handlebars-template
