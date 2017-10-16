@@ -16,6 +16,7 @@ var express = require('express'),
 //    FacebookStrategy = require('passport-facebook');
 var path = require("path");
 var Handlebars = require('handlebars');
+
 //Speech.init({
 //    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
 //    'lang': 'en-GB', // specify en-GB language (no detection applied)
@@ -29,7 +30,7 @@ var Handlebars = require('handlebars');
 var basePath = "./";
 
 
-var dat;
+var dat; //this is the cache
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
@@ -72,10 +73,12 @@ var config = require('./config.js'), //config file contains all tokens and other
 
 var app = express();
 app.use(express.static(__dirname + '/public'));
+//app.enable('trust proxy');
+app.set('trust proxy', 'loopback, linklocal, uniquelocal'); //NOTE: Allows req.ips, which derives from X-Forwarded-* and therefore is easily spoofed
 //app.listen(8080);
 
 if (!config.proxy_prefix_then_slash) config.proxy_prefix_then_slash = "/";
-if (!("audio_enable" in config)) config.audio_enable = true;
+if (!config.hasOwnProperty("audio_enable")) config.audio_enable = true;
 
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
@@ -130,19 +133,19 @@ _permissions["attendance"]["commute"] = ["create", "read", "reports"];
 
 function user_has_section_permission(this_username, this_section, this_permission) {
 	var result = false;
-	console.log("user_has_section_permission of "+this_username+" for "+this_section+":");
+	//console.log("user_has_section_permission of "+this_username+" for "+this_section+":");
 	for (var group_name in _groups) {
 		if (_groups.hasOwnProperty(group_name)) {
 			if (fun.contains.call(_groups[group_name], this_username)) {
 				if (_permissions[group_name].hasOwnProperty(this_section)) {
 					if (fun.contains.call(_permissions[group_name][this_section], this_permission)) {
 						result = true;
-						console.log("+has "+this_permission+" for "+group_name);
+						//console.log("+has "+this_permission+" for "+group_name);
 						break;
 					}
-					else console.log("-doesn't have "+this_permission+" for "+group_name);
+					//else console.log("-doesn't have "+this_permission+" for "+group_name);
 				}
-				else console.log("--no permissions for section "+this_section+" found in group "+group_name);
+				//else console.log("--no permissions for section "+this_section+" found in group "+group_name);
 			}
 		}
 	}
@@ -359,18 +362,18 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 		var friendly_name = section_form_fields[section][i];
 		var field_name = section_form_fields[section][i];
 		
-		if (!(section in section_form_collapsed_fields)) console.log("Warning: missing optional section_form_collapsed_fields for section: "+section)
+		if (!section_form_collapsed_fields.hasOwnProperty(section)) console.log("Warning: missing optional section_form_collapsed_fields for section: "+section)
 		
-		if ( !(section in section_form_collapsed_fields) && show_collapsed_only_enable)
+		if ( !(section_form_collapsed_fields.hasOwnProperty(section)) && show_collapsed_only_enable)
 			return ret; //only show fields once if no collapsed fields are specified (return blank here since called twice once true once false)
-		if ( !(section in section_form_collapsed_fields)
+		if ( (!section_form_collapsed_fields.hasOwnProperty(section))
 			|| (!show_collapsed_only_enable && !fun.contains.call(section_form_collapsed_fields[section], field_name ))
 			|| (show_collapsed_only_enable && fun.contains.call(section_form_collapsed_fields[section], field_name )) ) {
 			
-			if (friendly_name in section_form_friendly_names[section]) friendly_name = section_form_friendly_names[section][friendly_name];
+			if (section_form_friendly_names[section].hasOwnProperty(friendly_name)) friendly_name = section_form_friendly_names[section][friendly_name];
 			var prefill_value = "";
-			if (prefill && (field_name in prefill)) prefill_value = prefill[field_name];
-			if (field_name in field_lookup_values) {
+			if (prefill && (prefill.hasOwnProperty(field_name))) prefill_value = prefill[field_name];
+			if (field_lookup_values.hasOwnProperty(field_name)) {
 				ret += "\n" + '<div class="form-group">';
 				if (show_collapsed_only_enable) ret += "\n" + '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+':</label>';
 				else ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
@@ -385,8 +388,8 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 					}
 					else {
 						precheck='';
-						console.log("prefill_value:"+prefill_value)
-						console.log("  field_lookup_values[field_name][choice_i]:"+field_lookup_values[field_name][choice_i])
+						//console.log("prefill_value:"+prefill_value)
+						//console.log("  field_lookup_values[field_name][choice_i]:"+field_lookup_values[field_name][choice_i])
 					}
 					var friendly_name = field_lookup_values[field_name][choice_i];
 					ret += "\n" + '      <label class="btn btn-primary'+precheck_class+'"><input type="radio" name="'+field_name+'" value="'+field_lookup_values[field_name][choice_i]+'"'+precheck+'>'+friendly_name+'</label>';
@@ -396,7 +399,7 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 				ret += "\n" + '</div>';
 			}
 			else {
-				console.log("prefill_value:"+prefill_value)
+				//console.log("prefill_value:"+prefill_value)
 				ret += "\n" + '  <div class="form-group">';
 				if (show_collapsed_only_enable) ret += "\n" + '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+':</label>';
 				else ret += "\n" + '  <label class="control-label col-sm-2" >'+friendly_name+':</label>';
@@ -453,7 +456,7 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 		},
 		get_member: function(a, name, opts) {
-			return (name in a) ? a.name : "";
+			return (a.hasOwnProperty(name)) ? a.name : "";
 		},
 		get_section_form: function(section, mode, username, prefill, opts) {
 			//aka get_form
@@ -469,7 +472,7 @@ var hbs = exphbs.create({
 				console.log("WARNING: prefill was false in get_section_form");
 			}
 			var ret = "No form implemented ("+section+")";
-			if (section in section_form_fields) {
+			if (section_form_fields.hasOwnProperty(section)) {
 				//console.log("get_section_form...");
 				//for (var index in prefill) {
 				//    if (prefill.hasOwnProperty(index)) {
@@ -479,7 +482,7 @@ var hbs = exphbs.create({
 				ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">';
 				
 				ret += "\n" + '  <input type="hidden" name="section" value="'+section+'"/>';
-				if (!("mode" in prefill)) {
+				if (!(prefill.hasOwnProperty("mode"))) {
 					ret += "\n" + '  <input type="hidden" name="mode" id="mode" value="create"/>';
 				}
 				else {
@@ -491,7 +494,7 @@ var hbs = exphbs.create({
 				ret += '  <div class="form-group">';
 				ret += '    <div class="col-sm-10" style="text-align:center">';
 				var friendly_action_name = "Enter";
-				if (mode && (mode in friendly_mode_action_text)) friendly_action_name=friendly_mode_action_text[mode];
+				if (mode && (friendly_mode_action_text.hasOwnProperty(mode))) friendly_action_name=friendly_mode_action_text[mode];
 				ret += '      <input type="submit" class="btn btn-primary btn-sm" value="'+friendly_action_name+'"/>';
 				var more_fields_html = get_filtered_form_fields_html(section, mode, username, true, prefill);
 				if (more_fields_html.length>0) ret += '      <a data-toggle="collapse" href="#extra-fields" class="btn btn-default btn-md" role="button">More Options</a>'
@@ -566,13 +569,13 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 		},
 		friendlyModeName: function(needle, opts) {
-			if (needle in friendly_mode_names)
+			if (friendly_mode_names.hasOwnProperty(needle))
 				return friendly_mode_names[needle];
 			else
 				return needle;
 		},
 		friendlySectionName: function(needle, opts) {
-			if (needle in friendly_section_names)
+			if (friendly_section_names.hasOwnProperty(needle))
 				return friendly_section_names[needle];
 			else
 				return needle;
@@ -733,7 +736,7 @@ app.get('/', function(req, res){
 	var user_selectable_modes = [];  //similar to entry in user_modes_by_section that corresponds to section, except excludes transient modes
 	var this_sheet_field_names = [];
 	var this_sheet_field_friendly_names = [];
-	if (!("prefill" in req.session)) req.session.prefill={};
+	if (!(req.session.hasOwnProperty("prefill"))) req.session.prefill={};
 	if (req.user && req.user.username) {
 		var preload_table_names = sections; //["care","commute"];
 		for (var index in preload_table_names) {
@@ -741,7 +744,7 @@ app.get('/', function(req, res){
 				var val = preload_table_names[index];
 				if ( user_has_section_permission(req.user.username, val, "create") || user_has_section_permission(req.user.username, val, "read") || user_has_section_permission(req.user.username, val, "modify") ) {
 					user_sections.push(val);
-					if (!(val in user_modes_by_section)) user_modes_by_section[val] = [];
+					if (!user_modes_by_section.hasOwnProperty(val)) user_modes_by_section[val] = [];
 					if (user_has_section_permission(req.user.username, val, "create")) {
 						user_modes_by_section[val].push("create");
 					}
@@ -778,23 +781,25 @@ app.get('/', function(req, res){
 	}
 
 	if (section) {
-		if (section in section_sheet_fields) {
+		if (section_sheet_fields.hasOwnProperty(section)) {
 			for (var indexer in section_sheet_fields[section]) {
 				var val = section_sheet_fields[section][indexer];
 				this_sheet_field_names.push(val);
-				if (val in section_sheet_fields_friendly_names[section]) val = section_sheet_fields_friendly_names[section][val];
+				if (section_sheet_fields_friendly_names[section].hasOwnProperty(val)) val = section_sheet_fields_friendly_names[section][val];
 				this_sheet_field_friendly_names.push(val);
 			}
 		}
-		if (section in user_modes_by_section) {
+		if (user_modes_by_section.hasOwnProperty(section)) {
 			for (var indexer in user_modes_by_section[section]) { //for (group in user_modes_by_section["section"]) {
 				if (!fun.contains.call(transient_modes, user_modes_by_section[section][indexer])) {
 					user_selectable_modes.push(user_modes_by_section[section][indexer]);
+					//console.log("+ selectable_mode : "+user_modes_by_section[section][indexer]);
 				}
 			}
 		}
+		//else console.log("no "+val+" in user_modes_by_section");
 	}
-	
+
 	if (fun.is_not_blank(req.query.mode)) {
 		mode = req.query.mode;
 		req.session.mode = mode;
@@ -803,7 +808,7 @@ app.get('/', function(req, res){
 		mode = req.session.mode;
 	}
 	else if (user_selectable_modes && (user_selectable_modes.length>=1)) {
-		if (req.user && req.user.username && (req.user.username in default_mode_by_user)) mode=default_mode_by_user[req.user.username];
+		if (req.user && req.user.username && (default_mode_by_user.hasOwnProperty(req.user.username))) mode=default_mode_by_user[req.user.username];
 		else mode = user_selectable_modes[user_selectable_modes.length-1];
 		req.session.mode = mode;
 	}
@@ -817,7 +822,7 @@ app.get('/', function(req, res){
 		prefill_mode = req.body.prefill_mode;
 		req.session.prefill_mode = prefill_mode;
 	}
-	else if (("mode" in req.session.prefill) && fun.is_not_blank(req.session.prefill.mode)) {
+	else if ((req.session.prefill.hasOwnProperty("prefill_mode")) && fun.is_not_blank(req.session.prefill.prefill_mode)) {
 		prefill_mode = req.session.prefill_mode;
 	}
 
@@ -956,7 +961,6 @@ app.get('/', function(req, res){
 								var d_path = m_path + "/" + selected_day;
 								//if (!(dat[section][selected_year][selected_month][selected_day]&&dat[section][selected_year][selected_month][selected_day]["item_keys"])
 								//lists files every page load since modification not saved nor checked
-								
 								//subs = getDirectories(d_path);
 								//NOTE: fs.readdir is ASYNC! use getFiles which uses fs.readdirsync
 								//fs.readdir(d_path, function(err, these_item_keys) {
@@ -967,6 +971,7 @@ app.get('/', function(req, res){
 								//	//console.log(item_keys);
 								//	item_keys.push(these_item_keys[i]);
 								//}
+								//console.log("LISTING files in " + d_path);
 								item_keys = getFiles(d_path);
 								
 								//for (var i=0; i<item_keys.length; i++) {
@@ -1020,7 +1025,6 @@ app.get('/', function(req, res){
 			}
 			else {
 				//NOTE: Actually displaying the data cached above is managed separately, so do not show security errors below.
-				
 				//var error_string = " has no permission to read existing " + section;
 				//if (req.user && req.user.username) error_string = req.user.username + error_string;
 				//else error_string = "Unauthenticated user" + error_string;
@@ -1055,11 +1059,11 @@ app.post('/student-microevent', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	//sounds_path_then_slash = config.proxy_prefix_then_slash+"sounds/";
 	//sounds_path_then_slash = sounds_path_then_slash.substring(1); //remove leading slash
-	if (("user" in req) && ("username" in req.user) ) {
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		console.log("* NOTE: student-microevent by " + req.user.username);
 		//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
 		//var prefill_stated_time;
-		if (!("prefill" in req.session)) req.session.prefill = {};
+		if (!req.session.hasOwnProperty("prefill")) req.session.prefill = {};
 		if (fun.is_not_blank(req.body.stated_time)) req.session.prefill.stated_time = req.body.stated_time.trim();
 		else {
 			delete req.session.prefill.stated_time;
@@ -1085,7 +1089,7 @@ app.post('/student-microevent', function(req, res){
 		req.session.section = req.body.section;
 		req.session.mode = req.body.mode;
 		 
-		if (req.body.section in section_form_fields) {
+		if (section_form_fields.hasOwnProperty(req.body.section)) {
 			for (var index in section_form_fields[req.body.section]) {
 				if (section_form_fields[req.body.section].hasOwnProperty(index)) {
 					var key = section_form_fields[req.body.section][index];
@@ -1107,14 +1111,14 @@ app.post('/student-microevent', function(req, res){
 		else {
 			custom_error = "unknown section '" + req.body.section + "'";
 		}
-		if (req.body.section in section_required_fields) {
+		if (section_required_fields.hasOwnProperty(req.body.section)) {
 			for (var index in section_required_fields[req.body.section]) {
 				if (section_required_fields[req.body.section].hasOwnProperty(index)) {
 					var key = section_required_fields[req.body.section][index];
-					if ((key in req.session.prefill)) {
+					if (req.session.prefill.hasOwnProperty(key)) {
 						if (fun.is_blank(req.session.prefill[key])) delete req.session.prefill[key];
 					}
-					if (!(key in req.session.prefill)) {
+					if (!req.session.prefill.hasOwnProperty(key)) {
 						custom_error = "MISSING: ";
 						if (missing_fields!="") missing_fields += ",";
 						key_friendly_name = key;
@@ -1143,14 +1147,14 @@ app.post('/student-microevent', function(req, res){
 			//}
 			
 			//if already done above, why was this code here before the loop was (NOTE: commented code updated for non-global prefill data as writing this comment)?
-			//if ("name" in req.session.prefill) record.name=req.session.prefill.name;
-			//if ("first_name" in req.session.prefill) record.first_name=req.session.prefill.first_name;
-			//if ("last_name" in req.session.prefill) record.last_name=req.session.prefill.last_name;
-			//if ("chaperone" in req.session.prefill) record.chaperone=req.session.prefill.chaperone;
+			//if (req.session.prefill.hasOwnProperty("name")) record.name=req.session.prefill.name;
+			//if (req.session.prefill.hasOwnProperty("first_name")) record.first_name=req.session.prefill.first_name;
+			//if (req.session.prefill.hasOwnProperty("last_name")) record.last_name=req.session.prefill.last_name;
+			//if (req.session.prefill.hasOwnProperty("chaperone")) record.chaperone=req.session.prefill.chaperone;
 			//record.grade_level=req.session.prefill.grade_level;
-			//if ("family_id" in req.session.prefill) record.family_id=req.session.prefill.family_id;
+			//if (req.session.prefill.hasOwnProperty("family_id")) record.family_id=req.session.prefill.family_id;
 			var stated_date_enable = false;
-			if ("stated_date" in req.session.prefill) {
+			if (req.session.prefill.hasOwnProperty("stated_date")) {
 				if (req.session.prefill.stated_date.length==10) {
 					if (req.session.prefill.stated_date.substring(2,3)=="/"
 						&& req.session.prefill.stated_date.substring(5,6)=="/"
@@ -1227,6 +1231,7 @@ app.post('/student-microevent', function(req, res){
 				if (!fs.existsSync(data_dir_path))
 					fs.mkdirSync(data_dir_path);
 				var signs_dir_name = null;
+				//TODO: Check for "modify" priv instead if key is specified -- in that case also keep existing fields and overlay the new data (keep created_by fields especially, and add "modified_by*" fields)
 				//NOTE: if key is specified, then check if has modify permission instead, and edit same file instead.
 				if (user_has_section_permission(req.user.username, req.body.section, "create")) {
 					signs_dir_name = req.body.section;
@@ -1255,7 +1260,38 @@ app.post('/student-microevent', function(req, res){
 					//this callback doesn't work:
 					//yaml.write(out_path, record, "utf8", show_notice);
 					record.created_by = req.user.username;
+					record.created_by_ip = req.ip;
+					record.created_by_ips = req.ips;
+					record.created_by_hostname = req.hostname;
 					yaml.writeSync(out_path, record, "utf8");
+					//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
+					if (dat) {
+						var section = req.body.section;
+						if (!dat.hasOwnProperty(section)) {
+							console.log("ERROR: section "+section+" is not in cache");
+							dat[section]={};
+						}
+						if (!dat[section].hasOwnProperty(y_dir_name)) dat[section][y_dir_name]={};
+						if (!dat[section][y_dir_name].hasOwnProperty(m_dir_name)) dat[section][y_dir_name][m_dir_name]={};
+						if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty(d_dir_name)) {
+							dat[section][y_dir_name][m_dir_name][d_dir_name] = {};
+						}
+						if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty("days")) {
+							dat[section][y_dir_name][m_dir_name]["days"]=[];
+						}
+						if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty(d_dir_name)) dat[section][y_dir_name][m_dir_name][d_dir_name]={};
+						if (!fun.contains.call(dat[section][y_dir_name][m_dir_name]["days"], d_dir_name)) {
+							dat[section][y_dir_name][m_dir_name]["days"].push(d_dir_name);
+						}
+						if (!dat[section][y_dir_name][m_dir_name][d_dir_name].hasOwnProperty("item_keys")) {
+							dat[section][y_dir_name][m_dir_name][d_dir_name]["item_keys"] = [];
+						}
+						if (!fun.contains.call(dat[section][y_dir_name][m_dir_name][d_dir_name]["item_keys"], out_name)) {
+							dat[section][y_dir_name][m_dir_name][d_dir_name]["item_keys"].push(out_name);
+						}
+						dat[section][y_dir_name][m_dir_name][d_dir_name][out_name] = record;
+						//console.log("CACHE was updated for section "+section+" by adding entry "+out_name+" to date "+y_dir_name+"-"+m_dir_name+"-"+d_dir_name);
+					}
 					var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
 					if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
 					req.session.notice = msg; //+"<!--" + out_path + "-->.";

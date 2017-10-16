@@ -93,15 +93,15 @@
 		<span> {{selected_day}}</span>
 		{{#if selected_day}}
 		{{else}}
-            {{#if_eq section "commute"}}
+			{{#if_eq section "commute"}}
 				{{#if selected_month}}
 				&nbsp;(select a day)
 				{{else}}
 				&nbsp;(select a month)
 				{{/if}}
-            {{else}}
-            (click commute above to list entries)
-            {{/if_eq}}
+			{{else}}
+			(click commute above to list entries)
+			{{/if_eq}}
 		{{/if}}
 		</nav>
 			</div>
@@ -112,12 +112,11 @@
 			{{!--#each this_sheet_field_friendly_names}}
 			<td style="width:10em">{{this}}</td>
 			{{/each--}}
-			
+
 			{{!--Column headers--}}
 			{{#eachProperty objects.[0]}}
 			<th>{{property}}&nbsp;</th>
 			{{/eachProperty}}
-			
 
 			{{!--
 			<td style="width:8em">&nbsp;</td>
@@ -142,7 +141,7 @@
 			<input type="hidden" name="prefill_key" id="prefill_key" value="{{key}}" />
 			{{!--<input class="btn btn-default" type="submit" value="Edit" />--}}
 			</form>
-			
+
 			</td>
 			{{!--#each @root.this_sheet_field_names as |fieldValue fieldKey|}}
 				{{#if_formula this}}
@@ -169,7 +168,6 @@
 	</table>{{!--end read container table which has two columns: selectors in left, data in right--}}
 	<p></p>
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
-		
 		</div>{{!--end panel-body which contains div for each type of selector--}}
 	</div>{{!--end panel panel-default which contains read container table and all other read features--}}
 
@@ -179,17 +177,16 @@
 	</div>
 	<br/>
 	{{/modifyGroupContains}}
-	
+
 	{{#modifyGroupContains "care" user.username}}
 	<div class="jumbotron">
 		<p>(Before/After School Care Data editing not yet implemented)</p>
 	</div>
 	<br/>
 	{{/modifyGroupContains}}
-	
+
 	{{/if_eq}} {{!--end if mode is read--}}
-	
-	
+
 	<br/>
 	</div><!--end outer box-->
 	

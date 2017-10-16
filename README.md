@@ -6,6 +6,15 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-15) set value for key of day in dat manually after writing file to alleviate caching failure (see yaml.writeSync) -- logic for updating is still bad (see listed_* variables) since based on irrelevant information (read time) but should be unecessary now anyway.
+	* caching problem is described as (cache is only loaded for specific user and never changed):
+		* person with read priv views a page, and cache is loaded
+		* person with create (not read) creates entry not written to cache but written to file
+		* person with read priv views a page again, but cache is not modified
+	* diagnosis:
+		* cache wasn't updated when file is written to new day
+* (2017-10-15) changed all instances of boolean check for "in" to hasOwnProperty to account for delete, since regardless of what people stackoverflow say, in practice using "in" returned undefined values for deleted members. See also https://stackoverflow.com/questions/8539921/javascript-is-a-member-defined and Juan Mendes answer on similar topic: https://stackoverflow.com/questions/14967535/delete-a-x-vs-a-x-undefined
+	* except for parsed query objects like req.body, req.session, and req, which do not inherit from object and therefore don't have hasOwnProperty nor features of object which may lead to security issues.
 * (2017-10-15) renamed choices_by_field to field_lookup_values
 * (2017-10-14) changed permissions to use only two objects (_permissions and _groups) with universal permission checking function (user_has_section_permission)
 * (<2017-10-13) should display all fields are missing if all fields are blank, instead of only showing heading is missing
@@ -53,8 +62,7 @@ html tag) data is written sometimes (but not anymore?)
 * improve form repopulation such as with express-forms, or flashify as per Jason Gelinas at https://stackoverflow.com/questions/10706588/how-do-i-repopulate-form-fields-after-validation-errors-with-express-form
 * Clicking create account followed by "I have an account..." leaves both the New and login subpanels open (each is only closed by clicking again on the same button)
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
-
-* (?) Reading incorrectly formatted YAML can crash app on line: yaml.readSync(item_path, "utf8"); -- for some reason bad (some kind of error flag that looks like an * (~) validate date by exploding by slash or hyphen, then adding zero padding.
+* (?) cache checking code during page load was not using hasOwnProperty but rather "!" operator -- this may be a problem even though 0 is never a year, month, or day.* (?) Reading incorrectly formatted YAML can crash app on line: yaml.readSync(item_path, "utf8"); -- for some reason bad (some kind of error flag that looks like an * (~) validate date by exploding by slash or hyphen, then adding zero padding.
 * (~) bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/
 * (~) Change section chooser from button to drop-down: https://www.w3schools.com/bootstrap/bootstrap_dropdowns.asp
 * (~ partially resolved by having section name have display name [friendly_section_names]) display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
@@ -105,14 +113,25 @@ see etc/howto.txt for more
 see LICENSE file for license
 
 ## Developer Notes
+
+### Caching
+"dat" is the cache object. It contains named year objects.
+* each year object contains named month objects.
+  Month object contains:
+	* array named "day" containing day names
+	* objects named according to values in "day" list
+	  These day objects each contain:
+		* array named "item_keys" containing primary keys (equal to filenames)
+		* objects named according to values in "item_keys" list
+			* which each contain entry fields
+
 ### Security
 * use "req.sanitizeBody('name').escape();" from express-validator (see https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/forms )
 * Security checking must be done using groups["group name"] where each group name contains an array of users
 * student-microevent is only a group for display, not for security. 
-### First-time setup (no longer needed)
-I may have more files in my ownCloud in www/Node
-This git repository is usually pulled from ~/Applications resulting in ~/Applications/integratoredu folder.
-### Running
+
+
+### First-time setup
 Requires nodejs package to be installed
 To run (such as on Ubuntu Xenial): js app.js
 OR (such as Antergos): node app.js
@@ -143,7 +162,7 @@ sudo service mongodb enable
 npm install
 #on Ubuntu:
 sudo ufw allow 8080
-# BELOW IS ONLY NEEDED IF you want to also have apache installed:
+#BELOW IS ONLY NEEDED IF you want to also have apache installed:
 sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo cp ./share/etc/apache2/sites-available/sign.conf /etc/apache2/sites-available/
@@ -153,7 +172,7 @@ sudo service apache2 restart
 
 Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5 such as on Ubuntu Xenial]):
 
-DON't ACTUALLY do any of the stuff below--just do ```npm install``` instead, which will read package names from package.json
+DON't ACTUALLY do any of the stuff below--just do ```npm install``` instead (see above), which will read package names from package.json
 ```
 cd ~/Applications/integratoredu
 npm init
