@@ -27,8 +27,6 @@ var Handlebars = require('handlebars');
 //if(Speech.browserSupport()) {
 //    console.log("speech synthesis supported")
 //}
-var basePath = "./";
-
 
 var dat; //this is the cache
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
@@ -79,6 +77,8 @@ app.set('trust proxy', 'loopback, linklocal, uniquelocal'); //NOTE: Allows req.i
 
 if (!config.proxy_prefix_then_slash) config.proxy_prefix_then_slash = "/";
 if (!config.hasOwnProperty("audio_enable")) config.audio_enable = true;
+//var basePath = "./";
+var basePath = "."+config.proxy_prefix_then_slash;
 
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
@@ -108,6 +108,12 @@ default_mode_by_user["care"] = "create";
 default_mode_by_user["commute"] = "create";
 default_mode_by_user["attendance"] = "read";
 default_mode_by_user["accounting"] = "reports";
+
+var default_groupby = {};
+default_groupby["care"] = "family_id";
+
+var default_total = {};
+default_total["care"] = "=careprice()";
 
 //var prefill_data_by_user = {};
 
@@ -457,6 +463,10 @@ var hbs = exphbs.create({
 		},
 		get_member: function(a, name, opts) {
 			return (a.hasOwnProperty(name)) ? a.name : "";
+		},
+        show_reports: function(section, username, opts) {
+            ret="reports...";
+			return ret;
 		},
 		get_section_form: function(section, mode, username, prefill, opts) {
 			//aka get_form

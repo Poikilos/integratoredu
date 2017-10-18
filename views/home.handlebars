@@ -170,23 +170,12 @@
 		<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
 		</div>{{!--end panel-body which contains div for each type of selector--}}
 	</div>{{!--end panel panel-default which contains read container table and all other read features--}}
-
-	{{#modifyGroupContains "commute" user.username}}
-	<div class="jumbotron">
-		<p>(Commute editing not yet implemented)</p>
-	</div>
-	<br/>
-	{{/modifyGroupContains}}
-
-	{{#modifyGroupContains "care" user.username}}
-	<div class="jumbotron">
-		<p>(Before/After School Care Data editing not yet implemented)</p>
-	</div>
-	<br/>
-	{{/modifyGroupContains}}
-
 	{{/if_eq}} {{!--end if mode is read--}}
 
+	{{#if_eq mode "reports"}}
+	{{show_reports section user.username}}
+	{{/if_eq}} {{!--end if mode is report--}}
+	
 	<br/>
 	</div><!--end outer box-->
 	
