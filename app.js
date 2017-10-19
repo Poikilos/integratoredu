@@ -67,7 +67,7 @@ contains.call = function (haystack, needle) {
 
 //We will be creating these two files shortly
 var config = require('./config.js'), //config file contains all tokens and other private info
-    fun = require('./functions.js'); //functions file contains our non-app-specific functions including those for our Passport and database work
+	fun = require('./functions.js'); //functions file contains our non-app-specific functions including those for our Passport and database work
 
 var app = express();
 app.use(express.static(__dirname + '/public'));
@@ -419,6 +419,88 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 	return ret;
 }
 
+function get_years(section) {
+	var table_path = data_dir_path + "/" + section;
+	var year_month_string = moment().format("YYYY-MM");
+	var years;
+	if (!(dat[section]&&dat[section]["years"]) || !listed_year_on_month || (listed_year_on_month!=year_month_string)) {
+		listed_year_on_month = year_month_string;
+		if (fs.existsSync(table_path)) {
+			if (!dat[section]) dat[section] = {};
+			years = getDirectories(table_path);
+			dat[section]["years"] = years;
+			//for (var y_i = 0; y_i < years.length; y_i++) {
+				//var this_year = years[y_i];
+				//dat[section][this_year] = {};
+			//}
+		}
+	}
+	else years = dat[section]["years"];
+	return years;
+}
+
+function get_year_buttons_from_cache(section, username) {
+	var ret = "";
+	var years = get_years(section);
+	for (i=0, len=years.length; i<len; i++) {
+		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
+		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
+		ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
+		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
+		ret += '<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />';
+		if (years[i]==selected_year) {
+			ret += '<input class="btn" type="submit" value="'+years[i]+'" />';
+		}
+		else {
+			ret += '<input class="btn btn-default" type="submit" value="'+years[i]+'" />';
+		}
+		ret += '</form>';
+	}
+	return ret;
+}
+
+function get_year_month_select_buttons(section, username, years, months, selected_year, selected_month) {
+	var ret = "";
+	var years = get_years(section);
+	for (i=0, len=years.length; i<len; i++) {
+		ret += '<div>Report Year:';
+		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
+		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
+		ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
+		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
+		ret += '<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />';
+		if (years[i]==selected_year) {
+			ret += '<input class="btn" type="submit" value="'+years[i]+'" />';
+		}
+		else {
+			ret += '<input class="btn btn-default" type="submit" value="'+years[i]+'" />';
+		}
+		ret += '</form>';
+		ret += '</div>';
+	}
+	ret += '<div>Report Month:';
+	for (i=0, len=months.length; i<len; i++) {
+		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
+		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
+		ret += '<input type="hidden" name="selected_month" id="selected_month" value="'+months[i]+'" />';
+		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
+		ret += '<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />';
+		if (months[i]==selected_month) {
+			ret += '<input class="btn" type="submit" value="'+months[i]+'" />';
+		}
+		else {
+			ret += '<input class="btn btn-default" type="submit" value="'+months[i]+'" />';
+		}
+		ret += '</form>';
+	}
+	ret += '</div>';
+	return ret;
+}
+
+
 // Configure express to use handlebars templates
 var startTime = moment('08:10', "HH:mm").format("HH:mm");
 var endTime = moment('15:30', "HH:mm").format("HH:mm");
@@ -434,7 +516,7 @@ var hbs = exphbs.create({
 		if_eq: function(a, b, opts) {
 			//console.log("* checking if_eq while user is " + a);
 			if (a == b) // Or === 
-			    return opts.fn(this);
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
@@ -451,22 +533,90 @@ var hbs = exphbs.create({
 			}
 			//}
 			if (is_match) // Or === 
-			    return opts.fn(this);
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
 		if_formula: function(a, opts) {
 			if (a.startsWith("="))
-			    return opts.fn(this);
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
 		get_member: function(a, name, opts) {
 			return (a.hasOwnProperty(name)) ? a.name : "";
 		},
-        show_reports: function(section, username, opts) {
-            ret="reports...";
-			return ret;
+		show_reports: function(section, username, years, months, days, selected_year, selected_month, selected_day, opts) {
+			var ret = "";
+			if (user_has_section_permission(username, section, "reports")) {
+				ret += '<div class="panel panel-default">';
+			
+				ret += '<div class="panel-body">';
+				ret += '<table style="width:100%">';
+				ret += '<tr>';
+				ret += '<td style="width:5%; vertical-align:top; horizontal-align:left">';
+				ret += get_year_month_select_buttons(section, username, years, months, selected_year, selected_month);
+				ret += '</td>';
+				ret += '<td style="vertical-align:top; horizontal-align:left">';
+				ret += '	<div style="width:100%; text-align:center">';
+				ret += '<br/>';
+				if (selected_month) {
+					for (var day_i=0; day_i<days.length; day_i++) {
+						var selected_day = days[day_i];
+						var d_path = m_path + "/" + selected_day;
+						item_keys = getFiles(d_path);
+						if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
+						dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
+						//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
+						//console.log("(ITEM KEYS.length:"+item_keys.length+")");
+						//console.log("## ITEMS:"+items);
+						var msg = "";
+						//for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
+						for (var item_key_i in item_keys) {
+							var item_key = item_keys[item_key_i];
+							var item_path = d_path + "/" + item_key;
+							//console.log("  - "+item_key);
+							dat[section][selected_year][selected_month][selected_day][item_key] = {};
+							if (fs.statSync(item_path).isFile()) {
+								try {
+									dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+									dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
+									//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+									var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+									items.push(this_item);
+									for (var index in this_item) {
+										if (this_item.hasOwnProperty(index)) {
+											var val = this_item[index];
+											//var val = items[index];
+											//console.log("    " + index + ": " + val);
+										}
+									}
+								}
+								catch (err) {
+									req.session.error = "\nCould not finish reading "+item_path+": "+err;
+								}
+							}
+							else {
+								msg += " ...missing file "+item_path+" ";
+							}
+						}
+						if (msg.length>0) res.session.error=msg;
+					}//end for day
+				}
+				else {
+					if (selected_year) ret += "(select a month)";
+					else ret += "(select a year and month)";
+				}
+				ret += '</td>';
+				ret += '</tr>';
+				ret += '</table>';
+				ret += '</div>';
+				ret += '</div>';
+			}
+			else {
+				ret += 'You do not have permission to access this section';
+			}
+			return new Handlebars.SafeString(ret);
 		},
 		get_section_form: function(section, mode, username, prefill, opts) {
 			//aka get_form
@@ -534,7 +684,7 @@ var hbs = exphbs.create({
 		},
 		user_has_pinless_time: function(section, username, opts) {
 			if (user_has_pinless_time(section, username)) // Or === 
-			    return opts.fn(this);
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
@@ -543,14 +693,14 @@ var hbs = exphbs.create({
 			//      Ensure variable exists, and then use is_blank instead.
 			//console.log("* checking if_eq while user is " + a);
 			if (a === undefined) // Or === 
-			    return opts.fn(this);
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
 		if_blank: function(a, opts) {
 			//console.log("* checking if_eq while user is " + a);
 			if (fun.is_blank(a))
-			    return opts.fn(this);
+				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
@@ -838,8 +988,8 @@ app.get('/', function(req, res){
 
 	if (req.query.selected_year) {
 		selected_year = req.query.selected_year;
-        if (selected_year = "(none)") selected_year = null;
-        req.session.selected_year = selected_year;
+		if (selected_year = "(none)") selected_year = null;
+		req.session.selected_year = selected_year;
 	}
 	else if (req.session.selected_year) {
 		selected_year = req.session.selected_year;
@@ -877,7 +1027,7 @@ app.get('/', function(req, res){
 	if (section) {
 		req.session.section = section;
 		if (req.user && req.user.username) {
-			if (user_has_section_permission(req.user.username, section, "read")) {
+			if (user_has_section_permission(req.user.username, section, "read") || user_has_section_permission(req.user.username, section, "reports")) {
 				var y_dir_name = moment().format("YYYY");
 				var m_dir_name = moment().format("MM");
 				var d_dir_name = moment().format("DD");
@@ -943,6 +1093,7 @@ app.get('/', function(req, res){
 						}
 						
 						if (selected_month) {
+							
 							var m_path = y_path + "/" + selected_month;
 							if (!(dat[section][selected_year][selected_month]&&dat[section][selected_year][selected_month]["days"])
 									|| !listed_day_on_date || listed_day_on_date!=date_string) {
@@ -987,9 +1138,10 @@ app.get('/', function(req, res){
 								//for (var i=0; i<item_keys.length; i++) {
 								//    console.log("   * " + item_keys[i]);
 								//}
-								
+								//TODO: finish this asdf
 								if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
-								dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
+								//dat[section][selected_year][selected_month][selected_day]["item_keys"] = 
+								
 								//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
 								//console.log("(ITEM KEYS.length:"+item_keys.length+")");
 								//console.log("## ITEMS:"+items);
@@ -1098,7 +1250,7 @@ app.post('/student-microevent', function(req, res){
 		
 		req.session.section = req.body.section;
 		req.session.mode = req.body.mode;
-		 
+		
 		if (section_form_fields.hasOwnProperty(req.body.section)) {
 			for (var index in section_form_fields[req.body.section]) {
 				if (section_form_fields[req.body.section].hasOwnProperty(index)) {
