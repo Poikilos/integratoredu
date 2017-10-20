@@ -118,6 +118,24 @@ default_mode_by_user["accounting"] = "reports";
 var default_groupby = {};
 default_groupby["care"] = "family_id";
 
+var id_user_within_microevent = {};
+id_user_within_microevent["care"] = ["first_name", "last_name", "grade_level"];
+
+
+
+var autofill_requires = {};
+autofill_requires["care"] = {};
+autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade_level"];
+autofill_requires["care"]["quantity"] = ["first_name"];
+
+var autofill_cache = {};
+autofill_cache["care"] = {};
+autofill_cache["care"]["family_id"] = {};
+autofill_cache["care"]["family_id"]["Jake+Gustafson+13"] = "-1";
+autofill_cache["care"]["family_id"]["Jake+Gustafson+0"] = "-1";
+autofill_cache["care"]["quantity"] = {};
+autofill_cache["care"]["quantity"]["J&S"] = "2";
+
 var default_total = {};
 default_total["care"] = "=careprice()";
 
@@ -656,10 +674,10 @@ var hbs = exphbs.create({
 		show_reports: function(section, username, years, months, days, selected_year, selected_month, selected_day, opts) {
 			var ret = "";
 			if (user_has_section_permission(username, section, "reports")) {
-				ret += '<div class="panel panel-default">';
+				//ret += '<div class="panel panel-default">';
 			
-				ret += '<div class="panel-body">';
-				ret += '<table style="width:100%">';
+				//ret += '<div class="panel-body">';
+				ret += '<table class="table">'; //style="width:100%"
 				ret += '<tr>';
 				ret += '<td style="width:5%; vertical-align:top; horizontal-align:left">';
 				ret += get_year_month_select_buttons(section, username, years, months, selected_year, selected_month);
@@ -673,9 +691,10 @@ var hbs = exphbs.create({
 					var section_friendly_name = section;
 					if (friendly_section_names.hasOwnProperty(section)) section_friendly_name = friendly_section_names[section];
 					this_rate = section_rates[section];
-					ret += '<table>';
-					ret += '<tr>';
-					ret += '<td>';
+					ret += "\n"+'<p>';
+					ret += "\n"+'<table class="table">';
+					ret += "\n"+'<tr>';
+					ret += "\n"+'<td>';
 					ret += "Hourly Rate for "+section_friendly_name+": ";
 					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
 					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
@@ -684,8 +703,8 @@ var hbs = exphbs.create({
 					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
 					ret += "\n"+'</form>';
 					ret += '</td>';
-					ret += '<td>';
-					ret += " Free From";
+					ret += "\n"+'<td>';
+					ret += " Free from";
 					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
 					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
@@ -693,19 +712,12 @@ var hbs = exphbs.create({
 					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
 					ret += "\n"+'</form>';
 					ret += '</td>';
-					ret += '<td>';
-					ret += " to ";
-					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
-					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
-					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
-					ret += "\n"+'  <input name="change_end_time" id="change_end_time" value="'+endTimeString+'"/>';
-					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
-					ret += "\n"+'</form>';
-					ret += '</td>';
+					ret += "\n"+'</tr>';
+					ret += "\n"+'<tr>';
 					if (section_report_edit_field.hasOwnProperty(section)) {
 						selected_field = section_report_edit_field[section];
-						ret += '<td>';
-						ret += " to ";
+						ret += "\n"+'<td>';
+						ret += "Selected Field:";
 						ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
 						ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 						ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
@@ -714,12 +726,76 @@ var hbs = exphbs.create({
 						ret += "\n"+'</form>';
 						ret += '</td>';
 					}
-					ret += '</tr>';
-					ret += '</table>';
+					else {
+						ret += "\n"+'<td>';
+						ret += '&nbsp; </td>';
+					}
+					ret += "\n"+'<td>';
+					ret += " to ";
+					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+					ret += "\n"+'  <input name="change_end_time" id="change_end_time" value="'+endTimeString+'"/>';
+					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
+					ret += "\n"+'</form>';
+					ret += "\n"+'</td>';
+					ret += "\n"+'</tr>';
+					ret += "\n"+'<tr>';
+					if (autofill_requires.hasOwnProperty(section)
+						&& (selected_field || default_groupby.hasOwnProperty(section))) {
+							//ret += " "+default_groupby[section];
+						var this_field = null;
+						if (selected_field) this_field = selected_field;
+						else if (default_groupby.hasOwnProperty(section)) this_field = default_groupby[section];
+						if (autofill_requires[section].hasOwnProperty(this_field)) {
+							ret += '<td>';
+							ret += " Change entries for person";
+							ret += ":";
+							ret += "\n"+'<form class="form-horizontal" id="update-query" action="' + config.proxy_prefix_then_slash + 'update-query" method="post">';
+							ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+							ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+							ret += "\n"+'  <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>';
+							ret += "\n"+'  <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>';
+							for (i=0; i<autofill_requires[section][this_field].length; i++) {
+								var key = autofill_requires[section][this_field][i];
+								var val = "";
+								ret += "\n "+key+':<input name="where_'+key+'" id="'+key+'" value="'+val+'"/><br/>';
+							}
+							if (selected_field) {
+								ret += "\n"+'  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>';
+								ret += "\n"+'  change '+selected_field+' to:';
+							}
+							else {
+								ret += "\n"+'  <input type="hidden" name="selected_field" id="selected_field" value="'+default_groupby[section]+'"/>';
+								ret += "\n"+'  change '+default_groupby[section]+' to:';
+							}
+							ret += "\n"+'  <input name="set_value" id="set_value" value="'+'"/>';
+							ret += "\n"+'  <input class="btn btn-default" type="submit" value="Change All" />';
+							ret += "\n"+'</form>';
+							ret += '</td>';
+						}
+						else {
+							ret += "\n"+'<td>';
+							ret += '&nbsp; </td>';
+						}
+					}
+					else {
+						ret += "\n"+'<td>';
+						ret += '&nbsp; </td>';
+					}
+					ret += "\n"+'<td>';
+					ret += "\n"+'&nbsp; </td>';
+					ret += "\n"+'</tr>';
+					ret += "\n"+'</table>';
+					ret += "</p>";
+					
 				}
 				else {
 					ret += '<!--no hourly rate specified for section '+section+'-->';
 				}
+				ret += '</td>';
+				ret += '</tr>';
+				ret += '</table>';
 				if (selected_month) {
 					if (section_sheet_fields.hasOwnProperty(section)) {
 						var items = [];
@@ -787,7 +863,7 @@ var hbs = exphbs.create({
 												if (ender_i>-1) {
 													var op = key.substring(1,ender_i).trim();
 													if (op=="careprice") {
-														this_item["=careprice()"] = get_care_time_seconds(this_item).toFixed(0)/60.0/60.0 * this_rate;
+														this_item["=careprice()"] = (get_care_time_seconds(this_item).toFixed(0)/60.0/60.0 * this_rate).toFixed(2);
 													}
 													else if (op=="caretime") {
 														this_item["=caretime()"] = get_care_time_seconds(this_item);
@@ -796,7 +872,7 @@ var hbs = exphbs.create({
 														this_item["=caretime_m()"] = get_care_time_seconds(this_item)/60.0;
 													}
 													else if (op=="caretime_h") {
-														this_item["=caretime_h()"] = (get_care_time_seconds(this_item)/60.0/60.0).toFixed(1);
+														this_item["=caretime_h()"] = (get_care_time_seconds(this_item)/60.0/60.0).toFixed(3);
 													}
 													else if (op=="get_date_from_path") {
 														this_item["=get_date_from_path()"] = selected_year+"-"+selected_month+"-"+selected_day;
@@ -852,7 +928,6 @@ var hbs = exphbs.create({
 									else ret += val;
 								}
 								if (selected_field==key) { //show even if does NOT have property
-									ret += "form:";
 									ret += "\n"+'<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">';
 									ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 									ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
@@ -882,11 +957,8 @@ var hbs = exphbs.create({
 					if (selected_year) ret += "(select a month)";
 					else ret += "(select a year and month)";
 				}
-				ret += '</td>';
-				ret += '</tr>';
-				ret += '</table>';
-				ret += '</div>';
-				ret += '</div>';
+				//ret += '</div>';//end "panel-body"
+				//ret += '</div>';//end "panel panel-default"
 			}
 			else {
 				ret += 'You do not have permission to access this section';
@@ -1489,6 +1561,121 @@ app.post('/local-reg', passport.authenticate('local-signup', {
 //	req.session.notice = msg;
 //}
 
+app.post('/update-query', function(req, res){
+	var sounds_path_then_slash = "sounds/";
+	var update_match_count = 0;
+	var update_saved_count = 0;
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		if (req.body.section && req.body.selected_field) {
+			if (user_has_section_permission(req.user.username, req.body.section, "modify")) {
+				var table_path = data_dir_path + "/" + req.body.section;
+				var y_path = table_path + "/" + req.body.selected_year;
+				var m_path = y_path + "/" + req.body.selected_month;
+				//if (fs.existsSync(m_path)) {
+				if (autofill_requires.hasOwnProperty(req.body.section) && autofill_requires[req.body.section].hasOwnProperty(req.body.selected_field)) {
+					var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
+					var ok = false;
+					if (dat.hasOwnProperty(req.body.section)) {
+						if (dat[req.body.section].hasOwnProperty(req.body.selected_year)) {
+							if (dat[req.body.section][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
+								var days_len=dat[req.body.section][req.body.selected_year][req.body.selected_month]["days"].length;
+								if (days_len>0) {
+									for (var day_i=0; day_i<days_len; day_i++) {
+										var day_key = dat[req.body.section][req.body.selected_year][req.body.selected_month]["days"][day_i];
+										var d_path = m_path + "/" + day_key;
+										if (dat[req.body.section][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
+											if (dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty("item_keys")) {
+												var items_len=dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key]["item_keys"].length;
+												if (items_len>0) {
+													for (item_i=0; item_i<items_len; item_i++) {
+														var item_key = dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key]["item_keys"][item_i];
+														var item_path = d_path + "/" + item_key;
+														if (fs.existsSync(item_path)) {
+															if (dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
+																var item = dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key];
+																var match_count=0;
+																for (i=0; i<autofill_requires[req.body.section][req.body.selected_field].length; i++) {
+																	var key = autofill_requires[req.body.section][req.body.selected_field][i];
+																	var val = "";
+																	if (item.hasOwnProperty(key)) {
+																		var where_key = "where_"+key;
+																		if (req.body[where_key] && fun.is_not_blank(req.body[where_key])
+																			&& (req.body[where_key] == item[key]) ) {
+																			match_count++;
+																			console.log("req.body[where_key]:"+req.body[where_key]+" is item[key]:"+item[key]);
+																		}
+																		//else console.log("req.body[where_key]:"+req.body[where_key]+" is not item[key]:"+item[key]);
+																	}
+																	//ret += "\n "+key+':<input name="where_'+key+'" id="'+key+'" value="'+val+'"/><br/>';
+																}
+																if (match_count>0 && match_count==autofill_requires[req.body.section][req.body.selected_field].length) {
+																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key][req.body.selected_field] = req.body.set_value;
+																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key]["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
+																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key]["modified_by"] = req.user.username;
+																	try {
+																	yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key], "utf8");
+																		update_saved_count++;
+																	}
+																	catch (err) {
+																		req.session.error = "\nCould not finish writing "+item_path+": "+err;
+																	}
+																	update_match_count++;
+																}
+																ok=true; //verified cache is ok either way
+															}
+															else console.log("[ ] Cache missed for item_key "+item_key);
+														}
+														else {
+															msg="Failed to modify since can't find file "+item_path;
+															console.log(msg);
+															req.session.error=msg;
+														}
+													}
+												}
+												else console.log("[ ] Cache missed -- 0 item_keys for "+day_key);
+											}
+											else console.log("[ ] Cache missed for item_keys for "+day_key);
+										}
+										else console.log("[ ] Cache missed for day "+day_key);
+									}//end of outermost for loop
+									req.session.success = msg + " for " + update_saved_count + " of " + update_match_count + " matching ";
+								}
+								else console.log("[ ] Cached missed -- 0 days in month "+req.body.selected_month);
+							}
+							else console.log("[ ] Cache missed for month "+req.body.selected_month);
+						}
+						else console.log("[ ] Cache missed for year "+req.body.selected_year);
+					}
+					else {
+						console.log("[ ] Cache missed for section "+req.body.section);
+						console.log("  only has:");
+						for (var key in dat) {
+							console.log("    "+key);
+						}
+					}
+					if (!ok) req.session.error = "Cache failure so skipped saving value for "+req.body.selected_field+"!";
+				}
+				else {
+					req.session.error = "Section "+req.body.section+" does not specify which information is needed to uniquely identify person (id_user_within_microevent does not have a "+req.body.section+" member containing "+req.body.selected_field+")";
+				}
+			}
+			else {
+				req.session.error = "not authorized to modify data for '" + req.body.section + "'";
+				if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+				delete req.session.prefill.pin;
+			}
+		}
+		else {
+			req.session.error = "section and selected_field are required but are missing from form";
+			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			delete req.session.prefill.pin;
+		}
+	}
+	
+	if (fun.contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
+	res.redirect(config.proxy_prefix_then_slash);
+});
+
 app.post('/change-microevent-field', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
@@ -1832,6 +2019,39 @@ app.post('/student-microevent', function(req, res){
 					record.created_by_ip = req.ip;
 					record.created_by_ips = req.ips;
 					record.created_by_hostname = req.hostname;
+					//NOTE: autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade"];
+					//NOTE: autofill_cache["care"]["quantity"]["J&S"] = "2";
+					if (autofill_requires.hasOwnProperty(req.body.section)) {//if (id_user_within_microevent.hasOwnProperty(req.body.section)) {
+						//if (default_groupby.hasOwnProperty(req.body.section)) {
+						for (var requirer in autofill_requires[req.body.section]) {
+							var present_count = 0;
+							var combined_primary_key = null;
+							for (i=0; i<autofill_requires[req.body.section][requirer].length; i++) {
+								var key = autofill_requires[req.body.section][requirer][i];
+								var val = "";
+								if (record.hasOwnProperty(key)) {
+									if (combined_primary_key===null) combined_primary_key = record[key].replace("+"+"&");
+									else combined_primary_key += "+" + record[key].replace("+","&");
+									present_count++;
+								}
+							}
+							if (present_count>0 && present_count==id_user_within_microevent[req.body.section].length) {
+								if (!record.hasOwnProperty(requirer)) {
+									if (autofill_cache.hasOwnProperty(req.body.section)
+										&& autofill_cache[req.body.section].hasOwnProperty(requirer)
+										&& autofill_cache[req.body.section][requirer].hasOwnProperty(combined_primary_key)
+									) {
+										record[requirer] = autofill_cache[req.body.section][requirer][combined_primary_key];
+									}
+								}
+								else {
+									if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
+									if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
+									autofill_cache[section][requirer][combined_primary_key] = record[requirer];
+								}
+							}
+						}
+					}
 					yaml.writeSync(out_path, record, "utf8");
 					//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
 					if (dat) {

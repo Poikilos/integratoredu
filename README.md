@@ -6,6 +6,9 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-19) implement autofill_requires and autofill_cache (including save to file or database), and deprecate id_user_within_microevent
+* (2017-10-19) update-query form added to reports section (restricted to updating fields known to have uniquely identifying virtual combined primary key)
+* (2017-10-19) change-microevent-field form added to reports section
 * (2017-10-15) set value for key of day in dat manually after writing file to alleviate caching failure (see yaml.writeSync) -- logic for updating is still bad (see listed_* variables) since based on irrelevant information (read time) but should be unecessary now anyway.
 	* caching problem is described as (cache is only loaded for specific user and never changed):
 		* person with read priv views a page, and cache is loaded
@@ -44,6 +47,7 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* trigger a backup before update-query
 * session.runme and other direct usages of session as if it were a session (as opposed to using req.session) may not be ok
 * There is no code to serve the wav files referenced by the javascript that is in body onload after an error occurs.
 html tag) data is written sometimes (but not anymore?)
