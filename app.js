@@ -86,6 +86,12 @@ var data_dir_path = data_dir_name;
 var sections = ["care", "commute"];
 var friendly_section_names = {"care":"Extended Care","commute":"Commute"};
 
+var section_rates = {}; //how much client pays by the hour for section for time spent outside of startTime and endTime
+section_rates["care"] = 7.50;
+
+var section_report_edit_field = {};
+section_report_edit_field["care"] = "family_id";
+
 var modes = ["create", "read", "modify", "reports"];
 var transient_modes = ["modify"]; //modes only used during operation of other modes
 var transient_modes_return = {};
@@ -126,12 +132,12 @@ _groups["attendance"] = ["admin", "attendance"];
 var _permissions = {}; // permission.<group>.<section> equals array of permissions
 _permissions["admin"] = {};
 _permissions["admin"]["admin"] = ["create", "read", "modify", "reports"];
-_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime"];
+_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-settings"];
 _permissions["admin"]["commute"] = ["create", "read", "modify", "reports"];
 _permissions["care"] = {};
 _permissions["care"]["care"] = ["create", "read", "customtime"];
 _permissions["accounting"] = {};
-_permissions["accounting"]["care"] = ["create", "read", "modify", "reports", "customtime"]
+_permissions["accounting"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-settings"]
 _permissions["commute"] = {};
 _permissions["commute"]["commute"] = ["create"];
 _permissions["attendance"] = {};
@@ -196,24 +202,27 @@ section_form_friendly_names["commute"]["stated_date"] = "Custom Date (blank for 
 section_form_friendly_names["commute"]["pin"] = "override pin";
 
 var section_sheet_fields = {};
-section_sheet_fields["care"] = ["=get_date_from_path()", "time", "first_name", "last_name", "grade_level", "family_id", "chaperone", "modified_by"]
+section_sheet_fields["care"] = ["family_id", "=caretime()", "=caretime_h()", "=careprice()", "=get_date_from_path()", "time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"]
 section_sheet_fields["commute"] = ["=get_date_from_path()", "time", "name", "grade_level"]
 
 var section_sheet_fields_friendly_names = {}
 section_sheet_fields_friendly_names["care"] = {}
 section_sheet_fields_friendly_names["care"]["=get_date_from_path()"] = "Date";
+section_sheet_fields_friendly_names["care"]["=careprice()"] = "Accrued";
 section_sheet_fields_friendly_names["care"]["first_name"] = "First";
 section_sheet_fields_friendly_names["care"]["last_name"] = "Last";
 section_sheet_fields_friendly_names["care"]["grade_level"] = "Grade Level";
+section_sheet_fields_friendly_names["care"]["family_id"] = "FamilyID";
+section_sheet_fields_friendly_names["care"]["Time"] = "Time";
 section_sheet_fields_friendly_names["commute"] = {}
 section_sheet_fields_friendly_names["commute"]["=get_date_from_path()"] = "Date";
 section_sheet_fields_friendly_names["commute"]["grade_level"] = "Grade Level";
 
 
-var section_sheet_fields_names = {};
-section_sheet_fields_names["care"] = {};
-section_sheet_fields_names["care"]["time"] = "Time";
-section_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
+//var section_sheet_fields_names = {};
+//section_sheet_fields_names["care"] = {};
+//section_sheet_fields_names["care"]["time"] = "Time";
+//section_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
 
 //used for spreadsheet view/export (such as: change time to stated_time if stated_time was specified by user)
 var section_fields_overrides = {};
@@ -462,7 +471,7 @@ function get_year_buttons_from_cache(section, username) {
 
 function get_year_month_select_buttons(section, username, years, months, selected_year, selected_month) {
 	var ret = "";
-	var years = get_years(section);
+	//var years = get_years(section);
 	for (i=0, len=years.length; i<len; i++) {
 		ret += '<div>Report Year:';
 		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
@@ -500,10 +509,108 @@ function get_year_month_select_buttons(section, username, years, months, selecte
 	return ret;
 }
 
+var startTime = moment('08:10:00', "HH:mm:ss");
+var startTimeString = startTime.format("HH:mm:ss");
+var endTime = moment('15:05:00', "HH:mm:ss");
+var endTimeString = endTime.format("HH:mm:ss");
+
+function good_time_string(human_written_time_string) {
+	var result = null;
+	if (human_written_time_string) {
+		var input_lower = human_written_time_string.toLowerCase().trim();
+		var am_i = input_lower.indexOf("am");
+		var hour_adder = 0;
+		var hour = null;
+		var minute = null;
+		var second = 0;
+		if (am_i>-1) {
+			input_lower = input_lower.substring(0, am_i).trim();
+		}
+		else {
+			var pm_i = input_lower.indexOf("pm");
+			if (pm_i>-1) {
+				hour_adder = 12;
+				input_lower = input_lower.substring(0, pm_i).trim();
+			}
+		}
+		var colon_i = input_lower.indexOf(":");
+		if (colon_i>-1) {
+			hour = parseInt(input_lower.substring(0,colon_i));
+			var chunk2 = input_lower.substring(colon_i+1);
+			var colon2_i = chunk2.indexOf(":");
+			if (colon2_i>-1) {
+				second = parseInt(chunk2.substring(colon2_i+1));
+				chunk2 = chunk2.substring(0,colon2_i);
+			}
+			minute = parseInt(chunk2);
+		}
+		else {
+			var n = parseInt(input_lower);
+			if (n>23) {
+				if (input_lower.length==3) {
+					//such as: read 640 as 6:40)
+					hour = parseInt(input_lower.substring(0,1));
+					minute = parseInt(input_lower.substring(1));
+				}
+				else if (input_lower.length==4) {
+					hour = parseInt(input_lower.substring(0,2));
+					minute = parseInt(input_lower.substring(2));
+				}
+			}
+			else {  //if (input_lower.length==1 || input_lower.length==2) {
+				hour = n;
+				minute = 0;
+			}
+		}
+		if (hour !== null) {
+			hour += hour_adder;
+			var h_str = hour.toString();
+			if (h_str.length<2) h_str = "0" + h_str;
+			var m_str = minute.toString();
+			if (m_str.length<2) m_str = "0" + m_str;
+			var s_str = second.toString();
+			if (s_str.length<2) s_str = "0" + s_str;
+			result = h_str+":"+m_str+":"+s_str; //assume 0 seconds
+		}
+	}
+	return result;
+}
+
+function get_care_time_seconds(this_item) {
+	var result = null;
+	//NOTE: startTime and endTime define school day
+	var foundTime = null;
+	var foundTimeString = null;
+	if (this_item.hasOwnProperty("time")) {
+		if (fun.is_not_blank(this_item["time"])) {
+			foundTime = moment(this_item["time"], "HH:mm:ss");
+			foundTimeString = moment(this_item["time"], "HH:mm:ss").format("HH:mm:ss");
+		}
+	}
+	if (this_item.hasOwnProperty("stated_time")) {
+		if (fun.is_not_blank(this_item["stated_time"])) {
+			foundTime = moment(good_time_string(this_item["stated_time"]), "HH:mm:ss");
+			foundTimeString = foundTime.format("HH:mm:ss");
+			console.log("* stated_time: "+this_item["stated_time"]+" as "+foundTimeString);
+		}
+	}
+	if (foundTime!==null) {
+		//see also http://momentjs.com/docs/#/manipulating/difference/
+		if (foundTimeString > endTimeString) {
+			result = foundTime.diff(endTime, 'seconds');
+		}
+		else if (foundTimeString < startTimeString) {
+			result = startTime.diff(foundTime, 'seconds');
+		}
+		else {
+			result = 0;
+		}
+	}
+	else result = 0;	
+	return result;
+}
 
 // Configure express to use handlebars templates
-var startTime = moment('08:10', "HH:mm").format("HH:mm");
-var endTime = moment('15:30', "HH:mm").format("HH:mm");
 var hbs = exphbs.create({
 		helpers: {
 		remove_audio_message: function() {
@@ -560,48 +667,216 @@ var hbs = exphbs.create({
 				ret += '<td style="vertical-align:top; horizontal-align:left">';
 				ret += '	<div style="width:100%; text-align:center">';
 				ret += '<br/>';
+				var selected_field = null;
+				var this_rate = 0.0;
+				if (section_rates.hasOwnProperty(section)) {
+					var section_friendly_name = section;
+					if (friendly_section_names.hasOwnProperty(section)) section_friendly_name = friendly_section_names[section];
+					this_rate = section_rates[section];
+					ret += '<table>';
+					ret += '<tr>';
+					ret += '<td>';
+					ret += "Hourly Rate for "+section_friendly_name+": ";
+					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+					ret += "\n"+'  <input name="change_section_rate" id="change_section_rate" value="'+section_rates[section]+'"/>';
+					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
+					ret += "\n"+'</form>';
+					ret += '</td>';
+					ret += '<td>';
+					ret += " Free From";
+					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+					ret += "\n"+'  <input name="change_start_time" id="change_start_time" value="'+startTimeString+'"/>';
+					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
+					ret += "\n"+'</form>';
+					ret += '</td>';
+					ret += '<td>';
+					ret += " to ";
+					ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+					ret += "\n"+'  <input name="change_end_time" id="change_end_time" value="'+endTimeString+'"/>';
+					ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
+					ret += "\n"+'</form>';
+					ret += '</td>';
+					if (section_report_edit_field.hasOwnProperty(section)) {
+						selected_field = section_report_edit_field[section];
+						ret += '<td>';
+						ret += " to ";
+						ret += "\n"+'<form class="form-horizontal" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+						ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+						ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+						ret += "\n"+'  <input name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section]+'"/>';
+						ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
+						ret += "\n"+'</form>';
+						ret += '</td>';
+					}
+					ret += '</tr>';
+					ret += '</table>';
+				}
+				else {
+					ret += '<!--no hourly rate specified for section '+section+'-->';
+				}
 				if (selected_month) {
-					for (var day_i=0; day_i<days.length; day_i++) {
-						var selected_day = days[day_i];
-						var d_path = m_path + "/" + selected_day;
-						item_keys = getFiles(d_path);
-						if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
-						dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
-						//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
-						//console.log("(ITEM KEYS.length:"+item_keys.length+")");
-						//console.log("## ITEMS:"+items);
-						var msg = "";
-						//for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
-						for (var item_key_i in item_keys) {
-							var item_key = item_keys[item_key_i];
-							var item_path = d_path + "/" + item_key;
-							//console.log("  - "+item_key);
-							dat[section][selected_year][selected_month][selected_day][item_key] = {};
-							if (fs.statSync(item_path).isFile()) {
-								try {
-									dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
-									dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
-									//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
-									var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
-									items.push(this_item);
-									for (var index in this_item) {
-										if (this_item.hasOwnProperty(index)) {
-											var val = this_item[index];
-											//var val = items[index];
-											//console.log("    " + index + ": " + val);
+					if (section_sheet_fields.hasOwnProperty(section)) {
+						var items = [];
+						ret += "\n"+'<table class="table table-bordered">';
+						ret += "\n"+'  <thead>';
+						ret += "\n"+'    <tr>';
+						
+						for (i=0, len=section_sheet_fields[section].length; i<len; i++) {
+							var key = section_sheet_fields[section][i];
+							var name = key;
+							if (selected_field==key) ret += "\n"+'      <td class="bg-info">';
+							else ret += "\n"+'      <td>';;
+							if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
+								name = section_sheet_fields_friendly_names[section][key];
+							}
+							if (default_total.hasOwnProperty(section)) {
+								if (key==default_total[section]) name = "Total " + name;
+							}
+							ret += name;
+							ret += '</td>';
+						}
+						ret += "\n"+'    </tr>';
+						ret += "\n"+'  </thead>';
+						ret += "\n"+'  <tbody>';
+
+						
+						for (var day_i=0; day_i<days.length; day_i++) {
+							var selected_day = days[day_i];
+							var table_path = data_dir_path + "/" + section;
+							var y_path = table_path + "/" + selected_year;
+							var m_path = y_path + "/" + selected_month;
+							var d_path = m_path + "/" + selected_day;
+							item_keys = getFiles(d_path);
+							if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
+							dat[section][selected_year][selected_month][selected_day]["item_keys"] = item_keys;
+							//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
+							//console.log("(ITEM KEYS.length:"+item_keys.length+")");
+							//console.log("## ITEMS:"+items);
+							var msg = "";
+							//for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
+							for (var item_key_i in item_keys) {
+								//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
+								//ret += "\n"+'    <tr>';
+								var item_key = item_keys[item_key_i];
+								var item_path = d_path + "/" + item_key;
+								//console.log("  - "+item_key);
+								dat[section][selected_year][selected_month][selected_day][item_key] = {};
+								if (fs.statSync(item_path).isFile()) {
+									try {
+										dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+										dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
+										//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+										//var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+										var this_item = JSON.parse(JSON.stringify(dat[section][selected_year][selected_month][selected_day][item_key]));
+										this_item.year = selected_year;
+										this_item.month = selected_month;
+										this_item.day = selected_day;
+										for (var i=0, len=section_sheet_fields[section].length; i<len; i++) {
+											//ret += "\n"+'      <td>';
+											var key = section_sheet_fields[section][i];
+											//NOTE: intentionally gets desired fields only
+											
+											if (key.substring(0,1)=="=") {
+												var ender_i = key.indexOf("(");
+												if (ender_i>-1) {
+													var op = key.substring(1,ender_i).trim();
+													if (op=="careprice") {
+														this_item["=careprice()"] = get_care_time_seconds(this_item).toFixed(0)/60.0/60.0 * this_rate;
+													}
+													else if (op=="caretime") {
+														this_item["=caretime()"] = get_care_time_seconds(this_item);
+													}
+													else if (op=="caretime_m") {
+														this_item["=caretime_m()"] = get_care_time_seconds(this_item)/60.0;
+													}
+													else if (op=="caretime_h") {
+														this_item["=caretime_h()"] = (get_care_time_seconds(this_item)/60.0/60.0).toFixed(1);
+													}
+													else if (op=="get_date_from_path") {
+														this_item["=get_date_from_path()"] = selected_year+"-"+selected_month+"-"+selected_day;
+													}
+													else if (op=="get_day_from_path") {
+														this_item["=get_day_from_path()"] = selected_day;
+													}
+												}
+												else {
+													console.log("undefined function :" + key);
+												}
+											}
+											else if (this_item.hasOwnProperty(key)) {
+											//if (this_item.hasOwnProperty(key)) {
+												var val = this_item[key];
+												//ret += val;
+												//var val = items[key];
+												//console.log("    " + key + ": " + val);
+											}
+											//ret += '</td>';
 										}
+										items.push(this_item);
+									}
+									catch (err) {
+										msg += "\n<br/>Could not finish reading "+item_path+": "+err;
 									}
 								}
-								catch (err) {
-									req.session.error = "\nCould not finish reading "+item_path+": "+err;
+								else {
+									msg += " ...missing file "+item_path+" ";
 								}
+								//ret += "\n"+'    </tr>';
+							}//end for item keys
+							
+							if (msg.length>0) {
+								//res.session.error=msg;
+								console.log(msg);
+								ret += '<div class="alert alert-danger">'+msg+'</div>';
 							}
-							else {
-								msg += " ...missing file "+item_path+" ";
+						}//end for days
+						for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
+							var item = items[item_i];
+							ret += "\n"+'    <tr>';
+							for (var i=0, len=section_sheet_fields[section].length; i<len; i++) {
+								ret += "\n"+'      <td>';
+								var key = section_sheet_fields[section][i];
+								//NOTE: intentionally gets desired fields only
+								var val = "";
+								if (item.hasOwnProperty(key)) {
+									val = item[key];
+									if (selected_field==key) {
+										//don't show value yet if selected (see below)
+									}
+									else ret += val;
+								}
+								if (selected_field==key) { //show even if does NOT have property
+									ret += "form:";
+									ret += "\n"+'<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">';
+									ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+									ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+									ret += "\n"+'  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>';
+									ret += "\n"+'  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>';
+									ret += "\n"+'  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>';
+									ret += "\n"+'  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>';
+									ret += "\n"+'  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>';
+									ret += "\n"+'  <input name="set_value" id="set_value" value="'+val+'"/>';
+									ret += "\n"+'  <input class="btn btn-default" type="submit" value="Save" />';
+									ret += "\n"+'</form>';
+								}
+								
+								ret += '</td>';
 							}
+							ret += "\n"+'    </tr>';
 						}
-						if (msg.length>0) res.session.error=msg;
-					}//end for day
+						ret += "\n"+'  </tbody>';
+						ret += "\n"+'</table>';
+						ret += '<div class="alert alert-info">'+'finished reading '+items.length+' item(s)'+'</div>';
+					}
+					else {
+						ret += '<div class="alert alert-info">'+'There is no table layout for the '+section+' section.'+'</div>';
+					}
 				}
 				else {
 					if (selected_year) ret += "(select a month)";
@@ -760,15 +1035,15 @@ var hbs = exphbs.create({
 		},
 		is_after_school: function(opts) {
 			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
-			var currentTime = moment().format("HH:mm"); //moment('11:00p', "HH:mm a");
+			var currentTimeString = moment().format("HH:mm:ss"); //moment('11:00p', "HH:mm a");
 			
 			//if (moment().format('HH:mm:ss') );
-			if (currentTime > endTime) {
-				//console.log(currentTime + " > " + endTime);
+			if (currentTimeString >= endTimeString) {
+				//console.log(currentTimeString + " >= " + endTimeString);
 				return opts.fn(this);
 			}
 			else {
-				//console.log(currentTime + " <= " + endTime);
+				//console.log(currentTimeString + " <= " + endTimeString);
 				return opts.inverse(this);
 			}
 		},
@@ -1138,7 +1413,6 @@ app.get('/', function(req, res){
 								//for (var i=0; i<item_keys.length; i++) {
 								//    console.log("   * " + item_keys[i]);
 								//}
-								//TODO: finish this asdf
 								if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
 								//dat[section][selected_year][selected_month][selected_day]["item_keys"] = 
 								
@@ -1178,7 +1452,7 @@ app.get('/', function(req, res){
 								if (msg.length>0) res.session.error=msg;
 								//TODO: find out why this doesn't work: items = dat[section][selected_year][selected_month][selected_day];
 								//for (var key_i = 0; key_i < items.length; key_i++) {
-								//    console.log("    * "+items[key_i]asdf (iterate object members)
+								//    console.log("    * "+items[key_i] (iterate object members)
 								//}
 							}//end if selected_day
 						}//end if selected_month
@@ -1215,6 +1489,139 @@ app.post('/local-reg', passport.authenticate('local-signup', {
 //	req.session.notice = msg;
 //}
 
+app.post('/change-microevent-field', function(req, res){
+	var sounds_path_then_slash = "sounds/";
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		if (user_has_section_permission(req.user.username, req.body.section, "modify")) {
+			var table_path = data_dir_path + "/" + req.body.section;
+			var y_path = table_path + "/" + req.body.selected_year;
+			var m_path = y_path + "/" + req.body.selected_month;
+			var d_path = m_path + "/" + req.body.selected_day;
+			//NOTE: only modify req.body.selected_field
+			var item_path = d_path + "/" + req.body.selected_key;
+			if (fs.existsSync(item_path)) {
+				var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
+				var ok = false;
+				if (dat.hasOwnProperty(req.body.section)) {
+					if (dat[req.body.section].hasOwnProperty(req.body.selected_year)) {
+						if (dat[req.body.section][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
+							if (dat[req.body.section][req.body.selected_year][req.body.selected_month].hasOwnProperty(req.body.selected_day)) {
+								if (dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day].hasOwnProperty(req.body.selected_key)) {
+									
+									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key][req.body.selected_field] = req.body.set_value;
+									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key]["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
+									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key]["modified_by"] = req.user.username;
+									try {
+									yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
+									req.session.success = msg;
+									}
+									catch (err) {
+										req.session.error = "\nCould not finish writing "+item_path+": "+err;
+									}
+									
+									ok=true; //verified cache is ok either way
+								}
+								else console.log("Cache missed for key "+req.body.selected_key);
+							}
+							else console.log("Cache missed for day "+req.body.selected_day);
+						}
+						else console.log("Cache missed for month "+req.body.selected_month);
+					}
+					else console.log("Cache missed for year "+req.body.selected_year);
+				}
+				else {
+					console.log("Cache missed for section "+req.body.section);
+					console.log("  only has:");
+					for (var key in dat) {
+						console.log("    "+key);
+					}
+				}
+				if (!ok) req.session.error = "Cache failure so skipped saving value for "+req.body.selected_field+"!";
+			}
+			else {
+				req.session.error = 'Skipping change to field since '+item_path+' does not exist.';
+			}
+		}
+		else {
+			req.session.error = "not authorized to modify data for '" + req.body.section + "'";
+			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			delete req.session.prefill.pin;
+		}
+	}
+	
+	if (fun.contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
+	res.redirect(config.proxy_prefix_then_slash);
+});
+
+app.post('/change-settings', function(req, res){
+	var sounds_path_then_slash = "sounds/";
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		if (user_has_section_permission(req.user.username, req.body.section, "change-settings")) {
+			if (req.body.change_section_rate) {
+				section_rates[req.body.section] = parseFloat(req.body.change_section_rate); //.toFixed(2)
+				req.session.success = "Changed rate to "+section_rates[req.body.section];
+			}
+			else if (req.body.change_section_report_edit_field) {
+				var selected_field = null;
+				if (section_sheet_fields_friendly_names.hasOwnProperty(req.body.section)) {
+					for (var key in section_sheet_fields_friendly_names[req.body.section]) {
+						if (section_sheet_fields_friendly_names[req.body.section].hasOwnProperty(key)) {
+							var val = section_sheet_fields_friendly_names[req.body.section][key];
+							if (key.toLowerCase()==req.body.change_section_report_edit_field.toLowerCase()) {
+								selected_field = key;
+								break;
+							}
+							else if (val.toLowerCase()==req.body.change_section_report_edit_field.toLowerCase()) {
+								selected_field = key;
+								break;
+							}
+						}
+					}
+				}
+				if (selected_field===null && section_sheet_fields.hasOwnProperty(req.body.section)) {
+					for (var i=0; i<section_sheet_fields[req.body.section].length; i++) {
+						var val = section_sheet_fields[req.body.section][i];
+						if (val.toLowerCase()==req.body.change_section_report_edit_field) {
+							selected_field = val;
+						}
+					}
+				}
+				if (selected_field!=null) {
+					section_report_edit_field[req.body.section] = selected_field; //.toFixed(2)
+					req.session.success = "Changed selected field to "+section_report_edit_field[req.body.section];
+				}
+				else req.session.error = "Invalid field specified (no matching literal data field on sheet): "+req.body.change_section_report_edit_field;
+			}
+			else if (req.body.change_start_time) {
+				var tmp = good_time_string(req.body.change_start_time);
+				if (tmp) {
+					startTimeString = tmp;
+					startTime = moment(startTimeString, "HH:mm:ss");
+				}
+				else req.session.error = "Invalid time format";
+			}
+			else if (req.body.change_end_time) {
+				var tmp = good_time_string(req.body.change_end_time);
+				if (tmp) {
+					endTimeString = tmp;
+					endTime = moment(endTimeString, "HH:mm:ss");
+				}
+				else req.session.error = "Invalid time format";
+			}
+			else {
+				req.session.error = "Invalid setting change (setting was not unspecified).";
+			}
+		}
+		else {
+			req.session.error = "not authorized to modify data for '" + req.body.section + "'";
+			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			delete req.session.prefill.pin;
+		}
+	}
+		
+	if (fun.contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
+	res.redirect(config.proxy_prefix_then_slash);
+});
 
 app.post('/student-microevent', function(req, res){
 	//req is request, res is response
@@ -1222,7 +1629,7 @@ app.post('/student-microevent', function(req, res){
 	//sounds_path_then_slash = config.proxy_prefix_then_slash+"sounds/";
 	//sounds_path_then_slash = sounds_path_then_slash.substring(1); //remove leading slash
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
-		console.log("* NOTE: student-microevent by " + req.user.username);
+		//console.log("* NOTE: student-microevent by " + req.user.username);
 		//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
 		//var prefill_stated_time;
 		if (!req.session.hasOwnProperty("prefill")) req.session.prefill = {};
@@ -1386,8 +1793,8 @@ app.post('/student-microevent', function(req, res){
 				}
 			}
 			if (!custom_error) {
-				record.time = moment().format('HH:mm:ss')
-				record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z')
+				record.time = moment().format('HH:mm:ss');
+				record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
 				record.tz_offset_mins = moment().utcOffset();
 				//unique ones are below
 				if (!fs.existsSync(data_dir_path))
