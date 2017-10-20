@@ -12,7 +12,18 @@
 
   <!-- Latest compiled and minified CSS -->
   <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-
+  <style>
+  .alert-fixed {
+    position:fixed; 
+    top: 2em; 
+    left: 0em; 
+    width: 10%;
+    z-index:-1; 
+    border-radius:0px;
+    opacity: 0.5;
+    filter: alpha(opacity=50); /* For IE8 and earlier */
+	}
+  </style>
   </head>
 
   <body onload="{{get_startup_js_code}}">
@@ -63,6 +74,18 @@
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
+			{{#groupContains "admin" @root.user.username}}
+			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}admin/?section={{@root.section}}&mode=reload-settings">Reload Settings</a>
+			{{!--
+			<form class="form-inline" action="{{get_proxy_prefix_then_slash}}admin" method="post">
+				<input type="hidden" name="mode" id="mode" value="reload-settings"/>
+				<button class="btn btn-default">Reload Settings</button>
+			</form>
+			--}}
+			</p>
+			</li>
+			
+			{{/groupContains}}
 		</ul>
                 
 		<ul class="nav navbar-nav navbar-right">
@@ -86,15 +109,15 @@
     {{{body}}}
     
     {{#if error}}
-      <p class="alert alert-warning">{{error}}</p>
+      <p class="alert alert-warning alert-fixed">{{error}}</p>
     {{/if}}
 
     {{#if success}}
-      <p class="alert alert-success">{{success}}</p>
+      <p class="alert alert-success alert-fixed">{{success}}</p>
     {{/if}}
 
     {{#if notice}}
-      <p class="alert alert-info">{{notice}}</p>
+      <p class="alert alert-info alert-fixed">{{notice}}</p>
     {{/if}}
 
     </div> <!-- /container -->

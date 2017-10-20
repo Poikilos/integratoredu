@@ -4,7 +4,7 @@
 	{{#if section}}
         {{#createGroupContains section user.username}}
         {{#if_is_any_form_mode mode}}
-        {{get_section_form section mode user.username prefill}}
+        {{get_section_form section mode user.username prefill missing_fields}}
         {{/if_is_any_form_mode}}
         {{/createGroupContains}}
 		{{#readGroupContains section user.username}}

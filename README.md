@@ -6,6 +6,9 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+generated field for editing (can't anymore, since shouldn't)
+* (2017-10-20) finished care reports (and improved the layout)
+* (2017-10-20) implement peek_settings and poke_settings (not always used yet)
 * (2017-10-19) implement autofill_requires and autofill_cache (required by update query, checked and set by form entry), and deprecate id_user_within_microevent
 * (2017-10-19) update-query form added to reports section (restricted to updating fields known to have uniquely identifying virtual combined primary key)
 * (2017-10-19) change-microevent-field form added to reports section
@@ -47,7 +50,8 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
-* save autofill_cache to file or database
+* (2017-10-20 changed display name for =get_date_from_path() from Date to Stored, using Stored still allows selecting it) fix issue where display name for =get_date_from_path() was Date, a real field, allowing user to select a * save autofill_cache to file or database
+* selecting time gives success message, but doesn't provide editing form
 * trigger a backup before update-query
 * session.runme and other direct usages of session as if it were a session (as opposed to using req.session) may not be ok
 * There is no code to serve the wav files referenced by the javascript that is in body onload after an error occurs.
