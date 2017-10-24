@@ -124,10 +124,10 @@ id_user_within_microevent["care"] = ["first_name", "last_name", "grade_level"];
 
 
 
-var autofill_requires = {};
-autofill_requires["care"] = {};
-autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade_level"];
-autofill_requires["care"]["quantity"] = ["first_name"];
+//var autofill_requires = {};
+//autofill_requires["care"] = {};
+//autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade_level"];
+//autofill_requires["care"]["quantity"] = ["first_name"];
 
 var autofill_cache = null;
 
@@ -157,7 +157,9 @@ _settings_default["care"]["local_end_time"] = '15:05:00';
 _settings_default["care"]["report"] = {};
 _settings_default["care"]["report"]["selected_field_default"] = "family_id";
 _settings_default["care"]["report"]["list_implies_qty"] = "first_name";
-
+_settings_default["care"]["autofill_requires"] = {}
+_settings_default["care"]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade_level"];
+_settings_default["care"]["autofill_requires"]["quantity"] = ["first_name"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
 //var startTime = moment('08:10:00', "HH:mm:ss");
@@ -904,14 +906,14 @@ var hbs = exphbs.create({
 					ret += "\n"+'</td>';
 					ret += "\n"+'</tr>';
 					ret += "\n"+'<tr>';
-					if (  autofill_requires.hasOwnProperty(section)
-						&&  ( selected_field || (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("default_groupby")) )  ) {
+					if (  _settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")  // autofill_requires.hasOwnProperty(section)
+						&&  ( selected_field || (_settings[section].hasOwnProperty("default_groupby")) )  ) {
 							//ret += " "+default_groupby[section];
 						var this_field = null;
 						if (selected_field) this_field = selected_field;
 						else if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("default_groupby")) this_field = _settings[section]["default_groupby"];
 						//else if (default_groupby.hasOwnProperty(section)) this_field = default_groupby[section];
-						if (autofill_requires[section].hasOwnProperty(this_field)) {
+						if (_settings[section][autofill_requires].hasOwnProperty(this_field)) {
 							ret += '<td>';
 							//ret += " Change entries for person where";
 							//ret += ":";
@@ -920,8 +922,8 @@ var hbs = exphbs.create({
 							ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
 							ret += "\n"+'  <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>';
 							ret += "\n"+'  <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>';
-							for (i=0; i<autofill_requires[section][this_field].length; i++) {
-								var key = autofill_requires[section][this_field][i];
+							for (i=0; i<_settings[section][autofill_requires][this_field].length; i++) {
+								var key = _settings[section][autofill_requires][this_field][i];
 								var val = "";
 								var field_friendly_name = key;
 								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key))
@@ -1813,7 +1815,8 @@ app.post('/update-query', function(req, res){
 				var y_path = table_path + "/" + req.body.selected_year;
 				var m_path = y_path + "/" + req.body.selected_month;
 				//if (fs.existsSync(m_path)) {
-				if (autofill_requires.hasOwnProperty(req.body.section) && autofill_requires[req.body.section].hasOwnProperty(req.body.selected_field)) {
+				//if (autofill_requires.hasOwnProperty(req.body.section) && autofill_requires[req.body.section].hasOwnProperty(req.body.selected_field)) {
+				if (_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires") && _settings[req.body.section]["autofill_requires"].hasOwnProperty(req.body.selected_field)) {
 					var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
 					var ok = false;
 					if (dat.hasOwnProperty(req.body.section)) {
@@ -1835,8 +1838,8 @@ app.post('/update-query', function(req, res){
 															if (dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
 																var item = dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key];
 																var match_count=0;
-																for (i=0; i<autofill_requires[req.body.section][req.body.selected_field].length; i++) {
-																	var key = autofill_requires[req.body.section][req.body.selected_field][i];
+																for (i=0; i<_settings[req.body.section]["autofill_requires"][req.body.selected_field].length; i++) {
+																	var key = _settings[req.body.section]["autofill_requires"][req.body.selected_field][i];
 																	var val = "";
 																	if (item.hasOwnProperty(key)) {
 																		var where_key = "where_"+key;
@@ -1849,7 +1852,7 @@ app.post('/update-query', function(req, res){
 																	}
 																	//ret += "\n "+key+':<input name="where_'+key+'" id="'+key+'" value="'+val+'"/><br/>';
 																}
-																if (match_count>0 && match_count==autofill_requires[req.body.section][req.body.selected_field].length) {
+																if (match_count>0 && match_count==_settings[req.body.section]["autofill_requires"][req.body.selected_field].length) {
 																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key][req.body.selected_field] = req.body.set_value;
 																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key]["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
 																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key]["modified_by"] = req.user.username;
@@ -2302,15 +2305,16 @@ app.post('/student-microevent', function(req, res){
 					record.created_by_ip = req.ip;
 					record.created_by_ips = req.ips;
 					record.created_by_hostname = req.hostname;
-					//NOTE: autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade"];
+					//NOTE: _settings[req.body.section]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade"];
 					//NOTE: autofill_cache["care"]["quantity"]["J&S"] = "2";
-					if (autofill_requires.hasOwnProperty(req.body.section)) {//if (id_user_within_microevent.hasOwnProperty(req.body.section)) {
+					//_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires") && _settings[req.body.section]["autofill_requires"].hasOwnProperty(req.body.selected_field)
+					if (_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(req.body.section)) {
 						//if (default_groupby.hasOwnProperty(req.body.section)) {
-						for (var requirer in autofill_requires[req.body.section]) {
+						for (var requirer in _settings[req.body.section]["autofill_requires"]) {
 							var present_count = 0;
 							var combined_primary_key = null;
-							for (i=0; i<autofill_requires[req.body.section][requirer].length; i++) {
-								var key = autofill_requires[req.body.section][requirer][i];
+							for (i=0; i<_settings[req.body.section]["autofill_requires"][requirer].length; i++) {
+								var key = _settings[req.body.section]["autofill_requires"][requirer][i];
 								var val = "";
 								if (record.hasOwnProperty(key)) {
 									if (combined_primary_key===null) combined_primary_key = record[key].replace("+"+"&");
