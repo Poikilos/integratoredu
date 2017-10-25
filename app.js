@@ -245,6 +245,12 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 	return result;
 }
 
+//function has_setting(dot_notation) {
+//	//enfoce required settings by loading them from _settings_default
+//	result = false;
+//	return result;
+//}
+
 function peek_setting(dot_notation) {
 	var result = null;
 	//var dot_notation = section+"."+dot_notation;
@@ -2317,7 +2323,7 @@ app.post('/student-microevent', function(req, res){
 								var key = _settings[req.body.section]["autofill_requires"][requirer][i];
 								var val = "";
 								if (record.hasOwnProperty(key)) {
-									if (combined_primary_key===null) combined_primary_key = record[key].replace("+"+"&");
+									if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&");
 									else combined_primary_key += "+" + record[key].replace("+","&");
 									present_count++;
 								}
@@ -2330,14 +2336,17 @@ app.post('/student-microevent', function(req, res){
 									) {
 										record[requirer] = autofill_cache[req.body.section][requirer][combined_primary_key];
 									}
+									else console.log("[ /@ ] cache miss: since autofill_cache["+req.body.section+"]["+requirer+"] does not have "+combined_primary_key);
 								}
 								else {
 									if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
 									if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
 									autofill_cache[section][requirer][combined_primary_key] = record[requirer];
 									yaml.writeSync(autofill_cache_path, autofill_cache, "utf8");
+									console.log("[ @ ] saved cache for combined_primary_key "+combined_primary_key);
 								}
 							}
+							else console.log("[ _@ ] cache not written since count of related field(s) entered is "+present_count+" not "+id_user_within_microevent[req.body.section].length);
 						}
 					}
 					yaml.writeSync(out_path, record, "utf8");

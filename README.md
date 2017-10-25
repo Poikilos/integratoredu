@@ -6,7 +6,8 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
-generated field for editing (can't anymore, since shouldn't)
+* (2017-10-25) (changed replace("+"+"&") to replace("+","&") to generate combined_primary_key (used only as cache entry name)) fix autofill_cache not saving
+* (2017-10-20) generated field for editing (can't anymore, since shouldn't)
 * (2017-10-20) finished care reports (and improved the layout)
 * (2017-10-20) implement peek_settings and poke_settings (not always used yet)
 * (2017-10-19) implement autofill_requires and autofill_cache (required by update query, checked and set by form entry), and deprecate id_user_within_microevent
