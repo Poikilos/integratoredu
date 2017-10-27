@@ -48,9 +48,16 @@ For release notes, see a release or the "etc" folder.
 * (2017-08-30) get_proxy_prefix_path helper should be prepended to action by handlebars to create correct form posting address
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
+## Regression tests
+* always check literal uses of sections (where section or req.session.section or similar variable should be used instead)
+
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* Download spreadsheet separated by family (with formula in fields where appropriate)
+* SmartTuition bills on the 5th, 20th, and last day of month (must enter the stuff into SmartTuition manually before one of those dates for bill to go on that email)
+* remove all commented code after peek_settings lines (since they are replaced by peek_settings successfully)
+* remove all commended code mentioning _settings.hasOwnProperty (since switched to has_setting(dot_notation) successfully)
 * (2017-10-20 changed display name for =get_date_from_path() from Date to Stored, using Stored still allows selecting it) fix issue where display name for =get_date_from_path() was Date, a real field, allowing user to select a * save autofill_cache to file or database
 * selecting time gives success message, but doesn't provide editing form
 * trigger a backup before update-query
@@ -123,6 +130,9 @@ see etc/howto.txt for more
 see LICENSE file for license
 
 ## Developer Notes
+
+### Coding choices
+* Uses JSON.parse(JSON.stringify(x)) to copy object x and ensure no references to properties are copied to the new object
 
 ### Caching
 "dat" is the cache object. It contains named year objects.

@@ -245,12 +245,6 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 	return result;
 }
 
-//function has_setting(dot_notation) {
-//	//enfoce required settings by loading them from _settings_default
-//	result = false;
-//	return result;
-//}
-
 function peek_setting(dot_notation) {
 	var result = null;
 	//var dot_notation = section+"."+dot_notation;
@@ -263,6 +257,36 @@ function peek_setting(dot_notation) {
 	}
 	return result;
 }
+
+function has_setting(dot_notation) {
+	//enforce required settings by loading them from _settings_default
+	var result = false;
+	//var dot_notation = section+"."+dot_notation;
+	var scope_stack = dot_notation.split(".");
+	var scope_o = null;
+	if (!_settings) {
+		_settings = JSON.parse(JSON.stringify(_settings_default));
+		yaml.writeSync(settings_path, _settings, "utf8");
+		console.log("[ . ]: setting was missing so default written for: "+dot_notation);
+	}
+	else {
+		if (!_settings.hasOwnProperty(scope_stack[0])) {
+			if (_settings_default.hasOwnProperty(scope_stack[0])) {
+				_settings[scope_stack[0]] = JSON.parse(JSON.stringify(_settings_default[scope_stack[0]]));
+				yaml.writeSync(settings_path, _settings, "utf8");
+				console.log("[ . ]: settings not loaded so loaded defaults--this should be checked before getting to this point!");
+			}
+		}
+	}
+	if (_settings.hasOwnProperty(scope_stack[0])) {
+		scope_o = _settings[scope_stack[0]];
+		var asserted_depth = 0;
+		result = _peek_object(scope_o, scope_stack, asserted_depth);
+	}
+	return result!==null;
+}
+
+
 
 function get_section_setting(section, setting) { //temporary method for deprecating separate dictionaries
 	var result = null;
@@ -745,11 +769,12 @@ function get_care_time_info(this_item, section) {
 		}
 	}
 	if (foundTime!==null) {
-		if ( _settings && _settings.hasOwnProperty(section)
-			&& _settings[section].hasOwnProperty("local_start_time")
-			&& _settings[section].hasOwnProperty("local_end_time") ) {
-			var startTime = moment(_settings[section]["local_start_time"], "HH:mm:ss");
-			var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+		if ( //_settings && _settings.hasOwnProperty(section)
+			has_setting(section+".local_start_time") //&& _settings[section].hasOwnProperty("local_start_time")
+			&& has_setting(section+".local_end_time") //_settings[section].hasOwnProperty("local_end_time")
+			) {
+			var startTime = moment(peek_setting(section+".local_start_time"), "HH:mm:ss");  // var startTime = moment(_settings[section]["local_start_time"], "HH:mm:ss");
+			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
 			
 			//see also http://momentjs.com/docs/#/manipulating/difference/
 			if (foundTimeString > _settings[section]["local_end_time"]) {
@@ -827,12 +852,13 @@ var hbs = exphbs.create({
 				ret += '<br/>';
 				var selected_field = null;
 				var this_rate = 0.0;
-				if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("extended_hours_hourly_price")) {//section_rates.hasOwnProperty(section)) {
+				if ( has_setting(section+".extended_hours_hourly_price") ) { //_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("extended_hours_hourly_price")) {//section_rates.hasOwnProperty(section)) {
 					var section_friendly_name = section;
 					var this_start_time_string = "";
-					if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_start_time")) this_start_time_string = _settings[section]["local_start_time"];
+					if (has_setting(section+".local_start_time"))  //if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_start_time"))
+						this_start_time_string = peek_setting(section+".local_start_time"); // _settings[section]["local_start_time"];
 					if (friendly_section_names.hasOwnProperty(section)) section_friendly_name = friendly_section_names[section];
-					this_rate = _settings["care"]["extended_hours_hourly_price"];//section_rates[section];
+					this_rate = peek_setting(section+".extended_hours_hourly_price"); // _settings["care"]["extended_hours_hourly_price"];//section_rates[section];
 					ret += "\n"+'<p>';
 					ret += "\n"+'<table class="table">'; //style="vertical-align:top; text-align:left
 					ret += "\n"+'<tr>';
@@ -902,7 +928,8 @@ var hbs = exphbs.create({
 					ret += "\n"+'<td>';
 					ret += " to ";
 					var this_end_time_string = "";
-					if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_end_time")) this_end_time_string = _settings[section]["local_end_time"];
+					if (has_setting(section+".local_end_time"))  //if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_end_time"))
+						this_end_time_string = peek_setting(section+".local_end_time"); //_settings[section]["local_end_time"];
 					ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
 					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
@@ -1465,6 +1492,7 @@ app.get('/', function(req, res){
 		else {
 			_settings = _settings_default;
 			yaml.writeSync(settings_path, _settings, "utf8");
+			onsole.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
 		}
 	}
 	var user_sections = [];
