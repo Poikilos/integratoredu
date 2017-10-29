@@ -436,7 +436,7 @@ section_required_fields["care"] = ["first_name", "last_name", "chaperone", "grad
 section_required_fields["commute"] = ["name", "grade_level", "heading", "reason"];
 
 var section_form_fields = {};
-section_form_fields["care"] = ["qty", "first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
+section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
 section_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
 
 var field_lookup_values = {};
