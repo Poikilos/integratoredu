@@ -175,6 +175,9 @@
 	{{#if_eq mode "reports"}}
 	{{show_reports section user.username years months days selected_year selected_month selected_day}}
 	{{/if_eq}} {{!--end if mode is report--}}
+	{{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
+	{{show_settings section user.username selected_setting}}
+	{{/if_eq}} {{!--end if mode is settings--}}
 	
 	<br/>
 	</div><!--end outer box-->

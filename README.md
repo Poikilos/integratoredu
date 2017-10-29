@@ -6,6 +6,11 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-28) (made section variable /student-microevent) /student-microevent regression of undefined variable bug
+* (2017-10-28) correct use of autofill cache
+* (2017-10-28) finished migrating from id_user_within_microevent to _settings[req.body.section]["autofill_requires"][requirer]
+* (2017-10-28) created settings mode (visible if group has settings priv for admin section; writable if user has poke-settings priv for admin section; admin group has this permission) which uses peek_settings and poke_settings functions and sees all settings
+* (2017-10-28) correct use of selected_field
 * (2017-10-25) (changed replace("+"+"&") to replace("+","&") to generate combined_primary_key (used only as cache entry name)) fix autofill_cache not saving
 * (2017-10-20) generated field for editing (can't anymore, since shouldn't)
 * (2017-10-20) finished care reports (and improved the layout)
@@ -54,6 +59,7 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* remove commented id_user_within_microevent code
 * Download spreadsheet separated by family (with formula in fields where appropriate)
 * SmartTuition bills on the 5th, 20th, and last day of month (must enter the stuff into SmartTuition manually before one of those dates for bill to go on that email)
 * remove all commented code after peek_settings lines (since they are replaced by peek_settings successfully)

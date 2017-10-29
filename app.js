@@ -17,6 +17,9 @@ var express = require('express'),
 var path = require("path");
 var Handlebars = require('handlebars');
 
+var autofill_cache_format = "yml";
+
+
 //Speech.init({
 //    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
 //    'lang': 'en-GB', // specify en-GB language (no detection applied)
@@ -83,20 +86,22 @@ var basePath = "."+config.proxy_prefix_then_slash;
 var data_dir_name = "data";
 var data_dir_path = data_dir_name;
 
-var autofill_cache_path = data_dir_path+"/"+"autofill_cache.yml";
+var autofill_cache_path = data_dir_path+"/"+"autofill_cache."+autofill_cache_format;
 var settings_path = data_dir_path+"/"+"settings.yml";
 
-var sections = ["care", "commute"];
-var friendly_section_names = {"care":"Extended Care","commute":"Commute"};
+var sections = ["care", "commute", "admin"];
+var friendly_section_names = {"care":"Extended Care","commute":"Commute","admin":"Advanced"};
 
 //var section_rates = {}; //how much client pays by the hour for section for time spent outside of startTime and endTime
 //section_rates["care"] = 7.50;
 
 
-var modes = ["create", "read", "modify", "reports"];
+var modes = ["create", "read", "modify", "settings", "reports"];
 var transient_modes = ["modify"]; //modes only used during operation of other modes
 var transient_modes_return = {};
 transient_modes_return["modify"] = "read";
+transient_modes_return["change-settings"] = "settings";
+transient_modes_return["poke-settings"] = "settings";
 
 var friendly_mode_names = {};
 friendly_mode_names["create"] = "Entry Form";
@@ -119,25 +124,25 @@ default_mode_by_user["accounting"] = "reports";
 //var default_groupby = {};
 //default_groupby["care"] = "family_id";
 
-var id_user_within_microevent = {};
-id_user_within_microevent["care"] = ["first_name", "last_name", "grade_level"];
+//var id_user_within_microevent = {};
+//id_user_within_microevent["care"] = ["first_name", "last_name", "grade_level"];
 
 
 
 //var autofill_requires = {};
 //autofill_requires["care"] = {};
 //autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade_level"];
-//autofill_requires["care"]["quantity"] = ["first_name"];
+//autofill_requires["care"]["qty"] = ["first_name"];
 
 var autofill_cache = null;
 
 var default_autofill_cache = {};
 default_autofill_cache["care"] = {};
 default_autofill_cache["care"]["family_id"] = {};
-default_autofill_cache["care"]["family_id"]["Jake+Gustafson+13"] = "-1";
-default_autofill_cache["care"]["family_id"]["Jake+Gustafson+0"] = "-1";
-default_autofill_cache["care"]["quantity"] = {};
-default_autofill_cache["care"]["quantity"]["J&S"] = "2";
+default_autofill_cache["care"]["family_id"]["jake+gustafson+13"] = "-1";
+default_autofill_cache["care"]["family_id"]["jake+gustafson+0"] = "-1";
+default_autofill_cache["care"]["qty"] = {};
+default_autofill_cache["care"]["qty"]["j&s+gustafson+0"] = "2";
 
 var default_total = {};
 default_total["care"] = "=careprice()";
@@ -146,7 +151,6 @@ var section_report_edit_field = {}; //runtime var, do not save (starts as value 
 
 var _settings = null;
 
-
 var _settings_default = {};
 _settings_default["care"] = {};
 _settings_default["care"]["default_groupby"] = {};
@@ -154,16 +158,85 @@ _settings_default["care"]["default_groupby"] = "family_id";
 _settings_default["care"]["extended_hours_hourly_price"] = 7.50
 _settings_default["care"]["local_start_time"] = '08:10:00';
 _settings_default["care"]["local_end_time"] = '15:05:00';
-_settings_default["care"]["report"] = {};
-_settings_default["care"]["report"]["selected_field_default"] = "family_id";
-_settings_default["care"]["report"]["list_implies_qty"] = "first_name";
+_settings_default["care"]["reports"] = {};
+_settings_default["care"]["reports"]["selected_field_default"] = "family_id";
+_settings_default["care"]["reports"]["list_implies_qty"] = "first_name";
 _settings_default["care"]["autofill_requires"] = {}
 _settings_default["care"]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade_level"];
-_settings_default["care"]["autofill_requires"]["quantity"] = ["first_name"];
+_settings_default["care"]["autofill_requires"]["qty"] = ["first_name"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
 //var startTime = moment('08:10:00', "HH:mm:ss");
 //var endTime = moment('15:05:00', "HH:mm:ss");
+
+
+function save_autofill_cache(reason) {
+	if (fun.is_blank(reason)) reason = "";
+	else reason=" ("+reason+")";
+	if (autofill_cache_format=="yml") {
+		//yaml.writeSync(autofill_cache_path, autofill_cache, "utf8");
+		console.log("[ @ ] saving autofill cache"+reason+"...");
+		yaml.write(autofill_cache_path, autofill_cache, "utf8", function (err) {
+			if (err) {
+				return console.log("[ @ ] "+err);
+			}
+			console.log("[ @ ] The autofill cache file was saved");
+		});
+		//console.log("[ @ ] The autofill cache was saved since updated combined_primary_key "+combined_primary_key);
+	}
+	else {
+		console.log("[ @ ] saving autofill cache"+reason+"...");
+		//async writefile:
+		fs.writeFile(autofill_cache_path, JSON.stringify(autofill_cache), 'utf8', function (err) {
+			if (err) {
+				return console.log("[ @ ] "+err);
+			}
+			console.log("[ @ ] The autofill cache file was saved");
+		});
+	}
+}
+
+
+function _get_settings_names_recursively(scope_stack) {
+	var results = [];
+	if (scope_stack==null) scope_stack = [];
+	scope = _settings;
+	var name = "";
+	for (i=0, len=scope_stack.length; i<len; i++) {
+		scope = scope[scope_stack[i]];
+		if (name==="") name=scope_stack[i];
+		else name+="."+scope_stack[i];
+	}
+	if (!scope) console.log("--Uh oh, "+JSON.stringify(scope_stack)+" aka "+name+" is undefined");
+	else console.log("--checking "+JSON.stringify(scope_stack)+" aka "+name);
+	console.log("_get_settings_names_recursively: scope at "+name);
+	if ( (typeof scope === "object") && (scope !== null) ) {
+		for (var key in scope) {
+			//if (scope.hasOwnProperty(key)) {
+				console.log("  _get_settings_names_recursively: checking in "+key);
+				var scope_stack2 = [];
+				scope_stack2 = scope_stack2.concat(scope_stack);
+				scope_stack2.push(key);
+				var results2=_get_settings_names_recursively(scope_stack2);
+				if (results2) results=results.concat(results2);
+			//}
+		}
+	}
+	else if (name!=="") {
+		results.push(name);
+		console.log("verbose message: "+name+" is not an object");
+	}
+	return results;
+}
+
+function get_all_settings_names() {
+	var scope_stack = [];
+	var results = [];
+	var results2 = _get_settings_names_recursively(null);
+	if (results2) results=results.concat(results2);
+	return results;
+}
+
 
 
 function _poke_object(info, scope_o, scope_stack, asserted_depth, val) {
@@ -247,14 +320,17 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 
 function peek_setting(dot_notation) {
 	var result = null;
-	//var dot_notation = section+"."+dot_notation;
-	var scope_stack = dot_notation.split(".");
-	var scope_o = null;
-	if (_settings.hasOwnProperty(scope_stack[0])) {
-		scope_o = _settings[scope_stack[0]];
-		var asserted_depth = 0;
-		result = _peek_object(scope_o, scope_stack, asserted_depth);
+	if (dot_notation) {
+		//var dot_notation = section+"."+dot_notation;
+		var scope_stack = dot_notation.split(".");
+		var scope_o = null;
+		if (_settings.hasOwnProperty(scope_stack[0])) {
+			scope_o = _settings[scope_stack[0]];
+			var asserted_depth = 0;
+			result = _peek_object(scope_o, scope_stack, asserted_depth);
+		}
 	}
+	else console.log("WARNING: tried to peek with missing dot_notation");
 	return result;
 }
 
@@ -267,14 +343,25 @@ function has_setting(dot_notation) {
 	if (!_settings) {
 		_settings = JSON.parse(JSON.stringify(_settings_default));
 		yaml.writeSync(settings_path, _settings, "utf8");
-		console.log("[ . ]: setting was missing so default written for: "+dot_notation);
+		console.log("[ . ]: settings not loaded so loaded defaults--this should be checked before getting to this point!");
 	}
 	else {
-		if (!_settings.hasOwnProperty(scope_stack[0])) {
-			if (_settings_default.hasOwnProperty(scope_stack[0])) {
-				_settings[scope_stack[0]] = JSON.parse(JSON.stringify(_settings_default[scope_stack[0]]));
-				yaml.writeSync(settings_path, _settings, "utf8");
-				console.log("[ . ]: settings not loaded so loaded defaults--this should be checked before getting to this point!");
+		if (peek_setting(dot_notation)===null) {
+			console.log("  [ . ] checking for default "+dot_notation);
+			var this_scoped = _settings;
+			var default_scoped = _settings_default;
+			for (i=0, len=scope_stack.length; i<len; i++) {
+				if (!this_scoped.hasOwnProperty(scope_stack[i])) {
+					if (default_scoped.hasOwnProperty(scope_stack[i])) {
+						this_scoped[scope_stack[i]] = JSON.parse(JSON.stringify(default_scoped[scope_stack[i]]));
+						yaml.writeSync(settings_path, _settings, "utf8");
+						console.log("[ . ]: setting was missing so default written for: "+dot_notation);
+						break;
+					}
+					else break;
+				}
+				this_scoped = this_scoped[scope_stack[i]];
+				default_scoped = default_scoped[scope_stack[i]];
 			}
 		}
 	}
@@ -308,8 +395,8 @@ _groups["commute"] = ["admin", "attendance", "commute"];
 _groups["attendance"] = ["admin", "attendance"];
 var _permissions = {}; // permission.<group>.<section> equals array of permissions
 _permissions["admin"] = {};
-_permissions["admin"]["admin"] = ["create", "read", "modify", "reports"];
-_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-settings"];
+_permissions["admin"]["admin"] = ["create", "read", "modify", "reports", "settings", "poke-settings"];
+_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "settings", "change-settings"];
 _permissions["admin"]["commute"] = ["create", "read", "modify", "reports"];
 _permissions["care"] = {};
 _permissions["care"]["care"] = ["create", "read", "customtime"];
@@ -349,7 +436,7 @@ section_required_fields["care"] = ["first_name", "last_name", "chaperone", "grad
 section_required_fields["commute"] = ["name", "grade_level", "heading", "reason"];
 
 var section_form_fields = {};
-section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
+section_form_fields["care"] = ["qty", "first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
 section_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
 
 var field_lookup_values = {};
@@ -836,6 +923,65 @@ var hbs = exphbs.create({
 		get_member: function(a, name, opts) {
 			return (a.hasOwnProperty(name)) ? a.name : "";
 		},
+		show_settings: function(section, username, selected_setting, opts) {
+			var ret = "";
+			if (user_has_section_permission(username, section, "settings")) {
+				//ret += "\n" + '<form class="form-inline">';
+				//ret += "\n" + '  <div class="form-group">';
+				//ret += "\n" + '    <label for="fieldHeading" class="sr-only">Email</label>';
+				//ret += "\n" + '    <input type="text" readonly class="form-control-plaintext" id="fieldHeading" value="Setting">';
+				//ret += "\n" + '  </div>';
+				//ret += "\n" + '  <div class="form-group mx-sm-3">';
+				//ret += "\n" + '    <label for="inputSettingName" class="sr-only">Name</label>';
+				//ret += "\n" + '    <input type="password" class="form-control" id="inputSettingName" placeholder="setting">';
+				//ret += "\n" + '  </div>';
+				//ret += "\n" + '  <button type="submit" class="btn btn-primary">Save</button>';
+				//ret += "\n" + '</form>';
+				//ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + '" method="get">';
+				//ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+				//ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="settings"/>';
+				//ret += "\n"+'  <input class="form-control" size="8" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>';
+				//ret += "\n"+'  <button class="btn btn-default" type="submit">Peek</button>';
+				//ret += "\n"+'</form>';
+				var settings_keys = get_all_settings_names();
+				for (i=0, len=settings_keys.length; i<len; i++) {
+					if (settings_keys[i]!=selected_setting) ret += "\n"+'<a href="'+config.proxy_prefix_then_slash+"?selected_setting="+settings_keys[i]+'">'+settings_keys[i]+"</a><br/>";
+					else {
+						ret += "\n"+'<table>';
+						ret += "\n"+'<tbody>';
+						ret += "\n"+'<tr>';
+						ret += "\n"+'<td>'+settings_keys[i]+"&nbsp;=&nbsp;";
+						ret += "\n"+'</td>';
+						ret += "\n"+'<td>';
+						ret += "\n"+'<form id="change-settings" action="' + config.proxy_prefix_then_slash + 'poke-settings" method="post">';
+						//ret += '<div class="form-group row">';
+						ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+						ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="settings"/>';
+						ret += "\n"+'  <input type="hidden" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>';
+						//ret += "\n"+'  <label for="selected_setting_value" class="col-sm-2 col-form-label">'+settings_keys[i]+'&nbsp;=&nbsp;</label>';
+						
+						//ret += "\n"+'    <div class="col-sm-10">';
+						ret += "\n"+'  <div class="input-group">';
+						ret += "\n"+'      <input class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+peek_setting(selected_setting)+'"/>';
+						//ret += "\n"+'    </div>';
+						ret += "\n"+'    <div class="input-group-btn">';
+						ret += "\n"+'      <button class="btn btn-default" type="submit">Save</button>';
+						ret += "\n"+'    </div>';
+						ret += "\n"+'  </div>';
+						//ret += '</div>';
+						ret += "\n"+'</form>';
+						ret += "\n"+'</td>';
+						ret += "\n"+'</tr>';
+						ret += "\n"+'</tbody>';
+						ret += "\n"+'</table>';
+					}
+				}
+			}
+			else {
+				ret += 'You do not have permission to access this section';
+			}
+			return new Handlebars.SafeString(ret);
+		},
 		show_reports: function(section, username, years, months, days, selected_year, selected_month, selected_day, opts) {
 			var ret = "";
 			if (user_has_section_permission(username, section, "reports")) {
@@ -946,7 +1092,7 @@ var hbs = exphbs.create({
 						if (selected_field) this_field = selected_field;
 						else if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("default_groupby")) this_field = _settings[section]["default_groupby"];
 						//else if (default_groupby.hasOwnProperty(section)) this_field = default_groupby[section];
-						if (_settings[section][autofill_requires].hasOwnProperty(this_field)) {
+						if (_settings[section]["autofill_requires"].hasOwnProperty(this_field)) {
 							ret += '<td>';
 							//ret += " Change entries for person where";
 							//ret += ":";
@@ -955,8 +1101,8 @@ var hbs = exphbs.create({
 							ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
 							ret += "\n"+'  <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>';
 							ret += "\n"+'  <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>';
-							for (i=0; i<_settings[section][autofill_requires][this_field].length; i++) {
-								var key = _settings[section][autofill_requires][this_field][i];
+							for (i=0; i<_settings[section]["autofill_requires"][this_field].length; i++) {
+								var key = _settings[section]["autofill_requires"][this_field][i];
 								var val = "";
 								var field_friendly_name = key;
 								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key))
@@ -1484,15 +1630,21 @@ app.get('/', function(req, res){
 	console.log("");
 	
 	if (autofill_cache===null) {
-		if (fs.existsSync(autofill_cache_path)) autofill_cache = yaml.readSync(autofill_cache_path, "utf8");
-		else autofill_cache = default_autofill_cache;
+		if (fs.existsSync(autofill_cache_path)) {
+			if (autofill_cache_format=="yml") autofill_cache = yaml.readSync(autofill_cache_path, "utf8");
+			else autofill_cache = JSON.parse(fs.readFileSync(autofill_cache_path, 'utf8'));
+		}
+		else {
+			console.log("[ @ ] loaded default autofill_cache");
+			autofill_cache = JSON.parse(JSON.stringify(default_autofill_cache));
+		}
 	}
 	if (_settings===null) {
 		if (fs.existsSync(settings_path)) _settings = yaml.readSync(settings_path, "utf8");
 		else {
-			_settings = _settings_default;
+			_settings = JSON.parse(JSON.stringify(_settings_default));
 			yaml.writeSync(settings_path, _settings, "utf8");
-			onsole.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
+			console.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
 		}
 	}
 	var user_sections = [];
@@ -1818,7 +1970,7 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, mode: mode, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	res.render('home', {user: req.user, section: section, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
 });
 
 //displays our signup page
@@ -1934,7 +2086,7 @@ app.post('/update-query', function(req, res){
 					if (!ok) req.session.error = "Cache failure so skipped saving value for "+req.body.selected_field+"!";
 				}
 				else {
-					req.session.error = "Section "+req.body.section+" does not specify which information is needed to uniquely identify person (id_user_within_microevent does not have a "+req.body.section+" member containing "+req.body.selected_field+")";
+					req.session.error = "Section "+req.body.section+" does not specify which information is needed to uniquely identify person (_settings["+req.body.section+"]['autofill_requires'] does not have a field list for "+req.body.selected_field+")";
 				}
 			}
 			else {
@@ -2028,7 +2180,7 @@ app.get('/admin', function(req, res){
 				console.log("* reloaded settings");
 			}
 			else {
-				_settings = _settings_default;
+				_settings = JSON.parse(JSON.stringify(settings_default));
 				console.log("* reloaded settings from defaults");
 				yaml.writeSync(settings_path, _settings, "utf8");
 				req.session.info = "WARNING: "+settings_path+" could not be read, so loaded then saved defaults there instead.";
@@ -2046,7 +2198,25 @@ app.get('/admin', function(req, res){
 	//res.write("<html><body>admin did it</body></html>")
 });
 
-app.post('/change-settings', function(req, res){
+app.post('/poke-settings', function(req, res) {
+	var sounds_path_then_slash = "sounds/";
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		if (user_has_section_permission(req.user.username, "admin", "poke-settings")) {
+			req.session.success = "poking value "+req.body.selected_setting+"="+peek_setting(req.body.selected_setting)+" to "+req.body.selected_setting_value;
+			poke_setting(req.body.selected_setting, req.body.selected_setting_value);
+		}
+		else {
+			req.session.error = "not authorized to modify data for '" + req.body.section + "'";
+			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			delete req.session.prefill.pin;
+		}
+	}
+		
+	if (fun.contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
+	res.redirect(config.proxy_prefix_then_slash);
+});
+
+app.post('/change-settings', function(req, res) {
 	var sounds_path_then_slash = "sounds/";
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		if (user_has_section_permission(req.user.username, req.body.section, "change-settings")) {
@@ -2096,9 +2266,9 @@ app.post('/change-settings', function(req, res){
 				var tmp = good_time_string(req.body.change_start_time);
 				if (tmp) {
 					if (!_settings.hasOwnProperty(req.body.section)) _settings[req.body.section] = {};
-					_settings[req.body.section]["local_start_time"] = tmp;
+					poke_setting(req.body.section+".local_start_time", tmp);//_settings[req.body.section]["local_start_time"] = tmp;
 					startTime = moment(_settings[req.body.section]["local_start_time"], "HH:mm:ss");
-					yaml.writeSync(settings_path, _settings, "utf8");
+					//yaml.writeSync(settings_path, _settings, "utf8");
 				}
 				else req.session.error = "Invalid time format";
 			}
@@ -2162,6 +2332,7 @@ app.post('/student-microevent', function(req, res){
 		req.session.missing_fields = [];
 		
 		req.session.section = req.body.section;
+		var section = req.body.section;
 		req.session.mode = req.body.mode;
 		
 		if (section_form_fields.hasOwnProperty(req.body.section)) {
@@ -2172,7 +2343,10 @@ app.post('/student-microevent', function(req, res){
 						if (req.body[key]) {
 							if (req.body[key].substring(0,8)!="prefill_") {
 								req.session.prefill[key] = req.body[key];
-								if (!never_save_fields.includes(key)) record[key] = req.body[key];
+								if (!never_save_fields.includes(key)) {
+									if (req.body[key]) record[key] = req.body[key].trim();
+									else record[key] = req.body[key]; //blank apparently, but may be "0"
+								}
 							}
 							//console.log(key + " is filled in");
 						}
@@ -2340,7 +2514,7 @@ app.post('/student-microevent', function(req, res){
 					record.created_by_ips = req.ips;
 					record.created_by_hostname = req.hostname;
 					//NOTE: _settings[req.body.section]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade"];
-					//NOTE: autofill_cache["care"]["quantity"]["J&S"] = "2";
+					//NOTE: autofill_cache["care"]["qty"]["J&S"] = "2";
 					//_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires") && _settings[req.body.section]["autofill_requires"].hasOwnProperty(req.body.selected_field)
 					if (_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(req.body.section)) {
 						//if (default_groupby.hasOwnProperty(req.body.section)) {
@@ -2351,18 +2525,22 @@ app.post('/student-microevent', function(req, res){
 								var key = _settings[req.body.section]["autofill_requires"][requirer][i];
 								var val = "";
 								if (record.hasOwnProperty(key)) {
-									if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&");
-									else combined_primary_key += "+" + record[key].replace("+","&");
+									if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&").toLowerCase().trim();
+									else combined_primary_key += "+" + record[key].replace("+","&").toLowerCase().trim();
 									present_count++;
+									console.log("[ ?@ ] verbose message: "+key+" present");
 								}
+								else console.log("[ ?@ ] verbose message: "+key+" not present");
 							}
-							if (present_count>0 && present_count==id_user_within_microevent[req.body.section].length) {
+							if (present_count>0 && present_count==_settings[req.body.section]["autofill_requires"][requirer].length) {  //id_user_within_microevent[req.body.section].length) {
+								console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
 								if (!record.hasOwnProperty(requirer)) {
 									if (autofill_cache.hasOwnProperty(req.body.section)
 										&& autofill_cache[req.body.section].hasOwnProperty(requirer)
 										&& autofill_cache[req.body.section][requirer].hasOwnProperty(combined_primary_key)
 									) {
 										record[requirer] = autofill_cache[req.body.section][requirer][combined_primary_key];
+										console.log("[ =@ ] cache hit: since autofill_cache["+req.body.section+"]["+requirer+"]["+combined_primary_key+"] was "+record[requirer]);
 									}
 									else console.log("[ /@ ] cache miss: since autofill_cache["+req.body.section+"]["+requirer+"] does not have "+combined_primary_key);
 								}
@@ -2370,11 +2548,11 @@ app.post('/student-microevent', function(req, res){
 									if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
 									if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
 									autofill_cache[section][requirer][combined_primary_key] = record[requirer];
-									yaml.writeSync(autofill_cache_path, autofill_cache, "utf8");
-									console.log("[ @ ] saved cache for combined_primary_key "+combined_primary_key);
+									//json.writeFile(autofill_cache_path, autofill_cache);
+									save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
 								}
 							}
-							else console.log("[ _@ ] cache not written since count of related field(s) entered is "+present_count+" not "+id_user_within_microevent[req.body.section].length);
+							else console.log("[ _@ ] cache not written for "+requirer+" since count of related field(s) entered is "+present_count+" not "+_settings[req.body.section]["autofill_requires"][requirer].length);//id_user_within_microevent[req.body.section].length);
 						}
 					}
 					yaml.writeSync(out_path, record, "utf8");
@@ -2501,7 +2679,8 @@ app.get('/logout', function(req, res){
 	req.session.destroy(function (err) {
 		res.redirect(config.proxy_prefix_then_slash.trim()); //Inside a callback… bulletproof!
 	});
-	req.session.notice = "You have successfully been logged out " + name + "!";
+	//NOTE: following line won't work since now session is undefined
+	//req.session.notice = "You have successfully been logged out " + name + "!";
 });
 
 //===============PORT=================

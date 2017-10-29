@@ -74,6 +74,17 @@
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
+			
+			{{#groupContains "admin" @root.user.username}}
+			{{#if_eq @root.mode "settings"}}
+			<li class="nav-item"><p class="navbar-text">Settings
+			{{else}}
+			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}?section={{@root.section}}&mode=settings">Settings</a>
+			{{/if_eq}}
+			</p>
+			</li>			
+			{{/groupContains}}
+			
 			{{#groupContains "admin" @root.user.username}}
 			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}admin/?section={{@root.section}}&mode=reload-settings">Reload Settings</a>
 			{{!--
@@ -84,7 +95,6 @@
 			--}}
 			</p>
 			</li>
-			
 			{{/groupContains}}
 		</ul>
                 
