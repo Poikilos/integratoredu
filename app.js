@@ -99,7 +99,7 @@ var modes = ["create", "read", "modify", "settings", "reports"];
 var transient_modes = ["modify"]; //modes only used during operation of other modes
 var transient_modes_return = {};
 transient_modes_return["modify"] = "read";
-transient_modes_return["change-settings"] = "settings";
+transient_modes_return["change-section-settings"] = "settings";
 transient_modes_return["poke-settings"] = "settings";
 
 var friendly_mode_names = {};
@@ -146,7 +146,7 @@ default_autofill_cache["care"]["qty"]["j&s+gustafson+0"] = "2";
 var default_total = {};
 default_total["care"] = "=careprice()";
 
-var section_report_edit_field = {}; //runtime var, do not save (starts as value of _settings.section.mode.selected_field_default)
+//var section_report_edit_field = {}; //runtime var, do not save (starts as value of _settings.section.mode.selected_field_default)
 
 var _settings = null;
 
@@ -169,7 +169,7 @@ _settings_default["care"]["autofill_requires"]["qty"] = ["first_name"];
 //var endTime = moment('15:05:00', "HH:mm:ss");
 
 function autofill(section, record, write_to_record_enable) {
-	if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(section)) {
+	if (has_setting(section+".autofill_requires")) {//if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(section)) {
 		//if (default_groupby.hasOwnProperty(section)) {
 		for (var requirer in _settings[section]["autofill_requires"]) {
 			var present_count = 0;
@@ -436,19 +436,6 @@ function has_setting(dot_notation) {
 }
 
 
-
-function get_section_setting(section, setting) { //temporary method for deprecating separate dictionaries
-	var result = null;
-	if (_settings!==null) {
-		if (_settings.hasOwnProperty(section)) {
-			if (_settings[section].hasOwnProperty(setting)) {
-				result = _settings[section][setting];
-			}
-		}
-	}
-	return result;
-}
-
 var _groups = {};
 _groups["admin"] = ["admin"];
 _groups["care"] = ["admin", "accounting", "care"];
@@ -458,12 +445,12 @@ _groups["attendance"] = ["admin", "attendance"];
 var _permissions = {}; // permission.<group>.<section> equals array of permissions
 _permissions["admin"] = {};
 _permissions["admin"]["admin"] = ["create", "read", "modify", "reports", "settings", "poke-settings"];
-_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "settings", "change-settings"];
+_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "settings", "change-section-settings"];
 _permissions["admin"]["commute"] = ["create", "read", "modify", "reports"];
 _permissions["care"] = {};
 _permissions["care"]["care"] = ["create", "read", "customtime"];
 _permissions["accounting"] = {};
-_permissions["accounting"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-settings"]
+_permissions["accounting"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-section-settings"]
 _permissions["commute"] = {};
 _permissions["commute"]["commute"] = ["create"];
 _permissions["attendance"] = {};
@@ -528,7 +515,7 @@ section_form_friendly_names["commute"]["stated_date"] = "Custom Date (blank for 
 section_form_friendly_names["commute"]["pin"] = "override pin";
 
 var section_sheet_fields = {};
-section_sheet_fields["care"] = ["family_id", "=caretime()", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"]
+section_sheet_fields["care"] = ["family_id", "=caretime()", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"]
 section_sheet_fields["commute"] = ["=get_date_from_path()", "time", "name", "grade_level"]
 
 var section_sheet_fields_friendly_names = {}
@@ -946,7 +933,8 @@ function get_care_time_info(this_item, section) {
 var hbs = exphbs.create({
 		helpers: {
 		remove_audio_message: function() {
-			delete session.runme;
+			//delete session.runme;
+			//not a function: session.destroy("runme");
 		},
 		sayHello: function () { alert("Hello") },
 		getStringifiedJson: function (value) {
@@ -999,7 +987,7 @@ var hbs = exphbs.create({
 				//ret += "\n" + '  </div>';
 				//ret += "\n" + '  <button type="submit" class="btn btn-primary">Save</button>';
 				//ret += "\n" + '</form>';
-				//ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + '" method="get">';
+				//ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + '" method="get">';
 				//ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 				//ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="settings"/>';
 				//ret += "\n"+'  <input class="form-control" size="8" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>';
@@ -1015,7 +1003,7 @@ var hbs = exphbs.create({
 						ret += "\n"+'<td>'+settings_keys[i]+"&nbsp;=&nbsp;";
 						ret += "\n"+'</td>';
 						ret += "\n"+'<td>';
-						ret += "\n"+'<form id="change-settings" action="' + config.proxy_prefix_then_slash + 'poke-settings" method="post">';
+						ret += "\n"+'<form id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'poke-settings" method="post">';
 						//ret += '<div class="form-group row">';
 						ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 						ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="settings"/>';
@@ -1044,7 +1032,7 @@ var hbs = exphbs.create({
 			}
 			return new Handlebars.SafeString(ret);
 		},
-		show_reports: function(section, username, years, months, days, selected_year, selected_month, selected_day, opts) {
+		show_reports: function(section, username, years, months, days, selected_year, selected_month, selected_day, section_report_edit_field, opts) {
 			var ret = "";
 			if (user_has_section_permission(username, section, "reports")) {
 				//ret += '<div class="panel panel-default">';
@@ -1072,12 +1060,13 @@ var hbs = exphbs.create({
 					ret += "\n"+'<tr>';
 					ret += "\n"+'<td>';
 					ret += "Hourly Rate for "+section_friendly_name+": ";
-					ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">';
 					ret += "\n"+'  <div class="form-row align-items-center">';
 					ret += "\n"+'    <input type="hidden" name="section" id="section" value="'+section+'"/>';
 					ret += "\n"+'    <input type="hidden" name="mode" id="mode" value="reports"/>';
+					ret += "\n"+'    <input type="hidden" name="selected_setting" id="selected_setting" value="extended_hours_hourly_price"/>';
 					//ret += "\n"+'   <div class="col-auto">';
-					ret += "\n"+'    <input class="form-control mb-2 mb-sm-0" size="4" name="change_section_rate" id="change_section_rate" value="'+this_rate+'"/>';
+					ret += "\n"+'    <input class="form-control mb-2 mb-sm-0" size="4" name="selected_setting_value" id="selected_setting_value" value="'+this_rate+'"/>';
 					//ret += "\n"+'   </div>';
 					//ret += "\n"+'   <div class="col-auto">';
 					ret += "\n"+'    <button type="submit" class="btn btn-default">Save</button>';
@@ -1087,10 +1076,11 @@ var hbs = exphbs.create({
 					ret += '</td>';
 					ret += "\n"+'<td>';
 					ret += " Free from";
-					ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">';
 					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
-					ret += "\n"+'  <input class="form-control" size="8" name="change_start_time" id="change_start_time" value="'+this_start_time_string+'"/>';
+					ret += "\n"+'    <input type="hidden" name="selected_setting" id="selected_setting" value="local_start_time"/>';
+					ret += "\n"+'  <input class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_start_time_string+'"/>';
 					ret += "\n"+'  <button type="submit" class="btn btn-default"/>Save</button>';
 					ret += "\n"+'</form>';
 					ret += '</td>';
@@ -1101,60 +1091,66 @@ var hbs = exphbs.create({
 							selected_field = section_report_edit_field[section]["reports"];
 							var selected_field_msg = "null";
 							if (selected_field) selected_field_msg=selected_field;
-							//console.log("[ + ] got runtime value reports.selected_field_default as "+selected_field_msg);
+							console.log("[ + ] got runtime value reports.selected_field_default as "+selected_field_msg);
 						}
-						else {
-							selected_field = peek_setting(section+".reports.selected_field_default");
-							var selected_field_msg = "null";
-							if (selected_field) selected_field_msg=selected_field;
-							//console.log("[ + ] got setting reports.selected_field_default as "+selected_field_msg);
-							//console.log("      (actually "+_settings[section]["reports"]["selected_field_default"]+")");
+						if (!selected_field) {
+							if (has_setting(section+".reports.selected_field_default")) {//else {
+								selected_field = peek_setting(section+".reports.selected_field_default");
+								var selected_field_msg = "null";
+								if (selected_field) selected_field_msg=selected_field;
+								console.log("[ + ] got setting reports.selected_field_default as "+selected_field_msg);
+								console.log("      (actually "+_settings[section]["reports"]["selected_field_default"]+")");
+								console.log("      (now "+selected_field+")");
+							}
 						}
 					}
 					if (selected_field) {//section_report_edit_field.hasOwnProperty(section)) {
 						if (!section_report_edit_field.hasOwnProperty(section)) section_report_edit_field[section] = {};
 						if (!section_report_edit_field[section].hasOwnProperty("reports")) section_report_edit_field[section]["reports"] = selected_field;
-						if (!peek_setting(section+".reports.selected_field_default")) {
-							console.log("  setting reports.selected_field_default to "+selected_field);
-							poke_setting(section+".reports.selected_field_default", selected_field);
-						}
-						//selected_field = section_report_edit_field[section]["reports"];
-						ret += "\n"+'<td>';
-						ret += "Selected Field:";
-						ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
-						ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
-						ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
-						ret += "\n"+'  <input class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section]["reports"]+'"/>';
-						ret += "\n"+'  <button class="btn btn-default" type="submit">Select</button>';
-						ret += "\n"+'</form>';
+						//if (!peek_setting(section+".reports.selected_field_default")) {
+						//	console.log("  setting reports.selected_field_default to "+selected_field);
+						//	poke_setting(section+".reports.selected_field_default", selected_field);
+						//}
+						ret += "\n"+'<td>'; //no longer needed
+						ret += "&nbsp;";
+						//ret += "Selected Field:";
+						//ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="get">';
+						//ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+						//ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+						//ret += "\n"+'  <input class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section]["reports"]+'"/>';
+						//ret += "\n"+'  <button class="btn btn-default" type="submit">Select</button>';
+						//ret += "\n"+'</form>';
 						ret += '</td>';
 					}
 					else {
 						ret += "\n"+'<td>';
-						ret += '&nbsp; </td>';
+						ret += '&nbsp;'; //no longer needed either
+						ret += '</td>';
 					}
 					ret += "\n"+'<td>';
 					ret += " to ";
 					var this_end_time_string = "";
 					if (has_setting(section+".local_end_time"))  //if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_end_time"))
 						this_end_time_string = peek_setting(section+".local_end_time"); //_settings[section]["local_end_time"];
-					ret += "\n"+'<form class="form-inline" id="change-settings" action="' + config.proxy_prefix_then_slash + 'change-settings" method="post">';
+					ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">';
 					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
-					ret += "\n"+'  <input class="form-control" size="8" name="change_end_time" id="change_end_time" value="'+this_end_time_string+'"/>';
+					ret += "\n"+'  <input type="hidden" name="selected_setting" id="selected_setting" value="local_end_time"/>';
+					ret += "\n"+'  <input class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_end_time_string+'"/>';
 					ret += "\n"+'  <button class="btn btn-default" type="submit">Save</button>';
 					ret += "\n"+'</form>';
 					ret += "\n"+'</td>';
 					ret += "\n"+'</tr>';
 					ret += "\n"+'<tr>';
-					if (  _settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")  // autofill_requires.hasOwnProperty(section)
-						&&  ( selected_field || (_settings[section].hasOwnProperty("default_groupby")) )  ) {
+					if ( has_setting(section+".autofill_requires")  // autofill_requires.hasOwnProperty(section)
+						&&  ( selected_field || (has_setting(section+".default_groupby")) )  ) {
 							//ret += " "+default_groupby[section];
 						var this_field = null;
 						if (selected_field) this_field = selected_field;
-						else if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("default_groupby")) this_field = _settings[section]["default_groupby"];
+						else if (has_setting(section+".default_groupby"))  
+							this_field = peek_setting(section+".default_groupby");
 						//else if (default_groupby.hasOwnProperty(section)) this_field = default_groupby[section];
-						if (_settings[section]["autofill_requires"].hasOwnProperty(this_field)) {
+						if (has_setting(section+".autofill_requires."+this_field)) {
 							ret += '<td>';
 							//ret += " Change entries for person where";
 							//ret += ":";
@@ -1224,18 +1220,27 @@ var hbs = exphbs.create({
 						ret += "\n"+'  <thead>';
 						ret += "\n"+'    <tr>';
 						
+						var url_params = "?";
+						url_params += "section="+section+"&";
+						url_params += "mode=reports&";
+							
 						for (i=0, len=section_sheet_fields[section].length; i<len; i++) {
 							var key = section_sheet_fields[section][i];
 							var name = key;
 							if (selected_field==key) ret += "\n"+'      <td class="bg-info">';
-							else ret += "\n"+'      <td>';;
+							else ret += "\n"+'      <td>';
 							if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
 								name = section_sheet_fields_friendly_names[section][key];
 							}
 							if (default_total.hasOwnProperty(section)) {
 								if (key==default_total[section]) name = "Total " + name;
 							}
-							ret += name;
+							var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+key;
+							
+							if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) ret += name;
+							else ret += '<a href="'+href+'">'+name+'</a>';
+							
+							
 							ret += '</td>';
 						}
 						ret += "\n"+'    </tr>';
@@ -1568,12 +1573,13 @@ var hbs = exphbs.create({
 			else
 				return opts.inverse(this);
 		},
-		is_after_school: function(opts) {
+		is_after_school: function(section, opts) {
 			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 			var currentTimeString = moment().format("HH:mm:ss"); //moment('11:00p', "HH:mm a");
-			
+			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+			var endTimeString = endTime.format("HH:mm:ss");			
 			//if (moment().format('HH:mm:ss') );
-			if (currentTimeString >= endTimeString) {
+			if (moment().isAfter(endTime)) {//if (currentTimeString >= endTimeString) {
 				//console.log(currentTimeString + " >= " + endTimeString);
 				return opts.fn(this);
 			}
@@ -1596,15 +1602,9 @@ var hbs = exphbs.create({
 		get_tz_offset_mins: function(opts) {
 			return moment().utcOffset();
 		},
-		get_startup_js_code: function(opts) {
-			return session.runme;
-		},
-		get_session_field: function(fieldname, opts) {
-			return session[fieldname];  // DOESN'T WORK
-		},
-		get_session_field_section: function(opts) {
-			return session.section;  // DOESN'T WORK
-		},
+		//get_startup_js_code: function(opts) {
+		//	return session.runme;
+		//},
 	},
 	defaultLayout: 'main', //we will be creating this layout shortly
 });
@@ -1860,6 +1860,7 @@ app.get('/', function(req, res){
 		selected_item_key = req.session.selected_item_key;
 	}
 	if (section) {
+		if (!req.session.section_report_edit_field) req.session.section_report_edit_field = {};
 		req.session.section = section;
 		if (req.user && req.user.username) {
 			if (user_has_section_permission(req.user.username, section, "read") || user_has_section_permission(req.user.username, section, "reports")) {
@@ -2038,12 +2039,15 @@ app.get('/', function(req, res){
 		}
 		
 	}
-	res.render('home', {user: req.user, section: section, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	if (req.session.runme) console.log("runme: "+req.session.runme);
+	res.render('home', {user: req.user, section: section, runme: req.session.runme, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, section_report_edit_field: req.session.section_report_edit_field, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	delete req.session.runme;
 });
 
 //displays our signup page
 app.get('/login', function(req, res){
 	res.render('login');
+	delete req.session.runme;
 });
 
 //sends the request through our local signup strategy, and if successful takes user to homepage, otherwise returns then to signin page
@@ -2166,13 +2170,13 @@ app.post('/update-query', function(req, res){
 			}
 			else {
 				req.session.error = "not authorized to modify data for '" + req.body.section + "'";
-				if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+				if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 				delete req.session.prefill.pin;
 			}
 		}
 		else {
 			req.session.error = "section and selected_field are required but are missing from form";
-			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 			delete req.session.prefill.pin;
 		}
 	}
@@ -2243,7 +2247,7 @@ app.post('/change-microevent-field', function(req, res){
 		}
 		else {
 			req.session.error = "not authorized to modify data for '" + req.body.section + "'";
-			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 			delete req.session.prefill.pin;
 		}
 	}
@@ -2279,7 +2283,7 @@ app.get('/admin', function(req, res){
 	}
 	else {
 		req.session.error = "You are not in the admin group";
-		if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+		if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 		delete req.session.prefill.pin;
 	}
 	res.redirect(config.proxy_prefix_then_slash);
@@ -2295,7 +2299,7 @@ app.post('/poke-settings', function(req, res) {
 		}
 		else {
 			req.session.error = "not authorized to modify data for '" + req.body.section + "'";
-			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 			delete req.session.prefill.pin;
 		}
 	}
@@ -2304,57 +2308,108 @@ app.post('/poke-settings', function(req, res) {
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
-app.post('/change-settings', function(req, res) {
+app.get('/change-selection', function (req, res) {
 	var sounds_path_then_slash = "sounds/";
+	var section = req.query.section;
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
-		if (user_has_section_permission(req.user.username, req.body.section, "change-settings")) {
-			if (req.body.change_section_rate) {
-				if (!_settings) {
-					_settings = {};
-					console.log("WARNING: In change-settings, null _settings (now set to empty object)")
-				}
-				if (!_settings.hasOwnProperty(req.body.section)) _settings[req.body.section] = {};
-				_settings["care"]["extended_hours_hourly_price"] = parseFloat(req.body.change_section_rate); //.toFixed(2)
-				//section_rates[req.body.section] = parseFloat(req.body.change_section_rate); //.toFixed(2)
-				//yaml.writeSync(settings_path, _settings, "utf8");
-				yaml.write(settings_path, _settings, "utf8", function (err) {
-					if (err) {
-						return console.log("[ . ] Error while saving settings in change-settings: " + err);
-					}
-					//console.log("[ . ] saved settings");
-				});
-				req.session.success = "Changed rate to "+_settings["care"]["extended_hours_hourly_price"];//section_rates[req.body.section];
-			}
-			else if (req.body.change_section_report_edit_field) {
+		if (user_has_section_permission(req.user.username, section, "read")) {
+			//if (req.query.selected_field) {
+			//	req.session.selected_field = req.query.selected_field;
+			//	console.log("Changed req.session.selected_field to "+req.session.selected_field); 
+			//}
+			if (req.query.change_section_report_edit_field) {
 				var selected_field = null;
-				if (section_sheet_fields_friendly_names.hasOwnProperty(req.body.section)) {
-					for (var key in section_sheet_fields_friendly_names[req.body.section]) {
-						if (section_sheet_fields_friendly_names[req.body.section].hasOwnProperty(key)) {
-							var val = section_sheet_fields_friendly_names[req.body.section][key];
-							if (key.toLowerCase()==req.body.change_section_report_edit_field.toLowerCase()) {
+				if (section_sheet_fields_friendly_names.hasOwnProperty(section)) {
+					for (var key in section_sheet_fields_friendly_names[section]) {
+						if (section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
+							var val = section_sheet_fields_friendly_names[section][key];
+							if (key.toLowerCase()==req.query.change_section_report_edit_field.toLowerCase()) {
 								selected_field = key;
 								break;
 							}
-							else if (val.toLowerCase()==req.body.change_section_report_edit_field.toLowerCase()) {
+							else if (val.toLowerCase()==req.query.change_section_report_edit_field.toLowerCase()) {
 								selected_field = key;
 								break;
 							}
 						}
 					}
 				}
-				if (selected_field===null && section_sheet_fields.hasOwnProperty(req.body.section)) {
-					for (var i=0; i<section_sheet_fields[req.body.section].length; i++) {
-						var val = section_sheet_fields[req.body.section][i];
-						if (val.toLowerCase()==req.body.change_section_report_edit_field) {
+				if (selected_field===null && section_sheet_fields.hasOwnProperty(section)) {
+					for (var i=0; i<section_sheet_fields[section].length; i++) {
+						var val = section_sheet_fields[section][i];
+						if (val.toLowerCase()==req.query.change_section_report_edit_field) {
 							selected_field = val;
 						}
 					}
 				}
 				if (selected_field!=null) {
-					section_report_edit_field[req.body.section][req.body.mode] = selected_field; //.toFixed(2)
-					req.session.success = "Changed selected field for "+req.body.mode+" mode to "+section_report_edit_field[req.body.section][req.body.mode];
+					if (!req.session.section_report_edit_field.hasOwnProperty(section)) req.session.section_report_edit_field[section] = {};
+					if (!req.session.section_report_edit_field[section].hasOwnProperty(req.query.mode)) req.session.section_report_edit_field[section][req.query.mode] = {};
+					req.session.section_report_edit_field[section][req.query.mode] = selected_field; //.toFixed(2)
+					req.session.success = "Changed selected field for "+req.query.mode+" mode to "+req.session.section_report_edit_field[section][req.query.mode];
 				}
-				else req.session.error = "Invalid field specified (no matching literal data field on sheet): "+req.body.change_section_report_edit_field;
+				else req.session.error = "Invalid field specified (no matching literal data field on sheet): "+req.query.change_section_report_edit_field;
+			}
+			else {
+				req.session.error = "Invalid selection change (new field name was not specified).";
+			}
+		}
+		else {
+			req.session.error = "not authorized to select in '" + section + "'";
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
+			delete req.session.prefill.pin;
+		}
+	}
+	else console.log("ERROR in change-selection: user not logged in");
+		
+	if (fun.contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
+	res.redirect(config.proxy_prefix_then_slash);
+});
+
+app.post('/change-section-settings', function(req, res) {
+	var sounds_path_then_slash = "sounds/";
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		if (user_has_section_permission(req.user.username, req.body.section, "change-section-settings")) {
+			if (has_setting(req.body.section+"."+req.body.selected_setting)) {
+				if (req.body.selected_setting=="local_start_time") {
+					var tmp = good_time_string(req.body.selected_setting_value);
+					if (tmp) {
+						poke_setting(req.body.section+"."+req.body.selected_setting, tmp);
+					}
+					else req.session.error = "Invalid time format";
+				}
+				else if (req.body.selected_setting=="local_end_time") {
+					var tmp = good_time_string(req.body.selected_setting_value);
+					if (tmp) {
+						poke_setting(req.body.section+"."+req.body.selected_setting, tmp);
+					}
+					else req.session.error = "Invalid time format";
+				}
+				else {
+					poke_setting(req.body.section+"."+req.body.selected_setting, req.body.selected_setting_value);
+					req.session.success = "Changed "+req.body.section+" "+req.body.selected_setting+" to "+peek_setting(req.body.section+"."+req.body.selected_setting);
+				}
+			}
+			else {
+				req.session.error = "no setting "+req.body.selected_setting+" exists in "+req.body.section+" section";
+			}
+			/*
+			if (req.body.change_section_rate) {
+				if (!_settings) {
+					_settings = {};
+					console.log("WARNING: In change-section-settings, null _settings (now set to empty object)")
+				}
+				if (!_settings.hasOwnProperty(req.body.section)) _settings[req.body.section] = {};
+				_settings[req.body.section]["extended_hours_hourly_price"] = parseFloat(req.body.change_section_rate); //.toFixed(2)
+				//section_rates[req.body.section] = parseFloat(req.body.change_section_rate); //.toFixed(2)
+				//yaml.writeSync(settings_path, _settings, "utf8");
+				yaml.write(settings_path, _settings, "utf8", function (err) {
+					if (err) {
+						return console.log("[ . ] Error while saving settings in change-section-settings: " + err);
+					}
+					//console.log("[ . ] saved settings");
+				});
+				req.session.success = "Changed rate to "+_settings[req.body.section]["extended_hours_hourly_price"];//section_rates[req.body.section];
 			}
 			else if (req.body.change_start_time) {
 				var tmp = good_time_string(req.body.change_start_time);
@@ -2383,12 +2438,13 @@ app.post('/change-settings', function(req, res) {
 				else req.session.error = "Invalid time format";
 			}
 			else {
-				req.session.error = "Invalid setting change (setting was not unspecified).";
+				req.session.error = "Invalid setting change (setting was not specified).";
 			}
+			*/
 		}
 		else {
 			req.session.error = "not authorized to modify data for '" + req.body.section + "'";
-			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 			delete req.session.prefill.pin;
 		}
 	}
@@ -2649,7 +2705,7 @@ app.post('/student-microevent', function(req, res){
 					var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
 					if (record.stated_time) msg = msg + " (stated time " + record.stated_time + ")";
 					req.session.notice = msg; //+"<!--" + out_path + "-->.";
-					if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();");
+					if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
 					//for (var indexer in req.session.prefill) {
 					//	if (req.session.prefill.hasOwnProperty(indexer)) {
 					//		console.log("- deleting "+indexer);
@@ -2674,11 +2730,11 @@ app.post('/student-microevent', function(req, res){
 					//delete req.session.prefill.ctime;
 					//delete req.session.prefill.stated_time;
 					//delete req.session.prefill.stated_date;
-					//delete session.runme;
+					//delete req.session.runme;
 				}
 				else {
 					req.session.error = "not authorized to modify data for '" + req.body.section + "'";
-					if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();");
+					if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 					delete req.session.prefill.pin;
 					//delete req.session.prefill.heading;
 				}
@@ -2686,7 +2742,7 @@ app.post('/student-microevent', function(req, res){
 			else {//formatting error
 				
 				req.session.error = custom_error;//+ "<script>var Speech = require('speak-tts'); Speech.init({'onVoicesLoaded': (data) => {console.log('voices', data.voices)},'lang': 'en-US','volume': 0.5,'rate': 0.8,'pitch': 0.8});"+'Speech.speak({text: "'+custom_error+'" })</script>';
-				if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"missing-information.wav'); audio.play();");
+				if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"missing-information.wav'); audio.play();"); //new Handlebars.SafeString
 				delete req.session.prefill.pin;
 				//delete req.session.prefill.heading;
 			}
@@ -2701,7 +2757,7 @@ app.post('/student-microevent', function(req, res){
 			//delete req.session.prefill.heading;
 			//req.session.error = new Handlebars.SafeString(custom_error + missing_msg + "<script>var audio = new Audio('missing-information.wav'); audio.play();</script>");
 			req.session.error = custom_error + missing_msg;
-			if (config.audio_enable) session.runme = new Handlebars.SafeString("var audio = new Audio('"+sounds_path_then_slash+"missing-information.wav'); audio.play();");
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"missing-information.wav'); audio.play();"); //new Handlebars.SafeString
 		}
 	}
 	else {
@@ -2709,7 +2765,7 @@ app.post('/student-microevent', function(req, res){
 			delete req.session.prefill.member;
 		}
 		req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
-		delete session.runme;
+		delete req.session.runme;
 	}
 	if (fun.contains.call(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
@@ -2737,7 +2793,7 @@ app.get('/logout', function(req, res){
 	delete req.session.selected_day;
 	delete req.session.selected_month;
 	delete req.session.selected_year;
-	delete session.runme;
+	delete req.session.runme;
 	req.session.destroy(function (err) {
 		res.redirect(config.proxy_prefix_then_slash.trim()); //Inside a callback… bulletproof!
 	});

@@ -173,7 +173,7 @@
 	{{/if_eq}} {{!--end if mode is read--}}
 
 	{{#if_eq mode "reports"}}
-	{{show_reports section user.username years months days selected_year selected_month selected_day}}
+	{{show_reports section user.username years months days selected_year selected_month selected_day section_report_edit_field}}
 	{{/if_eq}} {{!--end if mode is report--}}
 	{{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
 	{{show_settings section user.username selected_setting}}

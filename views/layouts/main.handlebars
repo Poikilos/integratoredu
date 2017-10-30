@@ -26,7 +26,7 @@
   </style>
   </head>
 
-  <body onload="{{get_startup_js_code}}">
+  <body onload="{{runme}}">
     {{remove_audio_message}}
     <div class="container" style="width:80%">
 
@@ -52,6 +52,11 @@
 			{{#if_eq this @root.section}}
 			<li class="nav-item active"><p class="navbar-text">
 			{{friendlySectionName this}}
+			{{#is_after_school section}}
+			- After
+			{{else}}
+			- Before
+			{{/is_after_school}}
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">

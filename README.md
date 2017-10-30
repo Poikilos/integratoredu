@@ -6,6 +6,11 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-30) removed use of deprecated endTimeString global in is_after_school
+* (2017-10-30) eliminate use of deprecated startTime and endTime globals (changing local_end_time was changing startTime anyway)
+* (2017-10-30) made universal change-section-settings which can change any setting that is directly in the section's object in settings (does check change-section-settings permission of that section for current user's group)
+* (2017-10-30) replaced more instances of (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("default_groupby")) with has_setting(section+".default_groupby") where default_groupby is variable name
+* (2017-10-30) correct use of runme session variable (store in req.session instead of session, and passed to handlebars render)
 * (2017-10-29) Changed writeSync to write for settings
 * (2017-10-28) (made section variable /student-microevent) /student-microevent regression of undefined variable bug
 * (2017-10-28) correct use of autofill cache
@@ -60,6 +65,8 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* move "Reload Settings" from title bar to to settings form (which is displayed only in settings mode)
+* a discrepency exists between reload settings and setting file and memory (not sure how--to reproduce, change setting in file, reload settings)
 * remove commented id_user_within_microevent code
 * Download spreadsheet separated by family (with formula in fields where appropriate)
 * SmartTuition bills on the 5th, 20th, and last day of month (must enter the stuff into SmartTuition manually before one of those dates for bill to go on that email)
