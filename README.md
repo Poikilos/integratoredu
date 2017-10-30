@@ -6,6 +6,7 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-29) Changed writeSync to write for settings
 * (2017-10-28) (made section variable /student-microevent) /student-microevent regression of undefined variable bug
 * (2017-10-28) correct use of autofill cache
 * (2017-10-28) finished migrating from id_user_within_microevent to _settings[req.body.section]["autofill_requires"][requirer]

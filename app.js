@@ -19,7 +19,6 @@ var Handlebars = require('handlebars');
 
 var autofill_cache_format = "yml";
 
-
 //Speech.init({
 //    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
 //    'lang': 'en-GB', // specify en-GB language (no detection applied)
@@ -169,6 +168,49 @@ _settings_default["care"]["autofill_requires"]["qty"] = ["first_name"];
 //var startTime = moment('08:10:00', "HH:mm:ss");
 //var endTime = moment('15:05:00', "HH:mm:ss");
 
+function autofill(section, record, write_to_record_enable) {
+	if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(section)) {
+		//if (default_groupby.hasOwnProperty(section)) {
+		for (var requirer in _settings[section]["autofill_requires"]) {
+			var present_count = 0;
+			var combined_primary_key = null;
+			for (i=0; i<_settings[section]["autofill_requires"][requirer].length; i++) {
+				var key = _settings[section]["autofill_requires"][requirer][i];
+				var val = "";
+				if (record.hasOwnProperty(key)) {
+					if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&").toLowerCase().trim();
+					else combined_primary_key += "+" + record[key].replace("+","&").toLowerCase().trim();
+					present_count++;
+					//console.log("[ ?@ ] verbose message: "+key+" present");
+				}
+				//else console.log("[ ?@ ] verbose message: "+key+" not present");
+			}
+			if (present_count>0 && present_count==_settings[section]["autofill_requires"][requirer].length) {  //id_user_within_microevent[section].length) {
+				console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
+				if (!record.hasOwnProperty(requirer)) {
+					if (write_to_record_enable) {
+						if (autofill_cache.hasOwnProperty(section)
+							&& autofill_cache[section].hasOwnProperty(requirer)
+							&& autofill_cache[section][requirer].hasOwnProperty(combined_primary_key)
+						) {
+							record[requirer] = autofill_cache[section][requirer][combined_primary_key];
+							console.log("[ =@ ] (verbose message) cache hit: since autofill_cache["+section+"]["+requirer+"]["+combined_primary_key+"] was "+record[requirer]);
+						}
+						else console.log("[ /@ ] (verbose message) cache miss: since autofill_cache["+section+"]["+requirer+"] does not have "+combined_primary_key);
+					}
+				}
+				else {
+					if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
+					if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
+					autofill_cache[section][requirer][combined_primary_key] = record[requirer];
+					//json.writeFile(autofill_cache_path, autofill_cache);
+					save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
+				}
+			}
+			else console.log("[ _@ ] cache not written for "+requirer+" since count of related field(s) entered is "+present_count+" not "+_settings[section]["autofill_requires"][requirer].length);//id_user_within_microevent[section].length);
+		}
+	}	
+}//end autofill
 
 function save_autofill_cache(reason) {
 	if (fun.is_blank(reason)) reason = "";
@@ -178,20 +220,20 @@ function save_autofill_cache(reason) {
 		console.log("[ @ ] saving autofill cache"+reason+"...");
 		yaml.write(autofill_cache_path, autofill_cache, "utf8", function (err) {
 			if (err) {
-				return console.log("[ @ ] "+err);
+				return console.log("[ @ ] saving autofill cache"+reason+"..."+err);
 			}
-			console.log("[ @ ] The autofill cache file was saved");
+			else console.log("[ @ ] saving autofill cache"+reason+"...OK");
 		});
 		//console.log("[ @ ] The autofill cache was saved since updated combined_primary_key "+combined_primary_key);
 	}
 	else {
-		console.log("[ @ ] saving autofill cache"+reason+"...");
+		///console.log("[ @ ] saving autofill cache"+reason+"...");
 		//async writefile:
 		fs.writeFile(autofill_cache_path, JSON.stringify(autofill_cache), 'utf8', function (err) {
 			if (err) {
-				return console.log("[ @ ] "+err);
+				return console.log("[ @ ] saving autofill cache"+reason+"..."+err);
 			}
-			console.log("[ @ ] The autofill cache file was saved");
+			else console.log("[ @ ] saving autofill cache"+reason+"...OK");
 		});
 	}
 }
@@ -279,7 +321,15 @@ function poke_setting(dot_notation, val) {
 	var asserted_depth = 0;
 	var info = {};
 	_poke_object(info, scope_o, scope_stack, asserted_depth, val);
-	if (info.changed) yaml.writeSync(settings_path, _settings, "utf8");
+	if (info.changed) {
+		//yaml.writeSync(settings_path, _settings, "utf8");
+		yaml.write(settings_path, _settings, "utf8", function (err) {
+			if (err) {
+				return console.log("[ . ] Error while saving settings: " + err);
+			}
+			//console.log("[ . ] saved settings");
+		});
+	}
 }
 
 function _peek_object(scope_o, scope_stack, asserted_depth) {
@@ -342,7 +392,13 @@ function has_setting(dot_notation) {
 	var scope_o = null;
 	if (!_settings) {
 		_settings = JSON.parse(JSON.stringify(_settings_default));
-		yaml.writeSync(settings_path, _settings, "utf8");
+		//yaml.writeSync(settings_path, _settings, "utf8");
+		yaml.write(settings_path, _settings, "utf8", function (err) {
+			if (err) {
+				return console.log("[ . ] Error while saving settings: " + err);
+			}
+			//console.log("[ . ] saved settings");
+		});
 		console.log("[ . ]: settings not loaded so loaded defaults--this should be checked before getting to this point!");
 	}
 	else {
@@ -354,8 +410,14 @@ function has_setting(dot_notation) {
 				if (!this_scoped.hasOwnProperty(scope_stack[i])) {
 					if (default_scoped.hasOwnProperty(scope_stack[i])) {
 						this_scoped[scope_stack[i]] = JSON.parse(JSON.stringify(default_scoped[scope_stack[i]]));
-						yaml.writeSync(settings_path, _settings, "utf8");
-						console.log("[ . ]: setting was missing so default written for: "+dot_notation);
+						//yaml.writeSync(settings_path, _settings, "utf8");
+						yaml.write(settings_path, _settings, "utf8", function (err) {
+							if (err) {
+								return console.log("[ . ] Error while saving settings from a default setting: " + err);
+							}
+							else console.log("[ . ]: setting was missing so default written for: "+dot_notation);
+						}); 
+						
 						break;
 					}
 					else break;
@@ -1643,8 +1705,14 @@ app.get('/', function(req, res){
 		if (fs.existsSync(settings_path)) _settings = yaml.readSync(settings_path, "utf8");
 		else {
 			_settings = JSON.parse(JSON.stringify(_settings_default));
-			yaml.writeSync(settings_path, _settings, "utf8");
-			console.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
+			//yaml.writeSync(settings_path, _settings, "utf8");
+			//console.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
+			yaml.write(settings_path, _settings, "utf8", function (err) {
+			if (err) {
+				return console.log("[ . ] Error while saving settings after loading defaults (did not exist in app.get('/')): " + err);
+			}
+			else console.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
+		}); 
 		}
 	}
 	var user_sections = [];
@@ -2043,7 +2111,14 @@ app.post('/update-query', function(req, res){
 																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key]["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
 																	dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key]["modified_by"] = req.user.username;
 																	try {
-																	yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key], "utf8");
+																		yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key], "utf8");
+																		var reason = " in update-query";
+																		//yaml.write(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][day_key][item_key], 'utf8', function (err) {
+																		//	if (err) {
+																		//		return console.log("[ * ] saving entry"+reason+"..."+err);
+																		//	}
+																		//	//else console.log("[ * ] saving entry"+reason+"...OK");
+																		//});
 																		update_saved_count++;
 																	}
 																	catch (err) {
@@ -2129,8 +2204,15 @@ app.post('/change-microevent-field', function(req, res){
 									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key]["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
 									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key]["modified_by"] = req.user.username;
 									try {
-									yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
-									req.session.success = msg;
+										yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
+										//var reason = " in change-microevent-field";
+										//yaml.write(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], 'utf8', function (err) {
+										//	if (err) {
+										//		return console.log("[ * ] saving entry"+reason+"..."+err);
+										//	}
+										//	//else console.log("[ * ] saving entry"+reason+"...OK");
+										//});
+										req.session.success = msg;
 									}
 									catch (err) {
 										req.session.error = "\nCould not finish writing "+item_path+": "+err;
@@ -2177,14 +2259,20 @@ app.get('/admin', function(req, res){
 			if (fs.existsSync(settings_path)) {
 				_settings = yaml.readSync(settings_path, "utf8");
 				req.session.success = "Successfully reloaded "+settings_path+".";
-				console.log("* reloaded settings");
+				console.log("[ ^. ] reloaded settings");
 			}
 			else {
 				_settings = JSON.parse(JSON.stringify(settings_default));
-				console.log("* reloaded settings from defaults");
-				yaml.writeSync(settings_path, _settings, "utf8");
-				req.session.info = "WARNING: "+settings_path+" could not be read, so loaded then saved defaults there instead.";
-				console.log("* saved settings");
+				console.log("[ ^. ] reloaded settings from defaults");
+				//yaml.writeSync(settings_path, _settings, "utf8");
+				yaml.write(settings_path, _settings, "utf8", function (err) {
+					if (err) {
+						return console.log("[ . ] Error while saving settings in /admin: " + err);
+					}
+					console.log("[ . ] saved settings");
+				});
+				req.session.info = "WARNING: "+settings_path+" could not be read in /admin, so loaded then saved defaults there instead.";
+				//console.log("* saved settings");
 			}
 		}
 		else req.session.error = "Unknown admin request "+req.body.mode;
@@ -2228,7 +2316,13 @@ app.post('/change-settings', function(req, res) {
 				if (!_settings.hasOwnProperty(req.body.section)) _settings[req.body.section] = {};
 				_settings["care"]["extended_hours_hourly_price"] = parseFloat(req.body.change_section_rate); //.toFixed(2)
 				//section_rates[req.body.section] = parseFloat(req.body.change_section_rate); //.toFixed(2)
-				yaml.writeSync(settings_path, _settings, "utf8");
+				//yaml.writeSync(settings_path, _settings, "utf8");
+				yaml.write(settings_path, _settings, "utf8", function (err) {
+					if (err) {
+						return console.log("[ . ] Error while saving settings in change-settings: " + err);
+					}
+					//console.log("[ . ] saved settings");
+				});
 				req.session.success = "Changed rate to "+_settings["care"]["extended_hours_hourly_price"];//section_rates[req.body.section];
 			}
 			else if (req.body.change_section_report_edit_field) {
@@ -2278,7 +2372,13 @@ app.post('/change-settings', function(req, res) {
 					if (!_settings.hasOwnProperty(req.body.section)) _settings[req.body.section] = {};
 					_settings[req.body.section]["local_end_time"] = tmp;
 					startTime = moment(_settings[req.body.section]["local_end_time"], "HH:mm:ss");
-					yaml.writeSync(settings_path, _settings, "utf8");
+					//yaml.writeSync(settings_path, _settings, "utf8");
+					yaml.write(settings_path, _settings, "utf8", function (err) {
+						if (err) {
+							return console.log("[ . ] Error while saving settings: " + err);
+						}
+						//console.log("[ . ] saved settings");
+					});
 				}
 				else req.session.error = "Invalid time format";
 			}
@@ -2516,45 +2616,7 @@ app.post('/student-microevent', function(req, res){
 					//NOTE: _settings[req.body.section]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade"];
 					//NOTE: autofill_cache["care"]["qty"]["J&S"] = "2";
 					//_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires") && _settings[req.body.section]["autofill_requires"].hasOwnProperty(req.body.selected_field)
-					if (_settings && _settings.hasOwnProperty(req.body.section) && _settings[req.body.section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(req.body.section)) {
-						//if (default_groupby.hasOwnProperty(req.body.section)) {
-						for (var requirer in _settings[req.body.section]["autofill_requires"]) {
-							var present_count = 0;
-							var combined_primary_key = null;
-							for (i=0; i<_settings[req.body.section]["autofill_requires"][requirer].length; i++) {
-								var key = _settings[req.body.section]["autofill_requires"][requirer][i];
-								var val = "";
-								if (record.hasOwnProperty(key)) {
-									if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&").toLowerCase().trim();
-									else combined_primary_key += "+" + record[key].replace("+","&").toLowerCase().trim();
-									present_count++;
-									console.log("[ ?@ ] verbose message: "+key+" present");
-								}
-								else console.log("[ ?@ ] verbose message: "+key+" not present");
-							}
-							if (present_count>0 && present_count==_settings[req.body.section]["autofill_requires"][requirer].length) {  //id_user_within_microevent[req.body.section].length) {
-								console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
-								if (!record.hasOwnProperty(requirer)) {
-									if (autofill_cache.hasOwnProperty(req.body.section)
-										&& autofill_cache[req.body.section].hasOwnProperty(requirer)
-										&& autofill_cache[req.body.section][requirer].hasOwnProperty(combined_primary_key)
-									) {
-										record[requirer] = autofill_cache[req.body.section][requirer][combined_primary_key];
-										console.log("[ =@ ] cache hit: since autofill_cache["+req.body.section+"]["+requirer+"]["+combined_primary_key+"] was "+record[requirer]);
-									}
-									else console.log("[ /@ ] cache miss: since autofill_cache["+req.body.section+"]["+requirer+"] does not have "+combined_primary_key);
-								}
-								else {
-									if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
-									if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
-									autofill_cache[section][requirer][combined_primary_key] = record[requirer];
-									//json.writeFile(autofill_cache_path, autofill_cache);
-									save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
-								}
-							}
-							else console.log("[ _@ ] cache not written for "+requirer+" since count of related field(s) entered is "+present_count+" not "+_settings[req.body.section]["autofill_requires"][requirer].length);//id_user_within_microevent[req.body.section].length);
-						}
-					}
+					autofill(req.body.section, record, true);
 					yaml.writeSync(out_path, record, "utf8");
 					//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
 					if (dat) {
