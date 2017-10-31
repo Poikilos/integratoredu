@@ -213,3 +213,66 @@ This code is deprecated (instead, use compact link area in heading for choices a
 
 	{{/if_eq}}
 ```
+
+
+This code is deprecated by show_history helper
+```xml
+<table class="table table-hover" style="width:100%">
+		<thead class="thead-default">
+		<tr>
+			<td style="width:10em">&nbsp;</td>{{!--Edit button column--}}
+			{{!--#each this_sheet_field_friendly_names}}
+			<td style="width:10em">{{this}}</td>
+			{{/each--}}
+
+			{{!--Column headers--}}
+			{{#eachProperty objects.[0]}}
+			<th>{{property}}&nbsp;</th>
+			{{/eachProperty}}
+
+			{{!--
+			<td style="width:8em">&nbsp;</td>
+			<td style="width:8em">Time</td>
+			<td style="">Name<br></td>
+			<td style="width:3em">Grade<br/>Level</td>
+			<td style="width:20em">Reason</td>--}}
+		</tr>
+		</thead>
+		<tbody>
+		{{#each objects as |entryValue entryKey|}}
+		<tr>
+			<td>
+			<form action="{{get_proxy_prefix_then_slash}}">
+			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+			<input type="hidden" name="mode" id="mode" value="create"/>{{!--always use create form for editing--}}
+			<input type="hidden" name="prefill_mode" id="prefill_mode" value="modify"/>{{!--always prefill modify for Edit button--}}
+			<input type="hidden" name="prefill_name" id="prefill_name" value="{{this.name}}"/>
+			<input type="hidden" name="prefill_year" id="prefill_year" value="{{@root.selected_year}}" />
+			<input type="hidden" name="prefill_month" id="prefill_month" value="{{@root.selected_month}}" />
+			<input type="hidden" name="prefill_day" id="prefill_day" value="{{@root.selected_day}}" />
+			<input type="hidden" name="prefill_key" id="prefill_key" value="{{key}}" />
+			{{!--<input class="btn btn-default" type="submit" value="Edit" />--}}
+			</form>
+
+			</td>
+			{{!--#each @root.this_sheet_field_names as |fieldValue fieldKey|}}
+				{{#if_formula this}}
+				<td>&nbsp; </td>
+				{{else}}
+				<td>{{entryValue}}.{{fieldValue}}</td>
+				{{/if_formula}}
+			{{/each--}}
+			{{#eachProperty this}}
+			<td> {{value}}</td>
+			{{/eachProperty }}
+			{{!--
+			<td>{{heading}}</td>
+			<td>{{time}} </td>
+			<td>{{name}}</td>
+			<td>{{grade_level}}</td>
+			<td>{{reason}}</td>--}}
+		</tr>
+		{{/each}}
+		</tbody>
+		</table>
+```

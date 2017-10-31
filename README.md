@@ -6,6 +6,7 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-31) changed moment requirement from "moment" to "moment-timezone" and did npm install moment-timezone (see https://momentjs.com/timezone/docs/ )
 * (2017-10-30) removed use of deprecated endTimeString global in is_after_school
 * (2017-10-30) eliminate use of deprecated startTime and endTime globals (changing local_end_time was changing startTime anyway)
 * (2017-10-30) made universal change-section-settings which can change any setting that is directly in the section's object in settings (does check change-section-settings permission of that section for current user's group)
@@ -65,6 +66,8 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* for attendance user, can view reports, but can't select field, and app shows link to select time (even though stated_time, the override for it, is not present) instead of noticing missing override and not showing field name as link
+* implement a way to change the date (and make sure file is moved and cache is modified)
 * move "Reload Settings" from title bar to to settings form (which is displayed only in settings mode)
 * a discrepency exists between reload settings and setting file and memory (not sure how--to reproduce, change setting in file, reload settings)
 * remove commented id_user_within_microevent code
@@ -98,6 +101,7 @@ html tag) data is written sometimes (but not anymore?)
 * (~) Change section chooser from button to drop-down: https://www.w3schools.com/bootstrap/bootstrap_dropdowns.asp
 * (~ partially resolved by having section name have display name [friendly_section_names]) display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
 * (~) serve files from database (browser shows missing image symbol, and show image in new tab says "http://192.168.1.5/sign/users/profilepics/admin.jpg" where http://192.168.1.5/sign is a working reverse http proxy redirect that points to node running on 8080)
+* (~) sheet functions do not support overrides
 
 
 ## Planned Features

@@ -1,6 +1,6 @@
 # Deprecated code
 
-* Deprecated (use variables by same name instead)
+Deprecated (use variables by same name instead)
 
 ```javascript
 		prefill_form_field: function(fieldname, opts) {
@@ -66,7 +66,7 @@
 
 ```
 
-* Deprecated (use user_has_section_permission instead)
+Deprecated (use user_has_section_permission instead)
 
 The permission method below (being deprecated) uses a list of users for each section in each permission.
 

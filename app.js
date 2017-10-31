@@ -2,7 +2,7 @@
 var express = require('express'),
 	exphbs = require('express-handlebars'),
 	logger = require('morgan'),
-	moment = require('moment'),
+	moment = require('moment-timezone'),
 	cookieParser = require('cookie-parser'),
 	bodyParser = require('body-parser'),
 	methodOverride = require('method-override'),
@@ -17,7 +17,7 @@ var express = require('express'),
 var path = require("path");
 var Handlebars = require('handlebars');
 
-var autofill_cache_format = "yml";
+var autofill_cache_format = "yml"; //yml or json
 
 //Speech.init({
 //    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
@@ -114,11 +114,7 @@ friendly_mode_action_text["read"] = "Save"; //save button since read will show e
 friendly_mode_action_text["modify"] = "Save";
 friendly_mode_action_text["reports"] = "Save";
 
-var default_mode_by_user = {};
-default_mode_by_user["care"] = "create";
-default_mode_by_user["commute"] = "create";
-default_mode_by_user["attendance"] = "read";
-default_mode_by_user["accounting"] = "reports";
+
 
 //var default_groupby = {};
 //default_groupby["care"] = "family_id";
@@ -163,53 +159,70 @@ _settings_default["care"]["reports"]["list_implies_qty"] = "first_name";
 _settings_default["care"]["autofill_requires"] = {}
 _settings_default["care"]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade_level"];
 _settings_default["care"]["autofill_requires"]["qty"] = ["first_name"];
+//NOTE: mid uses counting numbers, and last param is inclusive
+_settings_default["care"]["history_sheet_fields"] = ["time", "qty", "=mid(first_name,1,1)", "=mid(last_name,1,1)", "grade_level", "chaperone", "family_id"];
+_settings_default["commute"] = {};
+_settings_default["commute"]["local_start_time"] = '08:10:00';
+_settings_default["commute"]["local_end_time"] = '15:05:00';
+_settings_default["commute"]["history_sheet_fields"] = ["time", "name", "grade_level"];  // "=get_date_from_path()", 
+_settings_default["care"]["mode_priority"] = ["reports","create", "read"];
+_settings_default["commute"]["mode_priority"] = ["reports","create", "read"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
 //var startTime = moment('08:10:00', "HH:mm:ss");
 //var endTime = moment('15:05:00', "HH:mm:ss");
 
+var default_mode_by_user = {};
+default_mode_by_user["care"] = "create";
+default_mode_by_user["commute"] = "create";
+default_mode_by_user["attendance"] = "read";
+default_mode_by_user["accounting"] = "reports";
+
 function autofill(section, record, write_to_record_enable) {
-	if (has_setting(section+".autofill_requires")) {//if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(section)) {
-		//if (default_groupby.hasOwnProperty(section)) {
-		for (var requirer in _settings[section]["autofill_requires"]) {
-			var present_count = 0;
-			var combined_primary_key = null;
-			for (i=0; i<_settings[section]["autofill_requires"][requirer].length; i++) {
-				var key = _settings[section]["autofill_requires"][requirer][i];
-				var val = "";
-				if (record.hasOwnProperty(key)) {
-					if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&").toLowerCase().trim();
-					else combined_primary_key += "+" + record[key].replace("+","&").toLowerCase().trim();
-					present_count++;
-					//console.log("[ ?@ ] verbose message: "+key+" present");
+	if (section) {
+		if (has_setting(section+".autofill_requires")) {//if (_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("autofill_requires")) {//if (id_user_within_microevent.hasOwnProperty(section)) {
+			//if (default_groupby.hasOwnProperty(section)) {
+			for (var requirer in _settings[section]["autofill_requires"]) {
+				var present_count = 0;
+				var combined_primary_key = null;
+				for (i=0; i<_settings[section]["autofill_requires"][requirer].length; i++) {
+					var key = _settings[section]["autofill_requires"][requirer][i];
+					var val = "";
+					if (record.hasOwnProperty(key)) {
+						if (combined_primary_key===null) combined_primary_key = record[key].replace("+","&").toLowerCase().trim();
+						else combined_primary_key += "+" + record[key].replace("+","&").toLowerCase().trim();
+						present_count++;
+						//console.log("[ ?@ ] verbose message: "+key+" present");
+					}
+					//else console.log("[ ?@ ] verbose message: "+key+" not present");
 				}
-				//else console.log("[ ?@ ] verbose message: "+key+" not present");
-			}
-			if (present_count>0 && present_count==_settings[section]["autofill_requires"][requirer].length) {  //id_user_within_microevent[section].length) {
-				console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
-				if (!record.hasOwnProperty(requirer)) {
-					if (write_to_record_enable) {
-						if (autofill_cache.hasOwnProperty(section)
-							&& autofill_cache[section].hasOwnProperty(requirer)
-							&& autofill_cache[section][requirer].hasOwnProperty(combined_primary_key)
-						) {
-							record[requirer] = autofill_cache[section][requirer][combined_primary_key];
-							console.log("[ =@ ] (verbose message) cache hit: since autofill_cache["+section+"]["+requirer+"]["+combined_primary_key+"] was "+record[requirer]);
+				if (present_count>0 && present_count==_settings[section]["autofill_requires"][requirer].length) {  //id_user_within_microevent[section].length) {
+					console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
+					if (!record.hasOwnProperty(requirer)) {
+						if (write_to_record_enable) {
+							if (autofill_cache.hasOwnProperty(section)
+								&& autofill_cache[section].hasOwnProperty(requirer)
+								&& autofill_cache[section][requirer].hasOwnProperty(combined_primary_key)
+							) {
+								record[requirer] = autofill_cache[section][requirer][combined_primary_key];
+								console.log("[ =@ ] (verbose message) cache hit: since autofill_cache["+section+"]["+requirer+"]["+combined_primary_key+"] was "+record[requirer]);
+							}
+							else console.log("[ /@ ] (verbose message) cache miss: since autofill_cache["+section+"]["+requirer+"] does not have "+combined_primary_key);
 						}
-						else console.log("[ /@ ] (verbose message) cache miss: since autofill_cache["+section+"]["+requirer+"] does not have "+combined_primary_key);
+					}
+					else {
+						if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
+						if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
+						autofill_cache[section][requirer][combined_primary_key] = record[requirer];
+						//json.writeFile(autofill_cache_path, autofill_cache);
+						save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
 					}
 				}
-				else {
-					if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
-					if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
-					autofill_cache[section][requirer][combined_primary_key] = record[requirer];
-					//json.writeFile(autofill_cache_path, autofill_cache);
-					save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
-				}
+				else console.log("[ _@ ] cache not written for "+requirer+" since count of related field(s) entered is "+present_count+" not "+_settings[section]["autofill_requires"][requirer].length);//id_user_within_microevent[section].length);
 			}
-			else console.log("[ _@ ] cache not written for "+requirer+" since count of related field(s) entered is "+present_count+" not "+_settings[section]["autofill_requires"][requirer].length);//id_user_within_microevent[section].length);
 		}
-	}	
+	}
+	else console.log("[ !@ ] no section mentioned so can't autofill");
 }//end autofill
 
 function save_autofill_cache(reason) {
@@ -334,23 +347,29 @@ function poke_setting(dot_notation, val) {
 
 function _peek_object(scope_o, scope_stack, asserted_depth) {
 	var result = null;
-	asserted_depth+=1; //since caller assures us, "I am giving you care; care contains reports," or in other words, "I am giving you 0; 0 contains 1"
+	//asserted_depth+=1; //since caller assures us, "I am giving you care; care contains reports," or in other words, "I am giving you 0; 0 contains 1"
 	if (asserted_depth+1>=scope_stack.length) {
-		if (scope_o.hasOwnProperty(scope_stack[scope_stack.length-1])) {
+		
+		//if (scope_stack[scope_stack.length-1] in scope_o) {//would result in errors such as TypeError: Cannot use 'in' operator to search for 'local_time_zone' in America/New_York if scope_stack[0] is a leaf name
+		if (scope_o.hasOwnProperty(scope_stack[scope_stack.length-1])) { //NOTE: hasOwnProperty doesn't work if scope_stack[0] is a leaf name, so that must be checked in shallower scope first
 			result=scope_o[scope_stack[scope_stack.length-1]];
-			//console.log("[ . ] got value "+result+" for key "+scope_stack[scope_stack.length-1]+" from top of stack")
+			console.log("[ . ] got value "+result+" for key "+scope_stack[scope_stack.length-1]+" from top of stack: "+JSON.stringify(scope_stack))
 		}
 		else {
-			//console.log("[ . ] ERROR: no "+scope_stack[scope_stack.length-1]+", only has ");
-			//for (var key in scope_o) {
-			//	if (scope_o.hasOwnProperty(key)) {
-			//		console.log("  "+key+":"+scope_o[key]);
-			//	}
-			//}
+			console.log("[ . ] ERROR: no "+scope_stack[scope_stack.length-1]+", only has ");
+			for (var key in scope_o) {
+				if (scope_o.hasOwnProperty(key)) {
+					console.log("  "+key+":"+scope_o[key]);
+				}
+			}
 		}
 	}
 	else {
-		if (scope_o.hasOwnProperty(scope_stack[asserted_depth])) result=_peek_object(scope_o[scope_stack[asserted_depth]], scope_stack, asserted_depth);
+		//if (scope_stack[asserted_depth] in scope_o) {  // 
+		if (scope_o.hasOwnProperty(scope_stack[asserted_depth])) { //NOTE: hasOwnProperty doesn't work if scope_stack[0] is a leaf name, so that must be checked in shallower scope first
+			asserted_depth+=1;
+			result=_peek_object(scope_o[scope_stack[asserted_depth-1]], scope_stack, asserted_depth); 
+		}
 		else {
 			var breadcrumbs = "";
 			for (i=0; i<scope_stack.length; i++) {
@@ -374,11 +393,18 @@ function peek_setting(dot_notation) {
 		//var dot_notation = section+"."+dot_notation;
 		var scope_stack = dot_notation.split(".");
 		var scope_o = null;
-		if (_settings.hasOwnProperty(scope_stack[0])) {
-			scope_o = _settings[scope_stack[0]];
-			var asserted_depth = 0;
-			result = _peek_object(scope_o, scope_stack, asserted_depth);
+		scope_o = _settings;//[scope_stack[0]];
+		if (scope_o) {//_settings.hasOwnProperty(scope_stack[0])) {
+			//TODO: resolve this workaround somehow (remove if and keep only else clause, and fix _peek_object)
+			//if (scope_stack.length==1) result = _settings[scope_stack[0]];
+			//else {
+				//scope_o = _settings[scope_stack[0]];
+				var asserted_depth = 0;
+				result = _peek_object(scope_o, scope_stack, asserted_depth);
+			//}
 		}
+		else console.log("_settings not loaded while getting "+dot_notation);
+		//else console.log("[ . ] no "+scope_stack[0]+ " in _settings");
 	}
 	else console.log("WARNING: tried to peek with missing dot_notation");
 	return result;
@@ -403,7 +429,7 @@ function has_setting(dot_notation) {
 	}
 	else {
 		if (peek_setting(dot_notation)===null) {
-			console.log("  [ . ] checking for default "+dot_notation);
+			console.log("  [ . ] checking for "+dot_notation);
 			var this_scoped = _settings;
 			var default_scoped = _settings_default;
 			for (i=0, len=scope_stack.length; i<len; i++) {
@@ -427,11 +453,12 @@ function has_setting(dot_notation) {
 			}
 		}
 	}
-	if (_settings.hasOwnProperty(scope_stack[0])) {
-		scope_o = _settings[scope_stack[0]];
+	if (_settings) {//.hasOwnProperty(scope_stack[0])) {
+		scope_o = _settings;//[scope_stack[0]];
 		var asserted_depth = 0;
 		result = _peek_object(scope_o, scope_stack, asserted_depth);
 	}
+	else console.log("ERROR: has_setting failed to load _settings");
 	return result!==null;
 }
 
@@ -526,10 +553,12 @@ section_sheet_fields_friendly_names["care"]["first_name"] = "First";
 section_sheet_fields_friendly_names["care"]["last_name"] = "Last";
 section_sheet_fields_friendly_names["care"]["grade_level"] = "Grade Level";
 section_sheet_fields_friendly_names["care"]["family_id"] = "FamilyID";
-section_sheet_fields_friendly_names["care"]["Time"] = "Time";
+section_sheet_fields_friendly_names["care"]["time"] = "Time";
+section_sheet_fields_friendly_names["care"]["qty"] = "Count";
 section_sheet_fields_friendly_names["commute"] = {}
 section_sheet_fields_friendly_names["commute"]["=get_date_from_path()"] = "Date";
 section_sheet_fields_friendly_names["commute"]["grade_level"] = "Grade Level";
+//section_sheet_fields_friendly_names["commute"]["time"] = "Time";
 
 
 //var section_sheet_fields_names = {};
@@ -905,10 +934,12 @@ function get_care_time_info(this_item, section) {
 		}
 	}
 	if (foundTime!==null) {
+		if (!section) console.log("ERROR: no section given to get_care_time_info");
 		if ( //_settings && _settings.hasOwnProperty(section)
 			has_setting(section+".local_start_time") //&& _settings[section].hasOwnProperty("local_start_time")
 			&& has_setting(section+".local_end_time") //_settings[section].hasOwnProperty("local_end_time")
 			) {
+			
 			var startTime = moment(peek_setting(section+".local_start_time"), "HH:mm:ss");  // var startTime = moment(_settings[section]["local_start_time"], "HH:mm:ss");
 			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
 			
@@ -926,6 +957,33 @@ function get_care_time_info(this_item, section) {
 		else result["error"]=("WARNING: For get_care_time_info, "+section+".local_start_time and "+section+".local_end_time must be set in "+settings_path+" (for building status features, and for extended hours billing feature)");
 	}
 	else result["seconds"] = 0;
+	return result;
+}
+
+function get_sheet_function_name(formula) {
+	var result = null;
+	if (formula && formula.substring(0,1)=="=") {
+		var ender_i = formula.indexOf("(");
+		if (ender_i>-1) {
+			result = formula.substring(1,ender_i).trim();
+		}
+	}
+	return result;
+}
+
+function get_sheet_primary_param_name(formula) {
+	var result = null;
+	if (formula && formula.substring(0,1)=="=") {
+		var ender_i = formula.indexOf("(");
+		if (ender_i>-1) {
+			var op;
+			op = formula.substring(1,ender_i).trim();
+			var this_key_ender=formula.indexOf(",",ender_i+1);
+			if (this_key_ender>-1) {
+				result = formula.substring(ender_i+1, this_key_ender);
+			}
+		}
+	}
 	return result;
 }
 
@@ -1048,6 +1106,7 @@ var hbs = exphbs.create({
 				ret += '<br/>';
 				var selected_field = null;
 				var this_rate = 0.0;
+				if (!section) console.log("ERROR: no section given to show_reports"); 
 				if ( has_setting(section+".extended_hours_hourly_price") ) { //_settings && _settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("extended_hours_hourly_price")) {//section_rates.hasOwnProperty(section)) {
 					var section_friendly_name = section;
 					var this_start_time_string = "";
@@ -1104,44 +1163,6 @@ var hbs = exphbs.create({
 							}
 						}
 					}
-					if (selected_field) {//section_report_edit_field.hasOwnProperty(section)) {
-						if (!section_report_edit_field.hasOwnProperty(section)) section_report_edit_field[section] = {};
-						if (!section_report_edit_field[section].hasOwnProperty("reports")) section_report_edit_field[section]["reports"] = selected_field;
-						//if (!peek_setting(section+".reports.selected_field_default")) {
-						//	console.log("  setting reports.selected_field_default to "+selected_field);
-						//	poke_setting(section+".reports.selected_field_default", selected_field);
-						//}
-						ret += "\n"+'<td>'; //no longer needed
-						ret += "&nbsp;";
-						//ret += "Selected Field:";
-						//ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="get">';
-						//ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
-						//ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
-						//ret += "\n"+'  <input class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section]["reports"]+'"/>';
-						//ret += "\n"+'  <button class="btn btn-default" type="submit">Select</button>';
-						//ret += "\n"+'</form>';
-						ret += '</td>';
-					}
-					else {
-						ret += "\n"+'<td>';
-						ret += '&nbsp;'; //no longer needed either
-						ret += '</td>';
-					}
-					ret += "\n"+'<td>';
-					ret += " to ";
-					var this_end_time_string = "";
-					if (has_setting(section+".local_end_time"))  //if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_end_time"))
-						this_end_time_string = peek_setting(section+".local_end_time"); //_settings[section]["local_end_time"];
-					ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">';
-					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
-					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
-					ret += "\n"+'  <input type="hidden" name="selected_setting" id="selected_setting" value="local_end_time"/>';
-					ret += "\n"+'  <input class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_end_time_string+'"/>';
-					ret += "\n"+'  <button class="btn btn-default" type="submit">Save</button>';
-					ret += "\n"+'</form>';
-					ret += "\n"+'</td>';
-					ret += "\n"+'</tr>';
-					ret += "\n"+'<tr>';
 					if ( has_setting(section+".autofill_requires")  // autofill_requires.hasOwnProperty(section)
 						&&  ( selected_field || (has_setting(section+".default_groupby")) )  ) {
 							//ret += " "+default_groupby[section];
@@ -1199,6 +1220,44 @@ var hbs = exphbs.create({
 						ret += '&nbsp; </td>';
 					}
 					ret += "\n"+'<td>';
+					ret += " to ";
+					var this_end_time_string = "";
+					if (has_setting(section+".local_end_time"))  //if (_settings.hasOwnProperty(section) && _settings[section].hasOwnProperty("local_end_time"))
+						this_end_time_string = peek_setting(section+".local_end_time"); //_settings[section]["local_end_time"];
+					ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">';
+					ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+					ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+					ret += "\n"+'  <input type="hidden" name="selected_setting" id="selected_setting" value="local_end_time"/>';
+					ret += "\n"+'  <input class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_end_time_string+'"/>';
+					ret += "\n"+'  <button class="btn btn-default" type="submit">Save</button>';
+					ret += "\n"+'</form>';
+					ret += "\n"+'</td>';
+					ret += "\n"+'</tr>';
+					ret += "\n"+'<tr>';
+					if (selected_field) {//section_report_edit_field.hasOwnProperty(section)) {
+						if (!section_report_edit_field.hasOwnProperty(section)) section_report_edit_field[section] = {};
+						if (!section_report_edit_field[section].hasOwnProperty("reports")) section_report_edit_field[section]["reports"] = selected_field;
+						//if (!peek_setting(section+".reports.selected_field_default")) {
+						//	console.log("  setting reports.selected_field_default to "+selected_field);
+						//	poke_setting(section+".reports.selected_field_default", selected_field);
+						//}
+						ret += "\n"+'<td>'; //no longer needed
+						ret += "&nbsp;";
+						//ret += "Selected Field:";
+						//ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="get">';
+						//ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
+						//ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
+						//ret += "\n"+'  <input class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section]["reports"]+'"/>';
+						//ret += "\n"+'  <button class="btn btn-default" type="submit">Select</button>';
+						//ret += "\n"+'</form>';
+						ret += '</td>';
+					}
+					else {
+						ret += "\n"+'<td>';
+						ret += '&nbsp;'; //no longer needed either
+						ret += '</td>';
+					}
+					ret += "\n"+'<td>';
 					ret += "\n"+'&nbsp; </td>';
 					ret += "\n"+'</tr>';
 					ret += "\n"+'</table>';
@@ -1227,21 +1286,29 @@ var hbs = exphbs.create({
 						for (i=0, len=section_sheet_fields[section].length; i<len; i++) {
 							var key = section_sheet_fields[section][i];
 							var name = key;
-							if (selected_field==key) ret += "\n"+'      <td class="bg-info">';
-							else ret += "\n"+'      <td>';
+							if (selected_field==key) ret += "\n"+'      <th class="bg-info">';
+							else ret += "\n"+'      <th>';
 							if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
 								name = section_sheet_fields_friendly_names[section][key];
 							}
 							if (default_total.hasOwnProperty(section)) {
 								if (key==default_total[section]) name = "Total " + name;
 							}
-							var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+key;
 							
+							var override_key = null;
+							if (section_fields_overrides.hasOwnProperty(section)) {
+								for (var this_key in section_fields_overrides[section]) {
+									if (this_key==key) {
+										override_key = section_fields_overrides[section][this_key];
+										break;
+									}
+								}
+							}
+							if (override_key===null) override_key = key;
+							var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+override_key;
 							if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) ret += name;
 							else ret += '<a href="'+href+'">'+name+'</a>';
-							
-							
-							ret += '</td>';
+							ret += '</th>';
 						}
 						ret += "\n"+'    </tr>';
 						ret += "\n"+'  </thead>';
@@ -1574,17 +1641,65 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 		},
 		is_after_school: function(section, opts) {
-			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
-			var currentTimeString = moment().format("HH:mm:ss"); //moment('11:00p', "HH:mm a");
-			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
-			var endTimeString = endTime.format("HH:mm:ss");			
-			//if (moment().format('HH:mm:ss') );
-			if (moment().isAfter(endTime)) {//if (currentTimeString >= endTimeString) {
-				//console.log(currentTimeString + " >= " + endTimeString);
-				return opts.fn(this);
+			if (!section) console.log("ERROR: no section given to is_before_school");
+			if (has_setting(section+".local_end_time")) {
+				var local_time_zone = null;
+				if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+				//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+				var local_now = moment();
+				if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
+				else console.log("ERROR: missing local_time_zone setting");
+				//old way (doesn't work for some reason--can't find current timezone from os) local_now.local();
+				var now_date_string = local_now.format("YYYY-MM-DD");
+				var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
+				var endTime = moment(now_date_string+" "+peek_setting(section+".local_end_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+				var endTimeString = endTime.format("HH:mm:ss");			
+				console.log("UTC Offset: "+local_now.utcOffset());
+				console.log("Z: "+local_now.format("Z"));
+				//if (!endTime.isAfter(local_now)) {
+				if (currentTimeString >= endTimeString) {
+					console.log("is_after_school: " + currentTimeString + " >= " + endTimeString);
+					//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is not after " + moment().format("HH:mm:ss"));
+					return opts.fn(this);
+				}
+				else {
+					console.log("is_after_school: " + currentTimeString + " < " + endTimeString);
+					//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is after " + moment().format("HH:mm:ss"));
+					return opts.inverse(this);
+				}
 			}
 			else {
-				//console.log(currentTimeString + " <= " + endTimeString);
+				console.log("WARNING: missing "+section+".local_end_time");
+				return opts.inverse(this);
+			}
+		},
+		is_before_school: function(section, opts) {
+			if (!section) console.log("ERROR: no section given to is_before_school");
+			if (has_setting(section+".local_start_time")) {
+				var local_time_zone = null;
+				if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+				else console.log("ERROR: missing local_time_zone setting");
+				//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+				var local_now = moment();
+				var now_date_string = local_now.format("YYYY-MM-DD");
+				var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
+				var startTime = moment(now_date_string+" "+peek_setting(section+".local_start_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+				var startTimeString = startTime.format("HH:mm:ss");
+				
+				//if (startTime.isAfter(local_now)) {
+				if (currentTimeString < startTimeString) {
+					console.log("is_before_school: " + currentTimeString + " < " + startTimeString);
+					//console.log("is_before_school: " + startTime.format("HH:mm:ss") + " is after " + local_now.format("HH:mm:ss"));
+					return opts.fn(this);
+				}
+				else {
+					console.log("is_before_school: " + currentTimeString + " >= " + startTimeString);
+					//console.log("is_before_school: " + startTime.format("HH:mm:ss") + " is not after " + local_now.format("HH:mm:ss"));
+					return opts.inverse(this);
+				}
+			}
+			else {
+				console.log("WARNING: missing "+section+".local_end_time");
 				return opts.inverse(this);
 			}
 		},
@@ -1605,6 +1720,101 @@ var hbs = exphbs.create({
 		//get_startup_js_code: function(opts) {
 		//	return session.runme;
 		//},
+		show_history: function(section, objects, opts) {
+			var ret = "";
+			if (has_setting(section+".history_sheet_fields")) {
+				var fields = peek_setting(section+".history_sheet_fields");
+				if (fields !== null) {
+					ret += "\n"+'<table class="table">';
+					ret += "\n"+'<thead class="thead-default">';
+					ret += "\n"+"<tr>";
+					for (var j=0, j_len=fields.length; j<j_len; j++) {
+						ret += "\n"+"<th>";
+						var key = fields[j];
+						var name = key;
+						var param_name = get_sheet_primary_param_name(key);
+						if (param_name) {
+							if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(param_name))
+								name = section_sheet_fields_friendly_names[section][param_name];
+							else name = param_name;
+						}
+						else {
+							var function_name = get_sheet_function_name(key);
+							if (function_name) {
+								var function_key = "="+function_name;
+								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(function_key))
+									name = section_sheet_fields_friendly_names[section][function_key];
+							}
+							else {
+								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key))
+									name = section_sheet_fields_friendly_names[section][key];
+							}
+						}
+						if (name) ret += name;
+						else ret += "&nbsp;";
+						ret += "\n"+"</th>";
+					}
+					ret += "\n"+"</tr>";
+					ret += "\n"+'</thead">';
+					ret += "\n"+'<tbody>';
+					for (i=0, len=objects.length; i<len; i++) {
+						ret += "\n"+"<tr>";
+						for (var j=0, j_len=fields.length; j<j_len; j++) {
+							var key = fields[j];
+							ret += "\n"+"<td>";
+							if (key.substring(0,1)=="=") {
+								var formula = key;
+								var ender_i = formula.indexOf("(");
+								if (ender_i>-1) {
+									var op = formula.substring(1,ender_i).trim();
+									var params_end_i=formula.indexOf(")",ender_i+1);
+									if (params_end_i>-1) {
+										var params = formula.substring(ender_i+1, params_end_i).split(",");
+										if (op=="mid") {
+											if (params && params.length==3) {
+												params[1] = parseInt(params[1]);
+												params[2] = parseInt(params[2]);
+												var formula_result = params[0].substring(params[1]-1,params[2]); //+1 since sheet formulas use counting numbers; but don't add to last param since end is inclusive
+												//ret += formula_result;
+												if (objects[i].hasOwnProperty(params[0])) ret += objects[i][params[0]].substring(params[1]-1,params[2]);
+												else ret += "&nbsp;"; //value doesn't exist in object, so leave blank
+											}
+											else {
+												ret += "=("+op+" [missing param])";
+											}
+										}
+										else {
+											ret += "=[?](...)";
+										}
+									}
+									else ret += "missing &lsquo;)&rsquo;";
+								}
+								else {
+									ret += "=?";
+								}
+							}
+							else if (section_fields_overrides.hasOwnProperty(section)
+							                                               &&section_fields_overrides[section].hasOwnProperty(key)
+							                                               &&objects[i].hasOwnProperty(section_fields_overrides[section][key])
+							                                               &&fun.is_not_blank(objects[i][section_fields_overrides[section][key]])) {
+								ret += objects[i][section_fields_overrides[section][key]];
+							}
+							else if (objects[i].hasOwnProperty(key)) {
+								ret += objects[i][key];
+							}
+							else ret += "&nbsp;";//"[?<!--"+key+"-->]";
+							ret += "</td>";
+						}
+						ret += "\n"+"</tr>";
+					}
+					ret += "\n"+'</tbody>';
+					ret += "\n"+"</table>";
+				}
+				else ret = section+" section has no history fields list.";
+			}
+
+			return new Handlebars.SafeString(ret);
+		},
 	},
 	defaultLayout: 'main', //we will be creating this layout shortly
 });
@@ -2207,6 +2417,7 @@ app.post('/change-microevent-field', function(req, res){
 									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key][req.body.selected_field] = req.body.set_value;
 									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key]["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
 									dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key]["modified_by"] = req.user.username;
+									autofill(req.body.section, dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], false);
 									try {
 										yaml.writeSync(item_path, dat[req.body.section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
 										//var reason = " in change-microevent-field";
@@ -2346,7 +2557,7 @@ app.get('/change-selection', function (req, res) {
 					if (!req.session.section_report_edit_field.hasOwnProperty(section)) req.session.section_report_edit_field[section] = {};
 					if (!req.session.section_report_edit_field[section].hasOwnProperty(req.query.mode)) req.session.section_report_edit_field[section][req.query.mode] = {};
 					req.session.section_report_edit_field[section][req.query.mode] = selected_field; //.toFixed(2)
-					req.session.success = "Changed selected field for "+req.query.mode+" mode to "+req.session.section_report_edit_field[section][req.query.mode];
+					//req.session.success = "Changed selected field for "+req.query.mode+" mode to "+req.session.section_report_edit_field[section][req.query.mode];
 				}
 				else req.session.error = "Invalid field specified (no matching literal data field on sheet): "+req.query.change_section_report_edit_field;
 			}
