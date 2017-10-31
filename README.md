@@ -66,6 +66,7 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* can't load defaults using new use of scoping in has_setting
 * for attendance user, can view reports, but can't select field, and app shows link to select time (even though stated_time, the override for it, is not present) instead of noticing missing override and not showing field name as link
 * implement a way to change the date (and make sure file is moved and cache is modified)
 * move "Reload Settings" from title bar to to settings form (which is displayed only in settings mode)
