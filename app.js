@@ -147,6 +147,7 @@ default_total["care"] = "=careprice()";
 var _settings = null;
 
 var _settings_default = {};
+_settings_default["local_time_zone"] = "America/New_York";
 _settings_default["care"] = {};
 _settings_default["care"]["default_groupby"] = {};
 _settings_default["care"]["default_groupby"] = "family_id";
@@ -353,7 +354,7 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 		//if (scope_stack[scope_stack.length-1] in scope_o) {//would result in errors such as TypeError: Cannot use 'in' operator to search for 'local_time_zone' in America/New_York if scope_stack[0] is a leaf name
 		if (scope_o.hasOwnProperty(scope_stack[scope_stack.length-1])) { //NOTE: hasOwnProperty doesn't work if scope_stack[0] is a leaf name, so that must be checked in shallower scope first
 			result=scope_o[scope_stack[scope_stack.length-1]];
-			console.log("[ . ] got value "+result+" for key "+scope_stack[scope_stack.length-1]+" from top of stack: "+JSON.stringify(scope_stack))
+			//console.log("[ . ] got value "+result+" for key "+scope_stack[scope_stack.length-1]+" from top of stack: "+JSON.stringify(scope_stack))
 		}
 		else {
 			console.log("[ . ] ERROR: no "+scope_stack[scope_stack.length-1]+", only has ");
@@ -920,6 +921,35 @@ function get_care_time_info(this_item, section) {
 	//NOTE: startTime and endTime define school day
 	var foundTime = null;
 	var foundTimeString = null;
+	var local_time_zone = null;
+	if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+	//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+	var local_now = moment();
+	if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
+	else console.log("ERROR: missing local_time_zone setting during get_care_time_info");
+	
+	/* The code below the comment works since both are in same timezone.
+	 * However, there may be issues since timezone offset is not checked.
+	 * working example of converting (from is_after_school):
+	var now_date_string = local_now.format("YYYY-MM-DD");
+	var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
+	var tmp_local_end_date = now_date_string+" "+peek_setting(section+".local_end_time");
+	//console.log("tmp_local_end_date:"+tmp_local_end_date);
+	var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+	var endTimeString = endTime.format("HH:mm:ss");			
+	console.log("UTC Offset: "+local_now.utcOffset());
+	console.log("Z: "+local_now.format("Z"));
+	if (currentTimeString >= endTimeString) {
+		console.log("after: now " + currentTimeString + " >= " + endTimeString);
+		return opts.fn(this);
+	}
+	else {
+		console.log("not after: now " + currentTimeString + " < " + endTimeString);
+		return opts.inverse(this);
+	}
+	*/
+	
+	
 	if (this_item.hasOwnProperty("time")) {
 		if (fun.is_not_blank(this_item["time"])) {
 			foundTime = moment(this_item["time"], "HH:mm:ss");
@@ -930,7 +960,7 @@ function get_care_time_info(this_item, section) {
 		if (fun.is_not_blank(this_item["stated_time"])) {
 			foundTime = moment(good_time_string(this_item["stated_time"]), "HH:mm:ss");
 			foundTimeString = foundTime.format("HH:mm:ss");
-			result["info"]="stated_time: "+this_item["stated_time"]+" read as "+foundTimeString;
+			result["info"]="stated_time: "+this_item["stated_time"]+" converted to 24-hr format: "+foundTimeString;
 		}
 	}
 	if (foundTime!==null) {
@@ -1150,14 +1180,14 @@ var hbs = exphbs.create({
 							selected_field = section_report_edit_field[section]["reports"];
 							var selected_field_msg = "null";
 							if (selected_field) selected_field_msg=selected_field;
-							console.log("[ + ] got runtime value reports.selected_field_default as "+selected_field_msg);
+							console.log("[ + ] got runtime value reports.selected_field_default: "+selected_field_msg);
 						}
 						if (!selected_field) {
 							if (has_setting(section+".reports.selected_field_default")) {//else {
 								selected_field = peek_setting(section+".reports.selected_field_default");
 								var selected_field_msg = "null";
 								if (selected_field) selected_field_msg=selected_field;
-								console.log("[ + ] got setting reports.selected_field_default as "+selected_field_msg);
+								console.log("[ + ] got setting reports.selected_field_default: "+selected_field_msg);
 								console.log("      (actually "+_settings[section]["reports"]["selected_field_default"]+")");
 								console.log("      (now "+selected_field+")");
 							}
@@ -1648,22 +1678,24 @@ var hbs = exphbs.create({
 				//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 				var local_now = moment();
 				if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
-				else console.log("ERROR: missing local_time_zone setting");
+				else console.log("ERROR: missing local_time_zone setting during is_after_school");
 				//old way (doesn't work for some reason--can't find current timezone from os) local_now.local();
 				var now_date_string = local_now.format("YYYY-MM-DD");
 				var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
-				var endTime = moment(now_date_string+" "+peek_setting(section+".local_end_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+				var tmp_local_end_date = now_date_string+" "+peek_setting(section+".local_end_time");
+				//console.log("tmp_local_end_date:"+tmp_local_end_date);
+				var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
 				var endTimeString = endTime.format("HH:mm:ss");			
 				console.log("UTC Offset: "+local_now.utcOffset());
 				console.log("Z: "+local_now.format("Z"));
 				//if (!endTime.isAfter(local_now)) {
 				if (currentTimeString >= endTimeString) {
-					console.log("is_after_school: " + currentTimeString + " >= " + endTimeString);
+					console.log("is_after_school: yes, now " + currentTimeString + " >= " + endTimeString);
 					//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is not after " + moment().format("HH:mm:ss"));
 					return opts.fn(this);
 				}
 				else {
-					console.log("is_after_school: " + currentTimeString + " < " + endTimeString);
+					console.log("is_after_school: no, now " + currentTimeString + " < " + endTimeString);
 					//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is after " + moment().format("HH:mm:ss"));
 					return opts.inverse(this);
 				}
@@ -1678,22 +1710,26 @@ var hbs = exphbs.create({
 			if (has_setting(section+".local_start_time")) {
 				var local_time_zone = null;
 				if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
-				else console.log("ERROR: missing local_time_zone setting");
+				else console.log("ERROR: missing local_time_zone setting during is_before_school");
 				//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 				var local_now = moment();
+				if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
+				else console.log("ERROR: missing local_time_zone setting");
 				var now_date_string = local_now.format("YYYY-MM-DD");
 				var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
-				var startTime = moment(now_date_string+" "+peek_setting(section+".local_start_time"), "HH:mm:ss");  // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
+				var tmp_local_start_date = now_date_string+" "+peek_setting(section+".local_start_time");
+				//console.log("tmp_local_start_date:"+tmp_local_start_date);
+				var startTime = moment(tmp_local_start_date); //, "HH:mm:ss" // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
 				var startTimeString = startTime.format("HH:mm:ss");
 				
 				//if (startTime.isAfter(local_now)) {
 				if (currentTimeString < startTimeString) {
-					console.log("is_before_school: " + currentTimeString + " < " + startTimeString);
+					console.log("is_before_school: yes, now " + currentTimeString + " < " + startTimeString);
 					//console.log("is_before_school: " + startTime.format("HH:mm:ss") + " is after " + local_now.format("HH:mm:ss"));
 					return opts.fn(this);
 				}
 				else {
-					console.log("is_before_school: " + currentTimeString + " >= " + startTimeString);
+					console.log("is_before_school: no, now " + currentTimeString + " >= " + startTimeString);
 					//console.log("is_before_school: " + startTime.format("HH:mm:ss") + " is not after " + local_now.format("HH:mm:ss"));
 					return opts.inverse(this);
 				}
@@ -2843,6 +2879,9 @@ app.post('/student-microevent', function(req, res){
 			if (!custom_error) {
 				record.time = moment().format('HH:mm:ss');
 				record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+				var local_time_zone = peek_setting("local_time_zone");
+				if (local_time_zone!==null) record.tz = local_time_zone;
+				else console.log("ERROR: missing local_time_zone during record save");
 				record.tz_offset_mins = moment().utcOffset();
 				//unique ones are below
 				if (!fs.existsSync(data_dir_path))

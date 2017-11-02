@@ -6,6 +6,7 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-10-31) repaired is_after_school and is_before_school logic by using local timezone to interpret moment() result (current time) and removing formatting from date string parsing and using full simulated date instead (prepending current date is compatible with DST since local_*_time variables should always be considered as the current timezone offset).
 * (2017-10-31) changed moment requirement from "moment" to "moment-timezone" and did npm install moment-timezone (see https://momentjs.com/timezone/docs/ )
 * (2017-10-30) removed use of deprecated endTimeString global in is_after_school
 * (2017-10-30) eliminate use of deprecated startTime and endTime globals (changing local_end_time was changing startTime anyway)
@@ -66,6 +67,8 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* trim values after loading (for example, family_id may contain spaces in quoted YAML string)
+* (!) keep only earliest time for date, so doesn't add multiple charges to family for same day if entered multiple times accidentally
 * can't load defaults using new use of scoping in has_setting
 * for attendance user, can view reports, but can't select field, and app shows link to select time (even though stated_time, the override for it, is not present) instead of noticing missing override and not showing field name as link
 * implement a way to change the date (and make sure file is moved and cache is modified)
