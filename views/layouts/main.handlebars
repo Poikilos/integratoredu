@@ -61,7 +61,7 @@
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			<a href="{{get_proxy_prefix_then_slash}}?section={{this}}">{{friendlySectionName this}}</a>
+			<a href="{{get_proxy_prefix_then_slash}}?section={{this}}&clear_selection=true">{{friendlySectionName this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
@@ -125,7 +125,7 @@
     {{{body}}}
     
     {{#if error}}
-      <p class="alert alert-warning alert-fixed">{{error}}</p>
+      <p class="alert alert-warning alert-fixed" style="top:9em">{{error}}</p>
     {{/if}}
 
     {{#if success}}

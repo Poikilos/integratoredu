@@ -6,6 +6,13 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-11-02) move file create code to componentized function that takes write_mode of "modify" or "create"
+* (2017-11-02) make is_blank fault tolerant when receiving param that is a type other than string
+* (2017-11-02) changed contains to array_contains for clarity (and made it a regular function instead of a silly, silly thing used only by array_contains.call.
+* (2017-11-02) clear selected_* if changing section (avoid folder doesn't exist error)
+* (2017-11-02) detect splittable entries by detecting "human delimited value" such as "smith, johnson, and doe" in fields usually unique to id, such as last name (can't hurt to split entries even if family_id is same for both entries)
+* (2017-11-02) renamed variable "key" in report to "column_name" for clarity
+* (2017-11-02) moved config.js to data to avoid confusion (for example, so not transferred to different servers if updating a server via ftp from test machine)
 * (2017-10-31) repaired is_after_school and is_before_school logic by using local timezone to interpret moment() result (current time) and removing formatting from date string parsing and using full simulated date instead (prepending current date is compatible with DST since local_*_time variables should always be considered as the current timezone offset).
 * (2017-10-31) changed moment requirement from "moment" to "moment-timezone" and did npm install moment-timezone (see https://momentjs.com/timezone/docs/ )
 * (2017-10-30) removed use of deprecated endTimeString global in is_after_school
@@ -62,11 +69,14 @@ For release notes, see a release or the "etc" folder.
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
-* always check literal uses of sections (where section or req.session.section or similar variable should be used instead)
+* check for literal uses of sections (where section or req.session.section or similar variable should be used instead)
+* check for uses of peek before has_setting if value is in defaults (has_setting should be used first since loads default and saves settings to file, if default exists)
 
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* split-entry is not working yet
+* doesn't load new month on month change (keeps existing months lists instead, until restart)
 * trim values after loading (for example, family_id may contain spaces in quoted YAML string)
 * (!) keep only earliest time for date, so doesn't add multiple charges to family for same day if entered multiple times accidentally
 * can't load defaults using new use of scoping in has_setting
