@@ -1,0 +1,29 @@
+#!/bin/sh
+source_dir=.
+data_dir=../../../data
+
+#if running from root of repo:
+if [ -d "data" ]; then
+  data_dir=data
+fi
+rel_to_repo=etc/07_regression_test/02
+if [ -d "$rel_to_repo" ]; then
+  source_dir=$rel_to_repo
+fi
+
+section_dir=$data_dir/care
+y_dir=$section_dir/2017
+m_dir=$y_dir/07
+d_dir=$m_dir/02
+if [ ! -d "$y_dir" ]; then
+  mkdir "$y_dir"
+fi
+if [ ! -d "$m_dir" ]; then
+  mkdir "$m_dir"
+fi
+if [ ! -d "$d_dir" ]; then
+  mkdir "$d_dir"
+fi
+#NOTE: remember '*' doesn't work in quotes:
+rm $d_dir/*
+cp $source_dir/*.yml "$d_dir/"

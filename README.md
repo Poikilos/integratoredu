@@ -71,6 +71,7 @@ For release notes, see a release or the "etc" folder.
 ## Regression tests
 * check for literal uses of sections (where section or req.session.section or similar variable should be used instead)
 * check for uses of peek before has_setting if value is in defaults (has_setting should be used first since loads default and saves settings to file, if default exists)
+* check splitting and qty (see etc/07_regression_test/02)
 
 ## Known Issues
 ~=low-priority

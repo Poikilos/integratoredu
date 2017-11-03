@@ -1591,7 +1591,7 @@ var hbs = exphbs.create({
 								ret += "\n"+'      <td>';
 								var a_name = 'scrollto'+i;
 								ret += '<a name="'+a_name+'"></a>';
-								if (!item_enable) ret += '<span class="text-muted">';
+								if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
 								var column_name = section_sheet_fields[section][i];
 								//NOTE: intentionally gets desired fields only
 								var val = "";
