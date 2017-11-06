@@ -284,6 +284,12 @@ exports.is_blank = function (str) {
 	//return result;
 }
 
+exports.is_true = function (str) {
+	var str_lower = null;
+	if ((typeof str)=="string") str_lower=str.toLowerCase();
+	return (str===true) || ((str_lower!==null) && (str=="1"||str_lower=="true"||str_lower=="yes"||str_lower=="on"));
+}
+
 exports.is_not_blank = function (str) {
 	//return str && str.trim();
     return !exports.is_blank(str);

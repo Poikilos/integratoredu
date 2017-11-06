@@ -1,15 +1,44 @@
 #!/bin/sh
+echo ""
+source_rel_to_repo=etc/07_regression_test/02
+repo_rel_to_home="Documents/GitHub/integratoredu"
 source_dir=.
 data_dir=../../../data
+echo "Attempting to erase 2017/07/02 and load regression test data..."
+
+#if [ ! -d "$data_dir" ]; then
+#  if [ -d "$source_rel_to_repo" ]; then
+#    #source_dir="$source_rel_to_repo"
+#  fi
+#fi
+
+#if running from home:
+if [ ! -d "$data_dir" ]; then
+  echo "  * looking for repo in $repo_rel_to_home..."
+  if [ -d "$repo_rel_to_home" ]; then
+    #rel_to_home="$abs_path"
+    echo "    found."
+    cd "$repo_rel_to_home"
+  else
+    echo "    not found."
+  fi
+fi
+
 
 #if running from root of repo:
-if [ -d "data" ]; then
-  data_dir=data
+if [ ! -d "$data_dir" ]; then
+  echo "  * looking for test data in $source_rel_to_repo..."
+  if [ -d "$source_rel_to_repo" ]; then
+    echo "    found."
+    #data_dir=data
+    #no need to change data dir above since cd'ing now:
+    cd "$source_rel_to_repo"
+  else
+    echo "    not found."
+  fi
 fi
-rel_to_repo=etc/07_regression_test/02
-if [ -d "$rel_to_repo" ]; then
-  source_dir=$rel_to_repo
-fi
+ 
+if [ -d "$data_dir" ]; then
 
 section_dir=$data_dir/care
 y_dir=$section_dir/2017
@@ -25,5 +54,13 @@ if [ ! -d "$d_dir" ]; then
   mkdir "$d_dir"
 fi
 #NOTE: remember '*' doesn't work in quotes:
-rm $d_dir/*
-cp $source_dir/*.yml "$d_dir/"
+rm -v $d_dir/*
+cp -v $source_dir/*.yml "$d_dir/"
+echo ""
+
+else
+  echo ""
+  echo "cannot continue since didn't find $data_dir in "
+  pwd
+  echo ""
+fi

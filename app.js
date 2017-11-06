@@ -16,6 +16,7 @@ var express = require('express'),
 //    FacebookStrategy = require('passport-facebook');
 var path = require("path");
 var Handlebars = require('handlebars');
+//var dynamic_a_name = "dynamic_bookmark";
 
 var autofill_cache_format = "yml"; //yml or json
 
@@ -1011,12 +1012,13 @@ function get_sheet_primary_param_name(formula) {
 
 function write_record_without_validation(req_else_null, section, date_array_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
 	var results = {};
+	var indent = "      ";
 	//automatically-generated values:
 	record.time = moment().format('HH:mm:ss');
 	record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
 	var local_time_zone = peek_setting("local_time_zone");
 	if (local_time_zone!==null) record.tz = local_time_zone;
-	else console.log("ERROR: missing local_time_zone during record save");
+	else console.log(indent+"ERROR: missing local_time_zone during record save");
 	record.tz_offset_mins = moment().utcOffset();
 	//unique ones are below
 	if (!fs.existsSync(data_dir_path))
@@ -1067,17 +1069,17 @@ function write_record_without_validation(req_else_null, section, date_array_else
 	if (autofill_enable) autofill(section, record, true);
 	var finalize_enable = false;
 	if (write_mode=="create") {
-		var suffix = 1;
+		var suffix = 0;
 		var file_name_no_ext = fun.without_ext(results.out_name);
 		
 		while (fs.existsSync(out_path)) {
-			suffix += 1; //intentionally start at 2
+			suffix += 1; //intentionally start at 1
 			results.out_name = file_name_no_ext + "-" + suffix + ".yml";
 			out_path = dated_path + "/" + results.out_name;
 			console.log(" # trying to find new name "+out_path+"...");
 		}
 		finalize_enable = true;
-		console.log("(PICKED NAME "+results.out_name+" at "+out_path);
+		console.log(indent+"(PICKED NAME "+results.out_name+" at "+out_path);
 	}
 	else if (write_mode=="modify") {
 		if (fs.existsSync(out_path)) {
@@ -1087,16 +1089,17 @@ function write_record_without_validation(req_else_null, section, date_array_else
 	}
 	
 	if (finalize_enable) {
-		console.log("* WRITING "+out_path);
+		console.log(indent+"* WRITING "+out_path);
 		yaml.writeSync(out_path, record, "utf8");
 		results.out_path = out_path;
+		console.log(indent+"  done.");
 		
 		//write cache
 		//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
 		if (dat) {
 			var section = section;
 			if (!dat.hasOwnProperty(section)) {
-				console.log("ERROR: section "+section+" is not in cache");
+				console.log(indent+"ERROR: section "+section+" is not in cache");
 				dat[section]={};
 			}
 			if (!dat[section].hasOwnProperty(y_dir_name))
@@ -1126,7 +1129,7 @@ function write_record_without_validation(req_else_null, section, date_array_else
 				dat[section][y_dir_name][m_dir_name][d_dir_name]["item_keys"] = [];
 			if (!fun.array_contains(dat[section][y_dir_name][m_dir_name][d_dir_name]["item_keys"], results.out_name))
 				dat[section][y_dir_name][m_dir_name][d_dir_name]["item_keys"].push(results.out_name);
-			//console.log("CACHE was updated for section "+section+" by adding entry "+results.out_name+" to date "+y_dir_name+"-"+m_dir_name+"-"+d_dir_name);
+			//console.log(indent+"CACHE was updated for section "+section+" by adding entry "+results.out_name+" to date "+y_dir_name+"-"+m_dir_name+"-"+d_dir_name);
 		}
 		//else doesn't matter since cache will be loaded from drive and then be fresh
 		
@@ -1860,7 +1863,7 @@ var hbs = exphbs.create({
 				//console.log("tmp_local_end_date:"+tmp_local_end_date);
 				var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section]["local_end_time"], "HH:mm:ss");
 				var endTimeString = endTime.format("HH:mm:ss");			
-				//console.log("UTC Offset: "+local_now.utcOffset()); 
+				//console.log("UTC Offset (minutes): "+local_now.utcOffset()); 
 				//console.log("Z: "+local_now.format("Z"));  for example, in EST, outputs -4:00 during Eastern Daylight Time, -5:00 the rest of the year
 				//if (!endTime.isAfter(local_now)) {
 				if (currentTimeString >= endTimeString) {
@@ -2609,10 +2612,11 @@ app.post('/update-query', function(req, res){
 	
 	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
-});
+}); //end update-query
 
 app.post('/change-microevent-field', function(req, res){
 	var sounds_path_then_slash = "sounds/";
+	var bookmark_enable = false;
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(req.user.username, section, "modify")) {
@@ -2622,7 +2626,8 @@ app.post('/change-microevent-field', function(req, res){
 			var d_path = m_path + "/" + req.body.selected_day;
 			//NOTE: only modify req.body.selected_field
 			var item_path = d_path + "/" + req.body.selected_key;
-			if (fs.existsSync(item_path)) {
+			if (fun.is_not_blank(req.body.selected_key) && fs.existsSync(item_path)) {
+				bookmark_enable = true;
 				var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
 				var ok = false;
 				if (dat.hasOwnProperty(section)) {
@@ -2681,11 +2686,13 @@ app.post('/change-microevent-field', function(req, res){
 	}
 	
 	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
-	res.redirect(config.proxy_prefix_then_slash);
-});
+	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?("#"+req.body.selected_key):""));
+});  // change-microevent-field
 
 app.post('/split-entry', function(req, res){
 	var sounds_path_then_slash = "sounds/";
+	var bookmark_enable = false;
+	var indent="  ";
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(req.user.username, section, "modify")) {
@@ -2695,7 +2702,8 @@ app.post('/split-entry', function(req, res){
 			var d_path = m_path + "/" + req.body.selected_day;
 			//NOTE: only modify req.body.selected_field
 			var item_path = d_path + "/" + req.body.selected_key;
-			if (fs.existsSync(item_path)) {
+			if (fun.is_not_blank(req.body.selected_key) && fs.existsSync(item_path)) {
+				bookmark_enable = true;
 				var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
 				var ok = false;
 				if (dat.hasOwnProperty(section)) {
@@ -2706,39 +2714,64 @@ app.post('/split-entry', function(req, res){
 									var hdv_item_splitter_name = null;
 									if (has_setting(section+".list_implies_multiple_entries")) hdv_item_splitter_name = peek_setting(section+".list_implies_multiple_entries");
 									if (hdv_item_splitter_name!==null) {
-										var item = dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key];
-										var subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
+										var original_item = dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key];
+										var subvalues = fun.get_human_delimited_values(original_item[hdv_item_splitter_name]);
 										
 										var hdv_paired_name = null
 										if (has_setting(section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(section+".list_implies_multiple_entries_paired_with");
 										var matching_pairs = null;
 										if (hdv_paired_name!==null) {
-											matching_pairs = fun.get_human_delimited_values(item[hdv_paired_name]);
+											matching_pairs = fun.get_human_delimited_values(original_item[hdv_paired_name]);
 										}
+										console.log("");
+										console.log("[ | ] Splitting...");
 										
+										console.log(indent+"subvalues: "+JSON.stringify(subvalues));
 										if ( hdv_paired_name===null || (matching_pairs!==null&&matching_pairs.length===subvalues.length) ) {
 											var error = "";
 											var notice = "";
 											if (req.body.expected_count==subvalues.length) {
-												console.log("Splitting into "+req.body.expected_count);
+												console.log(indent+"expected_count: "+req.body.expected_count);
 												var new_record_ids = [];
 												var new_record_paths = [];
-												var original_field_value = item[req.body.selected_field];
+												var original_field_value = original_item[req.body.selected_field];
+												console.log(indent+"original_field_value: "+original_field_value);
 												var split_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
 												var date_array = [req.body.selected_year, req.body.selected_month, req.body.selected_day];
-												for (i=0,len=subvalues.length; i<len; i++) {
-													console.log("subvalue "+i+": "+subvalues[i]+"...");
-													item["split_source_field"] = req.body.selected_field;
-													item["split_time"] = split_time;
-													item["split_by"] = req.user.username;
-													item["split_source"] = "dated_folder_record " + section + "/" + req.body.selected_year + "/" + req.body.selected_month + "/" + req.body.selected_day + "/" + req.body.selected_key;
-													item[req.body.selected_field] = subvalues[i];
-													if (matching_pairs) item[hdv_paired_name] = matching_pairs[i];
-													autofill(section, item, false);
-													
-													//section, record, as_username, write_mode, custom_file_name_else_null
-													var results = write_record_without_validation(req, section, date_array, item, req.user.username, "create", null, false); //already validated above
-													//dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = item;
+												var tried_output_count = 0;
+												//for (i=0,len=subvalues.length; i<len; i++) {
+												for (var i=0,len=subvalues.length; i<len; i++) {
+													var new_item = JSON.parse(JSON.stringify(original_item));
+													console.log(indent+" subvalue "+i+" of "+len+": "+subvalues[i]+"...");
+													new_item["split_source_field"] = req.body.selected_field;
+													new_item["split_time"] = split_time;
+													new_item["split_by"] = req.user.username;
+													new_item["split_source"] = "dated_folder_record " + section + "/" + req.body.selected_year + "/" + req.body.selected_month + "/" + req.body.selected_day + "/" + req.body.selected_key;
+													new_item[req.body.selected_field] = subvalues[i];
+													if (matching_pairs) {
+														new_item[hdv_paired_name] = matching_pairs[i];
+														console.log(indent+"  set paired field "+hdv_paired_name+" to "+matching_pairs[i]);
+													}
+													//autofill(section, new_item, false);
+													var new_key = original_item.key;
+													if (original_item.key) {
+														var dot_i = original_item.key.lastIndexOf(".");
+														if (dot_i>=0) {
+															new_key = original_item.key.substring(0, dot_i) + "-" + (i+1) + original_item.key.substring(dot_i);
+														}
+														else new_key = original_item.key + "-" + (i+1);
+													}
+													else new_key=null;  // results in a key being generated based on the current time
+													//fields were already validated since using an existing entry
+													//fields were already autofilled above
+													//                             req_else_null, section, date_array_else_null, record, as_username,     write_mode, custom_file_name_else_null, autofill_enable
+													var results = write_record_without_validation(req, section, date_array,    new_item, req.user.username, "create", new_key,                    false); 
+													if (results.out_path && results.out_name) { //results.out_path is only set AFTER file is written so always check that
+														new_item.key = results.out_name;
+														dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][results.out_name] = new_item;
+														if (!fun.array_contains(dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day]["item_keys"],results.out_name))
+															dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day]["item_keys"].push(results.out_name);
+													}
 													if (results.notice) notice += "\n"+results.notice+" "; //+"<!--" + out_path + "-->.";
 													if (results.out_path) {
 														new_record_paths.push(results.out_path);
@@ -2746,23 +2779,33 @@ app.post('/split-entry', function(req, res){
 													}
 													if (fun.is_not_blank(results.error)) error += "\n"+results.error+" ";
 													ok=true; //verified cache is ok either way
+													tried_output_count += 1;
+													console.log(indent+"  done splitting value at index "+i);
 												}//end for subvalues
 												
-												if (subvalues.length<1) console.log("ERROR: can't split subvalues from hdv_item_splitter_name: "+item[hdv_item_splitter_name])
+												if (subvalues.length<1) {
+													var tmp = "ERROR: can't split subvalues from hdv_item_splitter_name: "+original_item[hdv_item_splitter_name];
+													error += tmp;
+													console.log(indent+tmp);
+												}
+												else if (tried_output_count<req.body.expected_count) {
+													var tmp = "ERROR: did't split "+req.body.expected_count+" expected subvalues--only tried "+tried_output_count+" of "+subvalues.length+" split";
+													error += tmp;
+													console.log(indent+tmp);
+												}
 												
 												if (fun.is_blank(error)) {
-													item["split_destination_field"] = req.body.selected_field;
-													delete item["split_source_field"];
-													item["split_time"] = split_time;
-													//item["modified_by"] = req.user.username;
-													item["split_by"] = req.user.username;
-													item["split_destinations"] = new_record_ids;
-													delete item["split_source"]
-													item["active"] = false; //no longer use the record, it has been split
-													item[req.body.selected_field] = original_field_value;
-													console.log("saving old record as deactivated: "+req.body.selected_key);
-													var results = write_record_without_validation(req, section, date_array, item, req.user.username, "modify", req.body.selected_key, false);
-													//dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = item;
+													original_item["split_destination_field"] = req.body.selected_field;
+													
+													original_item["split_time"] = split_time;
+													//original_item["modified_by"] = req.user.username;
+													original_item["split_by"] = req.user.username;
+													original_item["split_destinations"] = new_record_ids;
+													original_item["active"] = false; //no longer use the record, it has been split
+													original_item[req.body.selected_field] = original_field_value;
+													console.log(indent+"saving old record as deactivated: "+req.body.selected_key);
+													var results = write_record_without_validation(req, section, date_array, original_item, req.user.username, "modify", req.body.selected_key, false);
+													//dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = original_item;
 													if (fun.is_blank(results.error)) {
 														if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
 													}
@@ -2772,11 +2815,13 @@ app.post('/split-entry', function(req, res){
 													if (fun.is_not_blank(results.notice)) notice += "\n" + results.notice + " ";
 												}
 												else {
-													console.log("Rolling back changes...");
+													console.log(indent+"rolling back changes...");
 													for (x=0; x<new_record_paths.length; x++) {
+														console.log(indent+"* Deleting "+new_record_paths[x]+"...");
 														fs.unlink(new_record_paths[x], function (err) {
-															if (err) console.log("  * ERROR while deleting "+new_record_paths[x]+": "+err);
-															else console.log("  * deleted "+new_record_paths[x]);
+															 //NOTE: new_record_paths[x] is not defined in this scope
+															if (err) console.log(indent+"  * ERROR while deleting a stay split result: "+err);
+															else console.log(indent+"  * deleted a stray split result");
 														});
 													}
 												}
@@ -2819,7 +2864,7 @@ app.post('/split-entry', function(req, res){
 	}
 	
 	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
-	res.redirect(config.proxy_prefix_then_slash);
+	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?("#"+req.body.selected_key):""));
 });
 
 app.get('/admin', function(req, res){
