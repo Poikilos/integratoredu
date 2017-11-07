@@ -244,6 +244,8 @@ _settings_default["care"]["bill_iso_day_of_week"] = 5;
 _settings_default["care"]["reports"] = {};
 _settings_default["care"]["reports"]["selected_field_default"] = "family_id";
 _settings_default["care"]["reports"]["auto_select_month_enable"] = true;
+_settings_default["care"]["reports"]["years_heading"] = "Billing";
+_settings_default["care"]["reports"]["months_heading"] = "Reports";
 _settings_default["care"]["list_implies_qty"] = "first_name";
 _settings_default["care"]["list_implies_multiple_entries"] = "last_name";
 _settings_default["care"]["list_implies_multiple_entries_paired_with"] = "first_name";
@@ -253,13 +255,13 @@ _settings_default["care"]["autofill_requires"]["family_id"] = ["first_name", "la
 _settings_default["care"]["autofill_requires"]["qty"] = ["first_name"];
 //NOTE: mid uses counting numbers, and last param is inclusive
 _settings_default["care"]["history_sheet_fields"] = ["time", "qty", "=mid(first_name,1,1)", "=mid(last_name,1,1)", "grade_level", "chaperone", "family_id"];
+_settings_default["care"]["mode_priority"] = ["reports","create", "read"];
 _settings_default["commute"] = {};
 _settings_default["commute"]["local_start_time"] = '08:10:00';
 _settings_default["commute"]["local_end_time"] = '15:05:00';
 _settings_default["commute"]["history_sheet_fields"] = ["time", "name", "grade_level"];  // "=get_date_from_path()", 
 _settings_default["commute"]["reports"] = {};
 _settings_default["commute"]["reports"]["auto_select_month_enable"] = true; //ok since in reports section
-_settings_default["care"]["mode_priority"] = ["reports","create", "read"];
 _settings_default["commute"]["mode_priority"] = ["reports","create", "read"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
@@ -280,15 +282,16 @@ _groups["care"] = ["admin", "accounting", "care"];
 _groups["accounting"] = ["admin", "accounting"];
 _groups["commute"] = ["admin", "attendance", "commute"];
 _groups["attendance"] = ["admin", "attendance"];
+
 var _permissions = {}; // permission.<group>.<section> equals array of permissions
 _permissions["admin"] = {};
-_permissions["admin"]["admin"] = ["create", "read", "modify", "reports", "settings", "poke-settings"];
-_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "settings", "change-section-settings"];
-_permissions["admin"]["commute"] = ["create", "read", "modify", "reports"];
+_permissions["admin"]["admin"] = ["create", "read", "modify", "reports", "settings", "poke-settings", "billing"];
+_permissions["admin"]["care"] = ["create", "read", "modify", "reports", "customtime", "settings", "change-section-settings", "billing"];
+_permissions["admin"]["commute"] = ["create", "read", "modify", "reports", "billing"];
 _permissions["care"] = {};
 _permissions["care"]["care"] = ["create", "read", "customtime"];
 _permissions["accounting"] = {};
-_permissions["accounting"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-section-settings"]
+_permissions["accounting"]["care"] = ["create", "read", "modify", "reports", "customtime", "change-section-settings", "billing"]
 _permissions["commute"] = {};
 _permissions["commute"]["commute"] = ["create"];
 _permissions["attendance"] = {};
@@ -833,9 +836,10 @@ function get_year_buttons_from_cache(section, username) {
 function get_year_month_select_buttons(section, mode, username, years, months, selected_year, selected_month) {
 	var ret = "";
 	//var years = get_years(section);
+	var years_heading = "Year";
+	if (has_setting(section+"."+mode+".years_heading")) years_heading = peek_setting(section+"."+mode+".years_heading");
+	ret += '<div>'+years_heading+':';
 	for (i=0, len=years.length; i<len; i++) {
-		if (mode=="reports") ret += '<div>Report Year:';
-		else ret += '<div>Year:';
 		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
@@ -852,8 +856,9 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 		ret += '</form>';
 		ret += '</div>';
 	}
-	if (mode=="reports") ret += '<div>Report Month:';
-	else ret += '<div>Month:';
+	var months_heading = "Month";
+	if (has_setting(section+"."+mode+".months_heading")) months_heading = peek_setting(section+"."+mode+".months_heading");
+	ret += '<div>'+months_heading+':';	
 	for (i=0, len=months.length; i<len; i++) {
 		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
@@ -1690,91 +1695,116 @@ var hbs = exphbs.create({
 				}
 				else {
 					if (selected_year) {
-						var auto_select_month_enable = true;
-						if (has_setting(section+".reports.auto_select_month_enable")) auto_select_month_enable = peek_setting(section+".reports.auto_select_month_enable");
-						//This is not really going to auto select, but true can imply that the user expectation is to see a month (see next line)
-						//if (auto_select_month_enable) ret += "\n"+"(select a month)<br/>";  // they probably want a month if auto select is enabled
-						//else 
-						ret += "\n"+"<h3>Bill Designer</h3><br/>";  // they probably want a month if auto select is enabled
-						ret += "\n"+"(to exit billing and to edit entries, select a month above)<br/><br/>";  // they probably want a month if auto select is enabled
-						var months = [];
-						table_path = data_dir_path + "/" + section;
-						var y_path = table_path + "/" + selected_year;
-						var y_i = parseInt(selected_year);
-						if (y_i===y_i) { //only not equal to itself if NaN
-							if (y_i<1940) console.log("WARNING: year detected ("+y_i+", from string value "+selected_year+") is before 1940");
-							var prev_y_path = table_path + "/" + (y_i-1);  // in case we need to bill for monday or more days in previous year (on first Friday of selected_year)
-							var prev_year_m_path = prev_y_path + "/" + "12";
-							months = fun.getVisibleDirectories(y_path);
-							var bill_dow = 5; //1 is monday, 5 is friday
-							var bill_source_msg = "";
-							if (has_setting(section+".bill_iso_day_of_week")) {
-								bill_dow = parseInt(peek_setting(section+".bill_iso_day_of_week"));
-								bill_source_msg = " from settings";
-							}
-							if (bill_dow>=1 & bill_dow<=7) {
-								ret =  "\n" + '<form id="bill-designer" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">';
-								ret += "\n" + '  <button type="submit" class="btn btn-primary btn-sm">Add To Bill</button>';
-								ret += "\n" + '  <input type="hidden" name="selected_year" value="'+selected_year+'"/>';
-								ret += "\n" + '  <input type="hidden" name="section" value="'+section+'"/>';
-								ret += "\n" + '  <input type="hidden" name="mode" value="reports"/>';
-								
-								for (var m_i=12; m_i>=1; m_i--) {
-									var m_s = fun.zero_padded(m_i, 2);
-									for (var d_i=31; d_i>=1; d_i--) {
-										var d_s = fun.zero_padded(d_i, 2);
-										var this_date = moment(selected_year+"-"+m_s+"-"+d_s);
-										var this_dow = this_date.day(); //where 1 is monday and 5 is friday
-										if (this_dow==bill_dow) {
-											//ret += "\n"+"bill on "+this_date.format('dddd')+' '+this_date.format("dddd MMM D, Y")+' for:<br/>';//debug only
-											
-											for (var d_backstep=0; d_backstep<7; d_backstep++) {
-												var back_dow_i = this_dow-d_backstep;
-												if (back_dow_i<=0) back_dow_i += 7;
-												var back_d_i = d_i-d_backstep;
-												var back_m_i = m_i;
-												var back_y_i = y_i;
-												var back_dim = this_date.daysInMonth();
-												var back_y_s = fun.zero_padded(back_y_i, 4); //does convert to string
-												var back_m_s = fun.zero_padded(back_m_i, 2);
-												if (back_d_i<=0) {
-													//example: 2016-01-01 is a Friday, so to bill for Mon-Fri, go back a year (for only dow 1-4 aka Mon-Thurs)
-													back_m_i = m_i - 1;
-													if (back_m_i<=0) {
-														back_y_i = y_i - 1;
-														back_y_s = fun.zero_padded(back_y_i, 4);
-														back_m_i = 12;
+						if (user_has_section_permission(username, section, "billing")) {
+							var auto_select_month_enable = true;
+							if (has_setting(section+".reports.auto_select_month_enable")) auto_select_month_enable = peek_setting(section+".reports.auto_select_month_enable");
+							//This is not really going to auto select, but true can imply that the user expectation is to see a month (see next line)
+							//if (auto_select_month_enable) ret += "\n"+"(select a month)<br/>";  // they probably want a month if auto select is enabled
+							//else 
+							ret += "(to exit billing and to edit entries, select a month above)<br/><br/>"+"\n";  // they probably want a month if auto select is enabled
+							ret += '<div class="container">'+"\n";
+							ret += '<div class="row">'+"\n";
+							ret += ' <div class="col-sm-4">'+"\n";
+							ret += "\n"+"<h3>Bill Designer</h3><br/>"+"\n";  // they probably want a month if auto select is enabled
+							var months = [];
+							table_path = data_dir_path + "/" + section;
+							var y_path = table_path + "/" + selected_year;
+							var y_i = parseInt(selected_year);
+							if (y_i===y_i) { //only not equal to itself if NaN
+								if (y_i<1940) console.log("WARNING: year detected ("+y_i+", from string value "+selected_year+") is before 1940");
+								var prev_y_path = table_path + "/" + (y_i-1);  // in case we need to bill for monday or more days in previous year (on first Friday of selected_year)
+								var prev_year_m_path = prev_y_path + "/" + "12";
+								months = fun.getVisibleDirectories(y_path);
+								var bill_dow = 5; //1 is monday, 5 is friday
+								var bill_source_msg = "";
+								if (has_setting(section+".bill_iso_day_of_week")) {
+									bill_dow = parseInt(peek_setting(section+".bill_iso_day_of_week"));
+									bill_source_msg = " from settings";
+								}
+								if (bill_dow>=1 & bill_dow<=7) {
+									ret +=        '  <form class="form" id="bill-designer" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">';
+									ret += "\n" + '    <div class="row">';
+									ret += "\n" + '      <div class="form-group col-6">'; //input-group mb-2 mr-sm-2 mb-sm-0
+									//ret += "\n" + '      <div class="input-group-addon" >New Bill Name:</div>';
+									ret += "\n" + '        <label for="new_bill" >New Bill Name:</label>';
+									ret += "\n" + '        <input type="text" class="form-control" name="new_bill" id="new_bill" value=""/>';
+									ret += "\n" + '      </div>';
+									ret += "\n" + '      <div class="form-group col-4">'; //input-group mb-2 mr-sm-2 mb-sm-0
+									ret += "\n" + '        <button type="submit" class="btn btn-primary form-control">Add Selection To New Bill</button>';
+									ret += "\n" + '      </div>';
+									ret += "\n" + '    </div>';
+									ret += "\n" + '    <input type="hidden" name="selected_year" value="'+selected_year+'"/>';
+									ret += "\n" + '    <input type="hidden" name="section" value="'+section+'"/>';
+									ret += "\n" + '    <input type="hidden" name="mode" value="reports"/>'+"\n";
+									for (var m_i=12; m_i>=1; m_i--) {
+										var m_s = fun.zero_padded(m_i, 2);
+										for (var d_i=31; d_i>=1; d_i--) {
+											var d_s = fun.zero_padded(d_i, 2);
+											var this_date = moment(selected_year+"-"+m_s+"-"+d_s);
+											var this_dow = this_date.day(); //where 1 is monday and 5 is friday
+											if (this_dow==bill_dow) {
+												//ret += "bill on "+this_date.format('dddd')+' '+this_date.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
+												var used_days_count = 0;
+												for (var d_backstep=0; d_backstep<7; d_backstep++) {
+													var back_dow_i = this_dow-d_backstep;
+													if (back_dow_i<=0) back_dow_i += 7;
+													var back_d_i = d_i-d_backstep;
+													var back_m_i = m_i;
+													var back_y_i = y_i;
+													var back_dim = this_date.daysInMonth();
+													var back_y_s = fun.zero_padded(back_y_i, 4); //does convert to string
+													var back_m_s = fun.zero_padded(back_m_i, 2);
+													if (back_d_i<=0) {
+														//example: 2016-01-01 is a Friday, so to bill for Mon-Fri, go back a year (for only dow 1-4 aka Mon-Thurs)
+														back_m_i = m_i - 1;
+														if (back_m_i<=0) {
+															back_y_i = y_i - 1;
+															back_y_s = fun.zero_padded(back_y_i, 4);
+															back_m_i = 12;
+														}
+														back_m_s = fun.zero_padded(back_m_i, 2);
+														back_dim = moment(back_y_i+"-"+back_m_s, "YYYY-MM").daysInMonth();
+														back_d_i += back_dim; //add since back_d_i is negative in this case
 													}
-													back_m_s = fun.zero_padded(back_m_i, 2);
-													back_dim = moment(back_y_i+"-"+back_m_s, "YYYY-MM").daysInMonth();
-													back_d_i += back_dim; //add since back_d_i is negative in this case
+													var back_d_s = fun.zero_padded(back_d_i, 2);
+													var back_d_path = table_path + "/" + back_y_s + "/" + back_m_s + "/" + back_d_s;
+													var back_date_s = back_y_s+"-"+back_m_s+"-"+back_d_s;
+													var back_date = moment(back_date_s, "YYYY-MM-DD");
+													//NOTE: back_d_path could be same as before, if is friday (if d_backstep is 0)
+													if (fs.existsSync(back_d_path)) {
+														//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>'+"\n";//debug only
+														used_days_count++;
+													}
+													else {
+														//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>'+"\n";//debug only
+													}
 												}
-												var back_d_s = fun.zero_padded(back_d_i, 2);
-												var back_d_path = table_path + "/" + back_y_s + "/" + back_m_s + "/" + back_d_s;
-												var back_date_s = back_y_s+"-"+back_m_s+"-"+back_d_s;
-												var back_date = moment(back_date_s, "YYYY-MM-DD");
-												//NOTE: back_d_path could be same as before, if is friday (if d_backstep is 0)
-												if (fs.existsSync(back_d_path)) {
-													//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>'+"\n";//debug only
+												if (used_days_count>0) {
+													ret += '    <div class="form-check">'+"\n";
+													ret += '      <label class="form-check-label">'+"\n";
+													ret += '        <input type="checkbox" class="form-check-input" name="form_bill_for_'+this_date.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
+													ret += '        '+this_date.format('dddd')+' '+this_date.format("MMM D, Y")+'<br/>'+"\n";
+													ret += '      </label>'+"\n";
+													ret += '    </div>'+"\n";
 												}
-												else {
-													//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>'+"\n";//debug only
-												}
-											}
-											ret += "\n"+'  <div class="form-check">';
-											ret += "\n"+'    <label class="form-check-label">';
-											ret += "\n"+'      <input type="checkbox" class="form-check-input" name="form_bill_for_'+this_date.format("YYYYMMDD")+'">'; //returns 'on' or 'off'
-											ret += "\n"+'      '+this_date.format('dddd')+' '+this_date.format("MMM D, Y")+'<br/>';
-											ret += "\n"+'    </label>';
-											ret += "\n"+'  </div>';
-										}//end if bill_dow
-									}//end for day
-								}//end for month
-								ret += "\n"+'</form>';
+											}//end if bill_dow
+										}//end for day
+									}//end for month
+									ret += '  </form>'+"\n";
+								}
+								else ret += "\n"+'  <div class="alert alert-warning">Day of Week for billing must be 1-7 where 1 is Monday, but value'+bill_source_msg+' was "'+bill_dow+'".</div>';
+								ret += "\n"+' </div><!--end col-->'+"\n";
+								ret += ' <div class="col-sm-2">'+"\n";
+								ret += "\n"+' </div><!--end col-->'+"\n";
+								ret += ' <div class="col-sm-6">'+"\n";
+								ret += "<h3>Bills</h3><br/>"+"\n";
 							}
-							else ret += "\n"+'<div class="alert alert-warning">Day of Week for billing must be 1-7 where 1 is Monday, but value'+bill_source_msg+' was "'+bill_dow+'".</div>';
+							else ret += "\n"+'  <div class="alert alert-warning">selected year "'+selected_year+'" is not a number, so report is not possible on this folder.</div>';
+							ret += "\n"+' </div><!--end col-->'+"\n";
+							ret += "\n"+'</div><!--end row-->'+"\n";
+							ret += "\n"+'</div><!--end billing container-->'+"\n";
 						}
-						else ret += "\n"+'<div class="alert alert-warning">selected year "'+selected_year+'" is not a number, so report is not possible on this folder.</div>';
+						//else no billing permission
 					}
 					else ret += "\n"+"(select a year and month)<br/>";
 				}
@@ -2809,14 +2839,18 @@ app.post('/add-end-dates-to-bill', function(req, res){
 	var indent="  ";
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
-		if (user_has_section_permission(req.user.username, section, "reports")) {
+		if (user_has_section_permission(req.user.username, section, "billing")) {
 			var count_added = 0;
 			var matching_vars_count = 0;
+			console.log("Bill Display Name (user-entry): "+req.body.new_bill);
 			for (var key in req.body) {
 				if (key.startsWith("form_bill_for_")) {
+					//if (req.body[key]=="on") {
+					//NOTE: all values should be "on", and any that were unchecked should not have been sent.
 					var date_8_digit = key.substring(key.length-8);
 					console.log("  [ $ ] "+date_8_digit+": "+req.body[key]);
 					count_added++;
+					//}
 				}
 				matching_vars_count++;
 			}
@@ -2831,9 +2865,9 @@ app.post('/add-end-dates-to-bill', function(req, res){
 				req.session.error = msg;
 			}
 			else {
-				var msg = "WARNING: This section is not yet implemented.";
+				var msg = "WARNING: This feature is not yet implemented.";
 				console.log(msg);
-				req.session.info = msg;
+				req.session.notice = msg;
 			}
 		}
 		else {
@@ -3061,7 +3095,7 @@ app.get('/admin', function(req, res){
 					}
 					//else console.log("[ . ] saved settings");
 				});
-				req.session.info = "WARNING: "+settings_path+" could not be read in /admin, so loaded then saved defaults there instead.";
+				req.session.notice = "WARNING: "+settings_path+" could not be read in /admin, so loaded then saved defaults there instead.";
 				//console.log("* saved settings");
 			}
 		}

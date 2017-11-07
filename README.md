@@ -74,6 +74,8 @@ For release notes, see a release or the "etc" folder.
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* Check against http://www.bootlint.com
+* req.session.info should instead be req.session.notice
 * req.body, req.session, and req.query can be iterated with for, however they do not have the function hasOwnProperty so that should not be tried.
 * uses of else else where should be else
 * uses of = instead of == for comparison (other than loops conditions, if used correctly)
@@ -89,6 +91,7 @@ For release notes, see a release or the "etc" folder.
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* add mongodb database backup and restore feature
 * make flexible peek_config and poke_config functions (and modify _peek_object and _poke_object so) that don't assume any of the following: _settings, _settings_default, and settings_path
 * if bad input, node-yaml (not to be confused with js-yaml) saves a file that cannot be read, so when read is attempted, and an exception is shown to user containing the bad data, but only the one line of the file:
   see etc/08_regression_test/31/050359.yml
@@ -189,6 +192,7 @@ see etc/howto.txt for more
 see LICENSE file for license
 
 ## Developer Notes
+* To write a record, call write_record_without_validation after validating the form by any means necessary.
 
 ### Coding choices
 * Uses JSON.parse(JSON.stringify(x)) to copy object x and ensure no references to properties are copied to the new object
