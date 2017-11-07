@@ -1730,7 +1730,7 @@ var hbs = exphbs.create({
 									ret += "\n" + '        <input type="text" class="form-control" name="new_bill" id="new_bill" value=""/>';
 									ret += "\n" + '      </div>';
 									ret += "\n" + '      <div class="form-group col-4">'; //input-group mb-2 mr-sm-2 mb-sm-0
-									ret += "\n" + '        <button type="submit" class="btn btn-primary form-control">Add Selection To New Bill</button>';
+									ret += "\n" + '        <button type="submit" class="btn btn-primary">Add Selection To New Bill</button>';
 									ret += "\n" + '      </div>';
 									ret += "\n" + '    </div>';
 									ret += "\n" + '    <input type="hidden" name="selected_year" value="'+selected_year+'"/>';

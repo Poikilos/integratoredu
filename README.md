@@ -89,8 +89,11 @@ For release notes, see a release or the "etc" folder.
 * splitting and qty (see etc/07_regression_test/02)
 
 ## Known Issues
+!=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* (!) add autofill all to reports when has selected_month
+* (?) doesn't load new month on month change (keeps existing months lists instead, until restart)
 * add mongodb database backup and restore feature
 * make flexible peek_config and poke_config functions (and modify _peek_object and _poke_object so) that don't assume any of the following: _settings, _settings_default, and settings_path
 * if bad input, node-yaml (not to be confused with js-yaml) saves a file that cannot be read, so when read is attempted, and an exception is shown to user containing the bad data, but only the one line of the file:
@@ -105,8 +108,6 @@ Could not finish reading data/care/2017/08/31/050359.yml: YAMLException: unknown
      ... g:yaml.org,2002:js/undefined>; &#x27;&#x27;
                                          ^
 ```
-* split-entry is not working yet
-* doesn't load new month on month change (keeps existing months lists instead, until restart)
 * trim values after loading (for example, family_id may contain spaces in quoted YAML string)
 * (!) keep only earliest time for date, so doesn't add multiple charges to family for same day if entered multiple times accidentally
 * can't load defaults using new use of scoping in has_setting
