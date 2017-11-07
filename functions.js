@@ -175,23 +175,40 @@ exports.zero_padded = function(str, len) {
 	return result;
 }
 
-exports.without_ext = function(path) {
+//Like in python, "Return the base name of pathname path. This is the second element of the pair returned by passing path to the function split(). Note that the result of this function is different from the Unix basename program; where basename for '/foo/bar/' returns 'bar', the basename() function returns an empty string ('')."
+exports.basename = function(path) {
 	var result = path;
-	//does account for multiple dots
-	if (exports.is_not_blank(path)) {
-		var breadcrumbs = path.split('/');
-		var name = breadcrumbs[breadcrumbs.length-1];
-		var chunks = name.split('.');
-		result = "";
-		var last_index = chunks.length-2;
-		if (last_index<0) last_index = 0;
-		for (i=0; i<=last_index; i++) {
-			result += chunks[i] + ((i==last_index)?(""):("."));
+	if (exports.is_not_blank(path) {
+		last_slash_i = path.lastIndexOf("/");
+		if (last_slash_i>-1) {
+			result = path.substring(last_slash_i+1);
 		}
+		//else result is param given (as initialized)
 	}
-	//console.log("without_ext: "+path+" becomes "+result);
 	return result;
 }
+
+//Like in python, "Split the pathname path into a pair (root, ext) such that root + ext == path, and ext is empty or begins with a period and contains at most one period. Leading periods on the basename are ignored; splitext('.cshrc') returns ('.cshrc', '')."
+exports.splitext = function(path) {
+	var chunks = ["",""];
+	if (path) {
+		var last_dot_i = path.lastIndexOf('.');
+		var last_slash_i = path.lastIndexOf('/');
+		if (last_dot_i>-1) {
+			if (last_slash_i<=-1 || last_dot_i>last_slash_i) {
+				if ((last_slash_i<=-1&&last_dot_i!=0)||(last_slash_i>-1&&last_dot_i!=last_slash_i+1)) {
+					chunks[0] = path.substring(0,last_dot_i);
+					chunks[1] = path.substring(last_dot_i+1);
+				}
+				else chunks[0] = path; //no extension, path must have been something like .cshrc OR /home/owner/.cshrc (a name that starts with a dot is not counted as having an extension)
+			}
+			else chunks[0] = path; //no extension, since there is a slash and dot is before slash
+		}
+		else chunks[0] = path; //no extension, since no dot
+	}
+	return chunks;
+}
+
 
 /*
 //function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 

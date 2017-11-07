@@ -245,6 +245,7 @@ _settings_default["care"]["reports"]["selected_field_default"] = "family_id";
 _settings_default["care"]["list_implies_qty"] = "first_name";
 _settings_default["care"]["list_implies_multiple_entries"] = "last_name";
 _settings_default["care"]["list_implies_multiple_entries_paired_with"] = "first_name";
+_settings_default["care"]["list_implies_multiple_entries_paired_with_unless_has_one"] = "grade_level";
 _settings_default["care"]["autofill_requires"] = {}
 _settings_default["care"]["autofill_requires"]["family_id"] = ["first_name", "last_name", "grade_level"];
 _settings_default["care"]["autofill_requires"]["qty"] = ["first_name"];
@@ -1070,7 +1071,7 @@ function write_record_without_validation(req_else_null, section, date_array_else
 	var finalize_enable = false;
 	if (write_mode=="create") {
 		var suffix = 0;
-		var file_name_no_ext = fun.without_ext(results.out_name);
+		var file_name_no_ext = fun.splitext(results.out_name)[0];
 		
 		while (fs.existsSync(out_path)) {
 			suffix += 1; //intentionally start at 1
@@ -2717,17 +2718,27 @@ app.post('/split-entry', function(req, res){
 										var original_item = dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key];
 										var subvalues = fun.get_human_delimited_values(original_item[hdv_item_splitter_name]);
 										
-										var hdv_paired_name = null
+										var hdv_paired_name = null;
 										if (has_setting(section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(section+".list_implies_multiple_entries_paired_with");
 										var matching_pairs = null;
 										if (hdv_paired_name!==null) {
 											matching_pairs = fun.get_human_delimited_values(original_item[hdv_paired_name]);
 										}
+										
+										var hdv_or_single_name = null;
+										if (has_setting(section+".list_implies_multiple_entries_paired_with_unless_has_one")) hdv_or_single_name = peek_setting(section+".list_implies_multiple_entries_paired_with_unless_has_one");
+										var matching_pairs_else_single_value = null;
+										if (hdv_or_single_name!==null) {
+											matching_pairs_else_single_value = fun.get_human_delimited_values(original_item[hdv_or_single_name]);
+										}
+										
 										console.log("");
 										console.log("[ | ] Splitting...");
 										
 										console.log(indent+"subvalues: "+JSON.stringify(subvalues));
-										if ( hdv_paired_name===null || (matching_pairs!==null&&matching_pairs.length===subvalues.length) ) {
+										if ( hdv_paired_name===null || (matching_pairs!==null&&matching_pairs.length===subvalues.length) 
+										  && hdv_or_single_name===null || (matching_pairs_else_single_value!==null&&(matching_pairs_else_single_value.length===subvalues.length||matching_pairs_else_single_value.length==1))
+										) {
 											var error = "";
 											var notice = "";
 											if (req.body.expected_count==subvalues.length) {
@@ -2739,6 +2750,7 @@ app.post('/split-entry', function(req, res){
 												var split_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
 												var date_array = [req.body.selected_year, req.body.selected_month, req.body.selected_day];
 												var tried_output_count = 0;
+												var optionally_paired_index_else_0 = 0;
 												//for (i=0,len=subvalues.length; i<len; i++) {
 												for (var i=0,len=subvalues.length; i<len; i++) {
 													var new_item = JSON.parse(JSON.stringify(original_item));
@@ -2751,6 +2763,13 @@ app.post('/split-entry', function(req, res){
 													if (matching_pairs) {
 														new_item[hdv_paired_name] = matching_pairs[i];
 														console.log(indent+"  set paired field "+hdv_paired_name+" to "+matching_pairs[i]);
+													}
+													if (matching_pairs_else_single_value) {
+														new_item[hdv_or_single_name] = matching_pairs_else_single_value[optionally_paired_index_else_0];
+														if (matching_pairs_else_single_value.length===1)
+															console.log(indent+"  set optionally paired field "+hdv_paired_name+" to non-paired value: "+matching_pairs_else_single_value[optionally_paired_index_else_0]);
+														else
+															console.log(indent+"  set optionally paired field "+hdv_paired_name+" to paired value: "+matching_pairs_else_single_value[optionally_paired_index_else_0]);
 													}
 													//autofill(section, new_item, false);
 													var new_key = original_item.key;
@@ -2781,6 +2800,7 @@ app.post('/split-entry', function(req, res){
 													ok=true; //verified cache is ok either way
 													tried_output_count += 1;
 													console.log(indent+"  done splitting value at index "+i);
+													if (matching_pairs_else_single_value.length!==1) optionally_paired_index_else_0++;
 												}//end for subvalues
 												
 												if (subvalues.length<1) {
