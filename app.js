@@ -240,8 +240,10 @@ _settings_default["care"]["default_groupby"] = "family_id";
 _settings_default["care"]["extended_hours_hourly_price"] = 7.50
 _settings_default["care"]["local_start_time"] = '08:10:00';
 _settings_default["care"]["local_end_time"] = '15:05:00';
+_settings_default["care"]["bill_iso_day_of_week"] = 5;
 _settings_default["care"]["reports"] = {};
 _settings_default["care"]["reports"]["selected_field_default"] = "family_id";
+_settings_default["care"]["reports"]["auto_select_month_enable"] = true;
 _settings_default["care"]["list_implies_qty"] = "first_name";
 _settings_default["care"]["list_implies_multiple_entries"] = "last_name";
 _settings_default["care"]["list_implies_multiple_entries_paired_with"] = "first_name";
@@ -255,6 +257,8 @@ _settings_default["commute"] = {};
 _settings_default["commute"]["local_start_time"] = '08:10:00';
 _settings_default["commute"]["local_end_time"] = '15:05:00';
 _settings_default["commute"]["history_sheet_fields"] = ["time", "name", "grade_level"];  // "=get_date_from_path()", 
+_settings_default["commute"]["reports"] = {};
+_settings_default["commute"]["reports"]["auto_select_month_enable"] = true; //ok since in reports section
 _settings_default["care"]["mode_priority"] = ["reports","create", "read"];
 _settings_default["commute"]["mode_priority"] = ["reports","create", "read"];
 //var startTimeString = startTime.format("HH:mm:ss");
@@ -470,11 +474,11 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 		}
 		else {
 			//console.log("[ . ] WARNING: no "+scope_stack[scope_stack.length-1]+", "+JSON.stringify(scope_stack)+" at "+asserted_depth+" only has ");
-			for (var key in scope_o) {
-				if (scope_o.hasOwnProperty(key)) {
-					console.log("  "+key+":"+scope_o[key]);
-				}
-			}
+			//for (var key in scope_o) {
+			//	if (scope_o.hasOwnProperty(key)) {
+			//		console.log("  [ . ] * "+key+": "+scope_o[key]);
+			//	}
+			//}
 		}
 	}
 	else {
@@ -809,7 +813,7 @@ function get_year_buttons_from_cache(section, username) {
 	var ret = "";
 	var years = get_years(section);
 	for (i=0, len=years.length; i<len; i++) {
-		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
 		ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
@@ -826,13 +830,15 @@ function get_year_buttons_from_cache(section, username) {
 	return ret;
 }
 
-function get_year_month_select_buttons(section, username, years, months, selected_year, selected_month) {
+function get_year_month_select_buttons(section, mode, username, years, months, selected_year, selected_month) {
 	var ret = "";
 	//var years = get_years(section);
 	for (i=0, len=years.length; i<len; i++) {
-		ret += '<div>Report Year:';
-		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
+		if (mode=="reports") ret += '<div>Report Year:';
+		else ret += '<div>Year:';
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
 		ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
 		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
@@ -846,10 +852,12 @@ function get_year_month_select_buttons(section, username, years, months, selecte
 		ret += '</form>';
 		ret += '</div>';
 	}
-	ret += '<div>Report Month:';
+	if (mode=="reports") ret += '<div>Report Month:';
+	else ret += '<div>Month:';
 	for (i=0, len=months.length; i<len; i++) {
-		ret += '<form action="'+config.proxy_prefix_then_slash+'">';
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
 		ret += '<input type="hidden" name="selected_month" id="selected_month" value="'+months[i]+'" />';
 		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
@@ -1187,7 +1195,7 @@ var hbs = exphbs.create({
 		show_settings: function(section, username, selected_setting, opts) {
 			var ret = "";
 			if (user_has_section_permission(username, section, "settings")) {
-				//ret += "\n" + '<form class="form-inline">';
+				//ret += "\n" + '<form class="form-inline" action="' + config.proxy_prefix_then_slash + '" method="get">';
 				//ret += "\n" + '  <div class="form-group">';
 				//ret += "\n" + '    <label for="fieldHeading" class="sr-only">Email</label>';
 				//ret += "\n" + '    <input type="text" readonly class="form-control-plaintext" id="fieldHeading" value="Setting">';
@@ -1252,7 +1260,7 @@ var hbs = exphbs.create({
 				ret += '<table class="table">'; //style="width:100%"
 				ret += '<tr>';
 				ret += '<td style="width:5%; vertical-align:top; horizontal-align:left">';
-				ret += get_year_month_select_buttons(section, username, years, months, selected_year, selected_month);
+				ret += get_year_month_select_buttons(section, "reports", username, years, months, selected_year, selected_month);
 				ret += '</td>';
 				ret += '<td style="vertical-align:top; horizontal-align:left">';
 				ret += '	<div style="width:100%; text-align:center">';
@@ -1397,7 +1405,7 @@ var hbs = exphbs.create({
 						ret += "\n"+'<td>'; //no longer needed
 						ret += "&nbsp;";
 						//ret += "Selected Field:";
-						//ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="get">';
+						//ret += "\n"+'<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="post">';
 						//ret += "\n"+'  <input type="hidden" name="section" id="section" value="'+section+'"/>';
 						//ret += "\n"+'  <input type="hidden" name="mode" id="mode" value="reports"/>';
 						//ret += "\n"+'  <input class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section]["reports"]+'"/>';
@@ -1681,8 +1689,94 @@ var hbs = exphbs.create({
 					}
 				}
 				else {
-					if (selected_year) ret += "(select a month)";
-					else ret += "(select a year and month)";
+					if (selected_year) {
+						var auto_select_month_enable = true;
+						if (has_setting(section+".reports.auto_select_month_enable")) auto_select_month_enable = peek_setting(section+".reports.auto_select_month_enable");
+						//This is not really going to auto select, but true can imply that the user expectation is to see a month (see next line)
+						//if (auto_select_month_enable) ret += "\n"+"(select a month)<br/>";  // they probably want a month if auto select is enabled
+						//else 
+						ret += "\n"+"<h3>Bill Designer</h3><br/>";  // they probably want a month if auto select is enabled
+						ret += "\n"+"(to exit billing and to edit entries, select a month above)<br/><br/>";  // they probably want a month if auto select is enabled
+						var months = [];
+						table_path = data_dir_path + "/" + section;
+						var y_path = table_path + "/" + selected_year;
+						var y_i = parseInt(selected_year);
+						if (y_i===y_i) { //only not equal to itself if NaN
+							if (y_i<1940) console.log("WARNING: year detected ("+y_i+", from string value "+selected_year+") is before 1940");
+							var prev_y_path = table_path + "/" + (y_i-1);  // in case we need to bill for monday or more days in previous year (on first Friday of selected_year)
+							var prev_year_m_path = prev_y_path + "/" + "12";
+							months = fun.getVisibleDirectories(y_path);
+							var bill_dow = 5; //1 is monday, 5 is friday
+							var bill_source_msg = "";
+							if (has_setting(section+".bill_iso_day_of_week")) {
+								bill_dow = parseInt(peek_setting(section+".bill_iso_day_of_week"));
+								bill_source_msg = " from settings";
+							}
+							if (bill_dow>=1 & bill_dow<=7) {
+								ret =  "\n" + '<form id="bill-designer" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">';
+								ret += "\n" + '  <button type="submit" class="btn btn-primary btn-sm">Add To Bill</button>';
+								ret += "\n" + '  <input type="hidden" name="selected_year" value="'+selected_year+'"/>';
+								ret += "\n" + '  <input type="hidden" name="section" value="'+section+'"/>';
+								ret += "\n" + '  <input type="hidden" name="mode" value="reports"/>';
+								
+								for (var m_i=12; m_i>=1; m_i--) {
+									var m_s = fun.zero_padded(m_i, 2);
+									for (var d_i=31; d_i>=1; d_i--) {
+										var d_s = fun.zero_padded(d_i, 2);
+										var this_date = moment(selected_year+"-"+m_s+"-"+d_s);
+										var this_dow = this_date.day(); //where 1 is monday and 5 is friday
+										if (this_dow==bill_dow) {
+											//ret += "\n"+"bill on "+this_date.format('dddd')+' '+this_date.format("dddd MMM D, Y")+' for:<br/>';//debug only
+											
+											for (var d_backstep=0; d_backstep<7; d_backstep++) {
+												var back_dow_i = this_dow-d_backstep;
+												if (back_dow_i<=0) back_dow_i += 7;
+												var back_d_i = d_i-d_backstep;
+												var back_m_i = m_i;
+												var back_y_i = y_i;
+												var back_dim = this_date.daysInMonth();
+												var back_y_s = fun.zero_padded(back_y_i, 4); //does convert to string
+												var back_m_s = fun.zero_padded(back_m_i, 2);
+												if (back_d_i<=0) {
+													//example: 2016-01-01 is a Friday, so to bill for Mon-Fri, go back a year (for only dow 1-4 aka Mon-Thurs)
+													back_m_i = m_i - 1;
+													if (back_m_i<=0) {
+														back_y_i = y_i - 1;
+														back_y_s = fun.zero_padded(back_y_i, 4);
+														back_m_i = 12;
+													}
+													back_m_s = fun.zero_padded(back_m_i, 2);
+													back_dim = moment(back_y_i+"-"+back_m_s, "YYYY-MM").daysInMonth();
+													back_d_i += back_dim; //add since back_d_i is negative in this case
+												}
+												var back_d_s = fun.zero_padded(back_d_i, 2);
+												var back_d_path = table_path + "/" + back_y_s + "/" + back_m_s + "/" + back_d_s;
+												var back_date_s = back_y_s+"-"+back_m_s+"-"+back_d_s;
+												var back_date = moment(back_date_s, "YYYY-MM-DD");
+												//NOTE: back_d_path could be same as before, if is friday (if d_backstep is 0)
+												if (fs.existsSync(back_d_path)) {
+													//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>'+"\n";//debug only
+												}
+												else {
+													//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>'+"\n";//debug only
+												}
+											}
+											ret += "\n"+'  <div class="form-check">';
+											ret += "\n"+'    <label class="form-check-label">';
+											ret += "\n"+'      <input type="checkbox" class="form-check-input" name="form_bill_for_'+this_date.format("YYYYMMDD")+'">'; //returns 'on' or 'off'
+											ret += "\n"+'      '+this_date.format('dddd')+' '+this_date.format("MMM D, Y")+'<br/>';
+											ret += "\n"+'    </label>';
+											ret += "\n"+'  </div>';
+										}//end if bill_dow
+									}//end for day
+								}//end for month
+								ret += "\n"+'</form>';
+							}
+							else ret += "\n"+'<div class="alert alert-warning">Day of Week for billing must be 1-7 where 1 is Monday, but value'+bill_source_msg+' was "'+bill_dow+'".</div>';
+						}
+						else ret += "\n"+'<div class="alert alert-warning">selected year "'+selected_year+'" is not a number, so report is not possible on this folder.</div>';
+					}
+					else ret += "\n"+"(select a year and month)<br/>";
 				}
 				//ret += '</div>';//end "panel-body"
 				//ret += '</div>';//end "panel panel-default"
@@ -2244,11 +2338,13 @@ app.get('/', function(req, res){
 
 	if (req.query.selected_year) {
 		selected_year = req.query.selected_year;
-		if (selected_year = "(none)") selected_year = null;
+		if (selected_year=="(none)") selected_year = null;
 		req.session.selected_year = selected_year;
+		console.log("[   ] got selected_year "+selected_year+" from query");
 	}
 	else if (req.session.selected_year) {
 		selected_year = req.session.selected_year;
+		console.log("[   ] got selected_year "+selected_year+" from session");
 	}
 	if (req.query.selected_month) {
 		selected_month = req.query.selected_month;
@@ -2290,6 +2386,11 @@ app.get('/', function(req, res){
 				var d_dir_name = moment().format("DD");
 				var year_month_string = moment().format("YYYY-MM");
 				var date_string = moment().format("YYYY-MM-DD");
+				var auto_select_month_enable = true;  // should usually be true even for reports, since only month view shows entry problems; formerly (mode=="reports") ? false : true;
+				if (fun.is_not_blank(mode)) {
+					if (has_setting(section+"."+mode+".auto_select_month_enable")) auto_select_month_enable = peek_setting(section+"."+mode+".auto_select_month_enable");
+				}
+
 				if (!dat) {
 					dat = {};
 				}
@@ -2307,15 +2408,20 @@ app.get('/', function(req, res){
 					}
 				}
 				else years = dat[section]["years"];
-				if (years.length==1) {
-					selected_year = years[0];
-					req.session.selected_year = selected_year;
-					if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
-				}
-				else if (!selected_year && years.length>0) {
-					selected_year = years[years.length-1];
-					req.session.selected_year = selected_year;
-					if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
+				if (req.query.selected_year!=="(none)") { //else do not autoselect if (none) was explicit
+					if (years.length==1) {
+						selected_year = years[0];
+						req.session.selected_year = selected_year;
+						if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
+						else console.log("[   ] autoselected only year "+selected_year);
+					}
+					else if (fun.is_blank(selected_year) && years.length>0) {
+						console.log("[   ] no selected_year "+selected_year);
+						selected_year = years[years.length-1];
+						req.session.selected_year = selected_year;
+						if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
+						else console.log("[   ] autoselected latest year "+selected_year);
+					}
 				}
 				if (!years) {
 					console.log("WARNING: no years (no data or cache fail)");
@@ -2338,19 +2444,24 @@ app.get('/', function(req, res){
 							months = dat[section][selected_year]["months"];
 							//console.log("(got cached months: "+fun.to_ecmascript_value(months));
 						}
-						if (months.length==1) {
-							selected_month = months[0];
-							req.session.selected_month = selected_month;
-							//console.log("Auto selected_month "+selected_month);
+						if (auto_select_month_enable && (req.query.selected_month!=="(none)")) { //else do not autoselect if (none) was explicit
+							if (months.length==1) {
+								selected_month = months[0];
+								req.session.selected_month = selected_month;
+								console.log("[   ] Auto selected_month "+selected_month);
+								if (!selected_month) console.log("ERROR: blanked out on month[0] (cache fail)");
+							}
+							else if (!selected_month && months.length>0) {
+								selected_month = months[months.length-1];
+								req.session.selected_month = selected_month;
+								console.log("[   ] Auto selected_month "+selected_month);
+								if (!selected_month) console.log("ERROR: blanked out on month[length-1] (cache fail)");
+							}
 						}
-						else if (!selected_month && months.length>0) {
-							selected_month = months[months.length-1];
-							req.session.selected_month = selected_month;
-							if (!selected_month) console.log("ERROR: blanked out on month (cache fail)");
-						}
+						else console.log("[   ] month "+selected_month+" was not autoselected (selected_year: "+selected_year+").");
 						
 						var m_path = y_path + "/" + selected_month;
-						if (!fs.existsSync(m_path)) {
+						if (fun.is_not_blank(selected_month) && !fs.existsSync(m_path)) {
 							//stale selection
 							console.log("* cleared stale month selection "+selected_month+" from other section or year (that isn't in "+selected_year+" in "+section+")");
 							if (req.session.hasOwnProperty("selected_month")) delete req.session.selected_month;
@@ -2372,15 +2483,17 @@ app.get('/', function(req, res){
 								}
 							}
 							else days = dat[section][selected_year][selected_month]["days"];
-							if (days.length==1) {
-								selected_day = days[0];
-								req.session.selected_day = selected_day;
-								//console.log("     AUTO selected_day (key) ="+selected_day);
-							}
-							else if (!selected_day && days.length>0) {
-								selected_day = days[days.length-1];
-								req.session.selected_day = selected_day;
-								if (!selected_day) console.log("ERROR: blanked out on day (cache fail)");
+							if (req.query.selected_day!=="(none)") { //else do not autoselect if (none) was explicit
+								if (days.length==1) {
+									selected_day = days[0];
+									req.session.selected_day = selected_day;
+									//console.log("     AUTO selected_day (key) ="+selected_day);
+								}
+								else if (!selected_day && days.length>0) {
+									selected_day = days[days.length-1];
+									req.session.selected_day = selected_day;
+									if (!selected_day) console.log("ERROR: blanked out on day (cache fail)");
+								}
 							}
 							if (selected_day) {
 								var d_path = m_path + "/" + selected_day;
@@ -2690,6 +2803,51 @@ app.post('/change-microevent-field', function(req, res){
 	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?("#"+req.body.selected_key):""));
 });  // change-microevent-field
 
+app.post('/add-end-dates-to-bill', function(req, res){
+	var sounds_path_then_slash = "sounds/";
+	var bookmark_enable = false;
+	var indent="  ";
+	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		var section = req.body.section;
+		if (user_has_section_permission(req.user.username, section, "reports")) {
+			var count_added = 0;
+			var matching_vars_count = 0;
+			for (var key in req.body) {
+				if (key.startsWith("form_bill_for_")) {
+					var date_8_digit = key.substring(key.length-8);
+					console.log("  [ $ ] "+date_8_digit+": "+req.body[key]);
+					count_added++;
+				}
+				matching_vars_count++;
+			}
+			if (matching_vars_count==0) {
+				var msg = "No values were sent from form.";
+				console.log(msg);
+				req.session.error = msg;
+			}
+			else if (count_added==0) {
+				var msg = "0 were checked.";
+				console.log(msg);
+				req.session.error = msg;
+			}
+			else {
+				var msg = "WARNING: This section is not yet implemented.";
+				console.log(msg);
+				req.session.info = msg;
+			}
+		}
+		else {
+			console.log(msg);
+			req.session.error = "not authorized to modify data for '" + section + "'";
+			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
+			delete req.session.prefill.pin;
+		}
+	}
+	
+	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
+	res.redirect(config.proxy_prefix_then_slash+"?section="+req.body.section+"&mode="+req.body.mode+"&selected_year="+req.body.selected_year+"&selected_month=(none)"+((bookmark_enable)?("#"+req.body.selected_key):""));
+});
+
 app.post('/split-entry', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	var bookmark_enable = false;
@@ -2774,11 +2932,8 @@ app.post('/split-entry', function(req, res){
 													//autofill(section, new_item, false);
 													var new_key = original_item.key;
 													if (original_item.key) {
-														var dot_i = original_item.key.lastIndexOf(".");
-														if (dot_i>=0) {
-															new_key = original_item.key.substring(0, dot_i) + "-" + (i+1) + original_item.key.substring(dot_i);
-														}
-														else new_key = original_item.key + "-" + (i+1);
+														var key_split = fun.splitext(original_item.key);
+														new_key = key_split + "-" + (i+1) + ((key_split!=="")?("."+key_split[1]):"");
 													}
 													else new_key=null;  // results in a key being generated based on the current time
 													//fields were already validated since using an existing entry

@@ -6,13 +6,18 @@ This web app is under heavy development. Please use a release version (releases 
 For release notes, see a release or the "etc" folder.
 
 ## Changes
+* (2017-11-06) new setting section+"."+mode+".auto_select_month_enable" (if not specified, auto select is turned off for reports and on for all other modes). In addition, if selected_year, selected_month, or selected_day is explicitly a string which is equal to the word "(none)" (including parenthesis), autoselect will not be performed (such as if trying to select year in order to design a bill--the reason for this is that bills can include billing periods from multiple months)
+* (2017-11-06) new setting section+".bill_iso_day_of_week" is what day the billing period ends each week (ISO day numbering is where 1 is Monday, 7 is Sunday)
+* (2017-11-06) fixed issue where year was not selectable due to overzealous autoselect (was using = for comparison instead of == when checking for null selection)
+* (2017-11-06) now can detect an optionally-splittable "human delimited value" where count of hdv in field is either 0 or same as the field specified by the setting section+".list_implies_multiple_entries"
 * (2017-11-02) move file create code to componentized function that takes write_mode of "modify" or "create"
 * (2017-11-02) make is_blank fault tolerant when receiving param that is a type other than string
 * (2017-11-02) changed contains to array_contains for clarity (and made it a regular function instead of a silly, silly thing used only by array_contains.call.
 * (2017-11-02) clear selected_* if changing section (avoid folder doesn't exist error)
-* (2017-11-02) detect splittable entries by detecting "human delimited value" such as "smith, johnson, and doe" in fields usually unique to id, such as last name (can't hurt to split entries even if family_id is same for both entries)
+* (2017-11-02) detect splittable entries by detecting "human delimited value" (see hdv_* variables in code) such as "smith, johnson, and doe" in fields usually unique to id, such as last name (can't hurt to split entries even if family_id is same for both entries)
 * (2017-11-02) renamed variable "key" in report to "column_name" for clarity
 * (2017-11-02) moved config.js to data to avoid confusion (for example, so not transferred to different servers if updating a server via ftp from test machine)
+* (2010-10-31) "=mid(fieldname,start,end)" where start and end are indices in the value of field named fieldname can be used as a value in the section+".history_sheet_fields" array-- like spreadsheet software, character indices start at 1 and second param is inclusive end.
 * (2017-10-31) repaired is_after_school and is_before_school logic by using local timezone to interpret moment() result (current time) and removing formatting from date string parsing and using full simulated date instead (prepending current date is compatible with DST since local_*_time variables should always be considered as the current timezone offset).
 * (2017-10-31) changed moment requirement from "moment" to "moment-timezone" and did npm install moment-timezone (see https://momentjs.com/timezone/docs/ )
 * (2017-10-30) removed use of deprecated endTimeString global in is_after_school
@@ -69,13 +74,34 @@ For release notes, see a release or the "etc" folder.
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
-* check for literal uses of sections (where section or req.session.section or similar variable should be used instead)
-* check for uses of peek before has_setting if value is in defaults (has_setting should be used first since loads default and saves settings to file, if default exists)
-* check splitting and qty (see etc/07_regression_test/02)
+* req.body, req.session, and req.query can be iterated with for, however they do not have the function hasOwnProperty so that should not be tried.
+* uses of else else where should be else
+* uses of = instead of == for comparison (other than loops conditions, if used correctly)
+* uses of methods in functions.js without object where it was imported (for example, app.js should never contain the string "(isblank" but instead "(fun.isblank")
+* forms where action is not specified
+* forms where method is not specified, including in handlebars like ```<form action="{{get_proxy_prefix_then_slash}}">```
+* literal uses of sections (where section or req.session.section or similar variable should be used instead)
+* uses of peek before has_setting if value is in defaults (has_setting should be used first since loads default and saves settings to file, if default exists)
+
+### Regression tests no longer needed:
+* splitting and qty (see etc/07_regression_test/02)
 
 ## Known Issues
 ~=low-priority
 ?=needs verification in current git version
+* make flexible peek_config and poke_config functions (and modify _peek_object and _poke_object so) that don't assume any of the following: _settings, _settings_default, and settings_path
+* if bad input, node-yaml (not to be confused with js-yaml) saves a file that cannot be read, so when read is attempted, and an exception is shown to user containing the bad data, but only the one line of the file:
+  see etc/08_regression_test/31/050359.yml
+  which includes a bad value for time that was saved by node-yaml (these bad values were saved only during a glitch between commits, probably related to using moment wrongly, otherwise for an unknown reason):
+  ```yaml
+  time: !<tag:yaml.org,2002:js/undefined> ''
+  ```
+  reading back the file (when the day is loaded by integratoredu) results in the following error shown to the user:
+```
+Could not finish reading data/care/2017/08/31/050359.yml: YAMLException: unknown tag !<tag:yaml.org,2002:js/undefined>; at line 5, column 43:
+     ... g:yaml.org,2002:js/undefined>; &#x27;&#x27;
+                                         ^
+```
 * split-entry is not working yet
 * doesn't load new month on month change (keeps existing months lists instead, until restart)
 * trim values after loading (for example, family_id may contain spaces in quoted YAML string)

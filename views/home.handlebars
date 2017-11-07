@@ -36,7 +36,7 @@
 		<br/>
 			<div>Year: 
 		{{#each years}}
-		<form action="{{get_proxy_prefix_then_slash}}">
+		<form action="{{get_proxy_prefix_then_slash}}" method="get">
 		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 		<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
 		<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
@@ -52,7 +52,7 @@
 			</div>
 			<div>Month:
 		{{#each months}}
-		<form action="{{get_proxy_prefix_then_slash}}">
+		<form action="{{get_proxy_prefix_then_slash}}" method="get">
 		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 		<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 		<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
@@ -68,7 +68,7 @@
 			</div>
 			<div>Day:
 		{{#each days}}
-		<form action="{{get_proxy_prefix_then_slash}}">
+		<form action="{{get_proxy_prefix_then_slash}}" method="get">
 		<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 		<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 		<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />

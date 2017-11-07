@@ -178,7 +178,7 @@ exports.zero_padded = function(str, len) {
 //Like in python, "Return the base name of pathname path. This is the second element of the pair returned by passing path to the function split(). Note that the result of this function is different from the Unix basename program; where basename for '/foo/bar/' returns 'bar', the basename() function returns an empty string ('')."
 exports.basename = function(path) {
 	var result = path;
-	if (exports.is_not_blank(path) {
+	if (exports.is_not_blank(path)) {
 		last_slash_i = path.lastIndexOf("/");
 		if (last_slash_i>-1) {
 			result = path.substring(last_slash_i+1);
