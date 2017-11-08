@@ -5,7 +5,15 @@ http://github.com/expertmm/integratoredu
 This web app is under heavy development. Please use a release version (releases are, however, not production ready) by clicking "release(s)" above.
 For release notes, see a release or the "etc" folder.
 
+commit notes: do not use etc/upgrade-data-20171008 yet, since app.js doesn't implement the release pre-0.2.0 structure yet.
+
 ## Changes
+* (2017-11-08) 12:15PM changed data structure and modified /etc/upgrade-data-20171008 migration script. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008 (then you can start again)
+	* now structure for each microevents folder is: var filedb_name=microevents; var category_name="student"; storage_path+"/units/"+unit_i+"/"+filedb_name+"/"+category_name
+	(settings for each campus or company would go in different unit folders)
+	* settings.yml becomes unit.yml in the unit folder (since every setting, especially timezone, could be different at other campus)
+* (2017-11-08) changed data structure and made /etc/upgrade-data-20171008 script for migrating data saved before that. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008 (then you can start again)
+* (2017-11-08) data_dir* variables renamed to storage*; signs_dir* renamed to table* for consistency
 * (2017-11-06) Autofill All button, and "ribbon" (interface elements above the report) layout improvement
 * (2017-11-06) remove all commented code after peek_settings lines (since they are replaced by peek_settings successfully)
 * (2017-11-06) remove all commended code mentioning _settings.hasOwnProperty (since switched to has_setting(dot_notation) successfully)
@@ -97,6 +105,9 @@ For release notes, see a release or the "etc" folder.
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* most section-specific or even unit-specific variables (such as default_total) should be moved
+* permissions should specify unit_id (to determine which campuses the person can select [and which is their default, otherwise make campus priority list])
+* make section priority list able to be different for each unit
 * (!) add autofill all to reports when has selected_month
 * (?) doesn't load new month on month change (keeps existing months lists instead, until restart)
 * add mongodb database backup and restore feature
@@ -197,6 +208,23 @@ see LICENSE file for license
 
 ## Developer Notes
 * To write a record, call write_record_without_validation after validating the form by any means necessary.
+* as of 2017-10-08 make sure folder structure remains compatible with my php app MoneyForesight (so MoneyForesight's features can be eventually merged into IntegratorEdu)
+  as per the following documentation:
+  ```
+  Any file or folder staring with "." is ignored.
+  <data|root>/units/<unit_no>/unit.yml
+  
+  and data is stored as:
+  <data|root>/units/<unit_no>/<filedb_name>/<table>/<primary_key>.yml
+  * such as units/0/business/Contacts
+  or
+  <data|root>/units/<unit_no>/<filedb_name>/<table>/<year>/<month>/<day>/<files|folders>
+  * such as units/0/care/microevents/student/0.yml
+  
+  and audit trail is stored as:
+  <data|root>/units/<unit_no>/metadata/audit/<year>/<month>/<day>/<sequential_number>.yml
+  where yml file contains all info to undo the change (location of data file and old value of any values that were changed).
+  ```
 
 ### Coding choices
 * Uses JSON.parse(JSON.stringify(x)) to copy object x and ensure no references to properties are copied to the new object

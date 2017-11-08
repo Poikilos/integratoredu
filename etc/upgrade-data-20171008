@@ -1,0 +1,88 @@
+#!/bin/sh
+repo_path=.
+if [ -d ../data ]; then
+  repo_path=..
+fi
+#unit_no is same for whole campus:
+unit_no=0
+storage_path="$repo_path/data"
+units_path="$storage_path/units"
+unit_path="$storage_path/units/$unit_no"
+#first convert in intermediate format that was used for part of the development process
+
+if [ ! -d "$unit_path" ]; then
+#region only do this if not in 0.2.0 format
+#(only do ANYTHING if not in the upgraded format)
+
+#first convert from original format, which is $storage_path/$section
+#             to development format, which is $storage_path/$section/student-microevents
+section=care
+if [ ! -d "$storage_path/$section/student-microevents" ]; then
+  if [ ! -d "$unit_path" ]; then
+    #only make if intermediate structure does not already exist
+    mv "$storage_path/$section" "$storage_path/$section-tmp"
+    mkdir "$storage_path/$section"
+    mv "$storage_path/$section-tmp" "$storage_path/$section/student-microevents"
+  fi
+fi
+section=commute
+if [ ! -d "$storage_path/$section/student-microevents" ]; then
+  if [ ! -d "$unit_path" ]; then
+    #only make if intermediate structure does not already exist
+    mv "$storage_path/$section" "$storage_path/$section-tmp"
+    mkdir "$storage_path/$section"
+    mv "$storage_path/$section-tmp" "$storage_path/$section/student-microevents"
+  fi
+fi
+
+
+#do next part as a second stage so this script will also work on the development version
+#(structure was changed again same day, to storage_path+"/units/"+unit_i+"microevents/student")
+
+# first make a unit and move settings into it (before, data structure was not taking into consideration multiple organizations or campuses)
+if [ ! -d "$unit_path" ]; then
+  mkdir "$unit_path"
+fi
+if [ ! -f "$unit_path/unit.yml" ]; then
+  if [ -f "$storage_path/settings.yml" ]; then
+    mv "$storage_path/settings.yml" "$unit_path/unit.yml"
+  fi
+fi
+#   convert from development format, which is $storage_path/$section/student-microevents
+#                      format 0.2.0, which is $unit_path/$section/$filedb_name/$category
+#                                     such as $unit_path/$section/microevents/student
+filedb_name="microevents"
+category="student"
+
+section=care
+if [ ! -d "$unit_path/$section" ]; then
+  mv "$storage_path/$section" "$unit_path/$section"
+fi
+if [ ! -d "$unit_path/$section/$filedb_name" ]; then
+  mkdir "$unit_path/$section/$filedb_name"
+fi
+if [ ! -d "$unit_path/$section/$filedb_name/$category" ]; then
+  if [ -d "$unit_path/$section/student-microevents" ]; then
+  mv "$unit_path/$section/student-microevents" "$unit_path/$section/$filedb_name/$category"
+  else
+  echo "ERROR converting: unknown directory structure, since $unit_path/$section/student-microevents does not exist"
+  fi
+fi
+section=commute
+if [ ! -d "$unit_path/$section" ]; then
+  mv "$storage_path/$section" "$unit_path/$section"
+fi
+if [ ! -d "$unit_path/$section/$filedb_name" ]; then
+  mkdir "$unit_path/$section/$filedb_name"
+fi
+if [ ! -d "$unit_path/$section/$filedb_name/$category" ]; then
+  if [ -d "$unit_path/$section/student-microevents" ]; then
+  mv "$unit_path/$section/student-microevents" "$unit_path/$section/$filedb_name/$category"
+  else
+  echo "ERROR converting: unknown directory structure, since $unit_path/$section/student-microevents does not exist"
+  fi
+fi
+
+
+#endregion only do this if not in 0.2.0 format
+fi

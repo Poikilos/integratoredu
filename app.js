@@ -48,7 +48,8 @@ var dat; //this is the cache
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
-if (!Array.prototype.includes) { //if browser doesn't support ECMA 2016
+// This is usually not used--see fun.array_contains instead
+if (!Array.prototype.includes) { //if doesn't support ECMA 2016
 	Object.defineProperty(Array.prototype, 'includes', {
 		value: function(searchElement, fromIndex) {
 			if (this == null) {
@@ -90,11 +91,6 @@ if (!config.hasOwnProperty("audio_enable")) config.audio_enable = true;
 //var basePath = "./";
 var basePath = "."+config.proxy_prefix_then_slash;
 
-var data_dir_name = "data";
-var data_dir_path = data_dir_name;
-
-var autofill_cache_path = data_dir_path+"/"+"autofill_cache."+autofill_cache_format;
-var settings_path = data_dir_path+"/"+"settings.yml";
 
 var sections = ["care", "commute", "admin"];
 var friendly_section_names = {"care":"Extended Care","commute":"Commute","admin":"Advanced"};
@@ -217,6 +213,10 @@ var only_employee_modify_sections = ["commute", "care"];
 
 var autofill_cache = null;
 
+var storage_name = "data";
+var storage_path = storage_name;
+
+var autofill_cache_path = storage_path + "/autofill_cache." + autofill_cache_format;
 var default_autofill_cache = {};
 default_autofill_cache["care"] = {};
 default_autofill_cache["care"]["family_id"] = {};
@@ -231,8 +231,10 @@ default_total["care"] = "=careprice()";
 //var section_report_edit_field = {}; //runtime var, do not save (starts as value of _settings.section.mode.selected_field_default)
 
 var _settings = null;
-
+var _selected_unit = 0;
+var settings_path = storage_path + "/units/" + _selected_unit + "/unit.yml";
 var _settings_default = {};
+_settings_default["name"] = "Campus";
 _settings_default["local_time_zone"] = "America/New_York";
 _settings_default["care"] = {};
 _settings_default["care"]["default_groupby"] = {};
@@ -803,7 +805,8 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 }
 
 function get_years(section) {
-	var table_path = data_dir_path + "/" + section;
+	var section_path = storage_path + "/" + section
+	var table_path = section_path + "/student-microevents";
 	var year_month_string = moment().format("YYYY-MM");
 	var years;
 	if (!(dat[section]&&dat[section]["years"]) || !listed_year_on_month || (listed_year_on_month!=year_month_string)) {
@@ -1044,21 +1047,22 @@ function write_record_without_validation(req_else_null, section, date_array_else
 	else console.log(indent+"ERROR: missing local_time_zone during record save");
 	record.tz_offset_mins = moment().utcOffset();
 	//unique ones are below
-	if (!fs.existsSync(data_dir_path))
-		fs.mkdirSync(data_dir_path);
-	var signs_dir_name = null;
+	if (!fs.existsSync(storage_path))
+		fs.mkdirSync(storage_path);
 	
 	//write files
-	signs_dir_name = section;
-	var signs_dir_path = data_dir_path + "/" + signs_dir_name;
-	if (!fs.existsSync(signs_dir_path))
-		fs.mkdirSync(signs_dir_path);
+	var section_path = storage_path + "/" + section;
+	if (!fs.existsSync(section_path))
+		fs.mkdirSync(section_path);
+	var table_path = section_path + "/student-microevents";
+	if (!fs.existsSync(table_path))
+		fs.mkdirSync(table_path);
 	var y_dir_name = moment().format("YYYY");
 	if (date_array_else_null && date_array_else_null.length>=1) y_dir_name = fun.zero_padded(date_array_else_null[0], 4);
 	var stated_date_enable = false;
 	if (record.hasOwnProperty("stated_date")) stated_date_enable = true;
 	if (stated_date_enable) y_dir_name = record.stated_date.substring(0,4);
-	var y_dir_path = signs_dir_path + "/" + y_dir_name;
+	var y_dir_path = table_path + "/" + y_dir_name;
 	if (!fs.existsSync(y_dir_path))
 		fs.mkdirSync(y_dir_path);
 	var m_dir_name = moment().format("MM");
@@ -1476,7 +1480,8 @@ var hbs = exphbs.create({
 						ret += '  <tbody>'+"\n";
 
 						//NOTE: don't write rows yet--this loop prepares the data
-						var table_path = data_dir_path + "/" + section;
+						var section_path = storage_path + "/" + section
+						var table_path = section_path + "/student-microevents";
 						var y_path = table_path + "/" + selected_year;
 						var m_path = y_path + "/" + selected_month;
 						for (var day_i=0; day_i<days.length; day_i++) {
@@ -1706,7 +1711,7 @@ var hbs = exphbs.create({
 							ret += ' <div class="col-sm-4">'+"\n";
 							ret += "   <h3>Billing Cycle Designer</h3><br/>"+"\n";  // they probably want a month if auto select is enabled
 							var months = [];
-							table_path = data_dir_path + "/" + section;
+							table_path = storage_path + "/" + section;
 							var y_path = table_path + "/" + selected_year;
 							var y_i = parseInt(selected_year);
 							if (y_i===y_i) { //only not equal to itself if NaN
@@ -2313,7 +2318,8 @@ app.get('/', function(req, res){
 						user_modes_by_section[val].push("reports");
 					}
 				}
-		// 		table_path = data_dir_path + "/" + val;
+		// 		var section_path = storage_path + "/" + val;
+		//		var table_path = section_path + "/student-microevents";
 		// 		if (fs.existsSync(table_path)) {
 		// 			var y_dir_name = moment().format("YYYY");
 		// 			var m_dir_name = moment().format("MM");
@@ -2439,7 +2445,8 @@ app.get('/', function(req, res){
 				if (!dat) {
 					dat = {};
 				}
-				table_path = data_dir_path + "/" + section;
+				var section_path = storage_path + "/" + section;
+				var table_path = section_path + "/student-microevents";
 				if (!(dat[section]&&dat[section]["years"]) || !listed_year_on_month || (listed_year_on_month!=year_month_string)) {
 					listed_year_on_month = year_month_string;
 					if (fs.existsSync(table_path)) {
@@ -2657,7 +2664,8 @@ app.post('/autofill-query', function(req, res){
 		var section = req.body.section;
 		if (section && req.body.selected_year && req.body.selected_month) {// && req.body.selected_field) {
 			if (user_has_section_permission(req.user.username, section, "modify")) {
-				var table_path = data_dir_path + "/" + section;
+				var section_path = storage_path + "/" + section
+				var table_path = section_path + "/student-microevents";
 				var y_path = table_path + "/" + req.body.selected_year;
 				var m_path = y_path + "/" + req.body.selected_month;
 				//if (fs.existsSync(m_path)) {
@@ -2796,7 +2804,8 @@ app.post('/update-query', function(req, res){
 		var section = req.body.section;
 		if (section && req.body.selected_field) {
 			if (user_has_section_permission(req.user.username, section, "modify")) {
-				var table_path = data_dir_path + "/" + section;
+				var section_path = storage_path + "/" + section
+				var table_path = section_path + "/student-microevents";
 				var y_path = table_path + "/" + req.body.selected_year;
 				var m_path = y_path + "/" + req.body.selected_month;
 				//if (fs.existsSync(m_path)) {
@@ -2918,7 +2927,8 @@ app.post('/change-microevent-field', function(req, res){
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(req.user.username, section, "modify")) {
-			var table_path = data_dir_path + "/" + section;
+			var section_path = storage_path + "/" + section
+			var table_path = section_path + "/student-microevents";
 			var y_path = table_path + "/" + req.body.selected_year;
 			var m_path = y_path + "/" + req.body.selected_month;
 			var d_path = m_path + "/" + req.body.selected_day;
@@ -3043,7 +3053,8 @@ app.post('/split-entry', function(req, res){
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(req.user.username, section, "modify")) {
-			var table_path = data_dir_path + "/" + section;
+			var section_path = storage_path + "/" + section
+			var table_path = section_path + "/student-microevents";
 			var y_path = table_path + "/" + req.body.selected_year;
 			var m_path = y_path + "/" + req.body.selected_month;
 			var d_path = m_path + "/" + req.body.selected_day;
