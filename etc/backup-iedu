@@ -1,0 +1,27 @@
+#!/bin/sh
+app_name=integratoredu
+if [ ! -d "$app_name" ]; then
+  if [ -d "$HOME/Applications/$app_name" ]; then
+    cd "$HOME/Applications"
+    echo "looking in $(pwd)..."
+  fi
+fi
+if [ ! -d "$app_name" ]; then
+  if [ -d "$HOME/GitHub/$app_name" ]; then
+    cd "$HOME/GitHub"
+    echo "looking in $(pwd)..."
+  fi
+fi
+if [ ! -d "$app_name" ]; then
+  if [ -d "$HOME/Documents/GitHub/$app_name" ]; then
+    cd "$HOME/Documents/GitHub"
+    echo "looking in $(pwd)..."
+  fi
+fi
+echo "looking in current location $(pwd)..."
+if [ -d "$app_name" ]; then
+  echo "backing up $app_name..."
+  tar --exclude='node_modules' -czf $app_name-$(date '+%Y-%m-%d').tgz $app_name
+  else
+  echo "ERROR: Nothing done since $app_name directory could not be found in any expected locations. Try running this script from the working directory that contains $app_name or modifying this script."
+fi

@@ -8,14 +8,14 @@ unit_no=0
 storage_path="$repo_path/data"
 units_path="$storage_path/units"
 unit_path="$storage_path/units/$unit_no"
-#first convert in intermediate format that was used for part of the development process
+#first convert in intermediate structure that was used for part of the development process
 
 if [ ! -d "$unit_path" ]; then
-#region only do this if not in 0.2.0 format
-#(only do ANYTHING if not in the upgraded format)
+#region only do this if not in 0.2.0 structure
+#(only do ANYTHING if not in the upgraded structure)
 
-#first convert from original format, which is $storage_path/$section
-#             to development format, which is $storage_path/$section/student-microevents
+#first convert from original structure, which is $storage_path/$section
+#             to development structure, which is $storage_path/$section/student-microevents
 section=care
 if [ ! -d "$storage_path/$section/student-microevents" ]; then
   if [ ! -d "$unit_path" ]; then
@@ -24,6 +24,8 @@ if [ ! -d "$storage_path/$section/student-microevents" ]; then
     mkdir "$storage_path/$section"
     mv "$storage_path/$section-tmp" "$storage_path/$section/student-microevents"
   fi
+else
+  echo "already migrated to $storage_path/$section/student-microevents" 
 fi
 section=commute
 if [ ! -d "$storage_path/$section/student-microevents" ]; then
@@ -33,10 +35,14 @@ if [ ! -d "$storage_path/$section/student-microevents" ]; then
     mkdir "$storage_path/$section"
     mv "$storage_path/$section-tmp" "$storage_path/$section/student-microevents"
   fi
+else
+  echo "already migrated to $storage_path/$section/student-microevents"
 fi
 
-echo "successfully migrated to intermediate format"
+echo "successfully migrated to intermediate structure"
 exit 0
+echo ""
+echo "migrating to next structure..."
 #do next part as a second stage so this script will also work on the development version
 #(structure is being changed again shortly--see README)
 
@@ -48,11 +54,13 @@ if [ ! -f "$unit_path/unit.yml" ]; then
   if [ -f "$storage_path/settings.yml" ]; then
     mv "$storage_path/settings.yml" "$unit_path/unit.yml"
   fi
+else
+  echo "already migrated settings to $unit_path/unit.yml"
 fi
-#   convert from development format, which is $storage_path/$section/student-microevents
-#                      format 0.2.0, which is $unit_path/$section/$filedb_name/$category
-#                                     such as $unit_path/$section/microevents/student
-filedb_name="microevents"
+#   convert from development structure, which is $storage_path/$section/student-microevents
+#                      structure 0.2.0, which is $unit_path/$section/$filedb_name/$category
+#                                        such as $unit_path/$section/transactions/student
+filedb_name="transactions"
 category="student"
 
 section=care
@@ -85,5 +93,5 @@ if [ ! -d "$unit_path/$section/$filedb_name/$category" ]; then
 fi
 
 
-#endregion only do this if not in 0.2.0 format
+#endregion only do this if not in 0.2.0 structure
 fi
