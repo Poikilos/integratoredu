@@ -35,9 +35,10 @@ if [ ! -d "$storage_path/$section/student-microevents" ]; then
   fi
 fi
 
-
+echo "successfully migrated to intermediate format"
+exit 0
 #do next part as a second stage so this script will also work on the development version
-#(structure was changed again same day, to storage_path+"/units/"+unit_i+"microevents/student")
+#(structure is being changed again shortly--see README)
 
 # first make a unit and move settings into it (before, data structure was not taking into consideration multiple organizations or campuses)
 if [ ! -d "$unit_path" ]; then

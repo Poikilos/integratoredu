@@ -5,7 +5,7 @@ http://github.com/expertmm/integratoredu
 This web app is under heavy development. Please use a release version (releases are, however, not production ready) by clicking "release(s)" above.
 For release notes, see a release or the "etc" folder.
 
-commit notes: do not use etc/upgrade-data-20171008 yet, since app.js doesn't implement the release pre-0.2.0 structure yet.
+commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
 * (2017-11-08) 12:15PM changed data structure and modified /etc/upgrade-data-20171008 migration script. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008 (then you can start again)
