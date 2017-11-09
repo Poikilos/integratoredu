@@ -62,3 +62,4 @@ typings/
 /.README.md.kate-swp
 /.app.js.kate-swp
 /package-lock.json
+/err.txt

@@ -1,0 +1,12 @@
+#!/bin/sh
+oi_path=outputinspector
+try_path="$HOME/Documents/GitHub/build-outputinspector-Desktop-Debug/outputinspector"
+if [ -f "$try_path" ]; then
+  oi_path="$try_path"
+fi
+try_path="$HOME/Documents/GitHub/build-outputinspector-Desktop-Release/outputinspector"
+if [ "$oi_path" -ot "$try_path" ]; then
+  oi_path="$try_path"
+fi
+$oi_path
+
