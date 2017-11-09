@@ -1,4 +1,11 @@
 #!/bin/sh
+if [ -d "../../integratoredu" ]; then
+  cd ..
+fi
+echo "looking in $(pwd)"
+
+jshint app.js > err.txt
+jshint functions.js >> err.txt
 oi_path=outputinspector
 try_path="$HOME/Documents/GitHub/build-outputinspector-Desktop-Debug/outputinspector"
 if [ -f "$try_path" ]; then
@@ -8,5 +15,5 @@ try_path="$HOME/Documents/GitHub/build-outputinspector-Desktop-Release/outputins
 if [ "$oi_path" -ot "$try_path" ]; then
   oi_path="$try_path"
 fi
-$oi_path
+$oi_path &
 

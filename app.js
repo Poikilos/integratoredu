@@ -127,55 +127,55 @@ section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_le
 section_form_fields["commute"] = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
 
 var field_lookup_values = {};
-field_lookup_values["heading"] = ["in", "out"]
+field_lookup_values["heading"] = ["in", "out"];
 
 var section_form_collapsed_fields = {};
 section_form_collapsed_fields["care"] = ["family_id", "stated_time", "stated_date"];
 section_form_collapsed_fields["commute"] = ["stated_time", "stated_date", "pin"];
 
 var section_form_friendly_names = {};
-section_form_friendly_names["care"] = {};
-section_form_friendly_names["care"]["first_name"] = "Student First Name";
-section_form_friendly_names["care"]["last_name"] = "Student Last Name";
-section_form_friendly_names["care"]["chaperone"] = "Pickup/Dropoff By";
-section_form_friendly_names["care"]["grade_level"] = "Grade";
-section_form_friendly_names["care"]["stated_time"] = "Time (blank for auto, otherwise specify AM or PM)";
-section_form_friendly_names["care"]["stated_date"] = "Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
-section_form_friendly_names["care"]["family_id"] = "Family ID (if applicable)";
-section_form_friendly_names["care"]["pin"] = "override pin";
-section_form_friendly_names["commute"] = {};
-section_form_friendly_names["commute"]["name"] = "Name";
-section_form_friendly_names["commute"]["grade_level"] = "Grade";
-section_form_friendly_names["commute"]["heading"] = "Heading";
-section_form_friendly_names["commute"]["reason"] = "Reason";
-section_form_friendly_names["commute"]["stated_time"] = "Custom Time (blank for auto, otherwise specify AM or PM)";
-section_form_friendly_names["commute"]["stated_date"] = "Custom Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
-section_form_friendly_names["commute"]["pin"] = "override pin";
+section_form_friendly_names.care = {};
+section_form_friendly_names.care["first_name"] = "Student First Name";
+section_form_friendly_names.care["last_name"] = "Student Last Name";
+section_form_friendly_names.care["chaperone"] = "Pickup/Dropoff By";
+section_form_friendly_names.care["grade_level"] = "Grade";
+section_form_friendly_names.care["stated_time"] = "Time (blank for auto, otherwise specify AM or PM)";
+section_form_friendly_names.care["stated_date"] = "Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
+section_form_friendly_names.care["family_id"] = "Family ID (if applicable)";
+section_form_friendly_names.care["pin"] = "override pin";
+section_form_friendly_names.commute = {};
+section_form_friendly_names.commute["name"] = "Name";
+section_form_friendly_names.commute["grade_level"] = "Grade";
+section_form_friendly_names.commute["heading"] = "Heading";
+section_form_friendly_names.commute["reason"] = "Reason";
+section_form_friendly_names.commute["stated_time"] = "Custom Time (blank for auto, otherwise specify AM or PM)";
+section_form_friendly_names.commute["stated_date"] = "Custom Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
+section_form_friendly_names.commute["pin"] = "override pin";
 
 var section_sheet_fields = {};
 section_sheet_fields["care"] = ["family_id", "=caretime()", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"]
 section_sheet_fields["commute"] = ["=get_date_from_path()", "time", "name", "grade_level"]
 
 var section_sheet_fields_friendly_names = {}
-section_sheet_fields_friendly_names["care"] = {}
-section_sheet_fields_friendly_names["care"]["=get_date_from_path()"] = "Stored";
-section_sheet_fields_friendly_names["care"]["=careprice()"] = "Accrued";
-section_sheet_fields_friendly_names["care"]["first_name"] = "First";
-section_sheet_fields_friendly_names["care"]["last_name"] = "Last";
-section_sheet_fields_friendly_names["care"]["grade_level"] = "Grade Level";
-section_sheet_fields_friendly_names["care"]["family_id"] = "FamilyID";
-section_sheet_fields_friendly_names["care"]["time"] = "Time";
-section_sheet_fields_friendly_names["care"]["qty"] = "Count";
-section_sheet_fields_friendly_names["commute"] = {}
-section_sheet_fields_friendly_names["commute"]["=get_date_from_path()"] = "Date";
-section_sheet_fields_friendly_names["commute"]["grade_level"] = "Grade Level";
-//section_sheet_fields_friendly_names["commute"]["time"] = "Time";
+section_sheet_fields_friendly_names.care = {}
+section_sheet_fields_friendly_names.care["=get_date_from_path()"] = "Stored";
+section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued";
+section_sheet_fields_friendly_names.care["first_name"] = "First";
+section_sheet_fields_friendly_names.care["last_name"] = "Last";
+section_sheet_fields_friendly_names.care["grade_level"] = "Grade Level";
+section_sheet_fields_friendly_names.care["family_id"] = "FamilyID";
+section_sheet_fields_friendly_names.care["time"] = "Time";
+section_sheet_fields_friendly_names.care["qty"] = "Count";
+section_sheet_fields_friendly_names.commute = {}
+section_sheet_fields_friendly_names.commute["=get_date_from_path()"] = "Date";
+section_sheet_fields_friendly_names.commute["grade_level"] = "Grade Level";
+//section_sheet_fields_friendly_names.commute["time"] = "Time";
 
 
 //var section_sheet_fields_names = {};
-//section_sheet_fields_names["care"] = {};
-//section_sheet_fields_names["care"]["time"] = "Time";
-//section_sheet_fields_names["care"]["=get_date_from_path()"] = "Date";
+//section_sheet_fields_names.care = {};
+//section_sheet_fields_names.care["time"] = "Time";
+//section_sheet_fields_names.care["=get_date_from_path()"] = "Date";
 
 //used for spreadsheet view/export (such as: change time to stated_time if stated_time was specified by user)
 var section_fields_overrides = {};
@@ -1843,7 +1843,7 @@ var hbs = exphbs.create({
 			//section_form_fields["care"] = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
 			//field_lookup_values["heading"] = ["in", "out"]
 			//section_form_collapsed_fields["care"] = ["family_id", "stated_time", "stated_date"];
-			//section_form_friendly_names["care"]["first_name"] = "Student First Name";
+			//section_form_friendly_names.care["first_name"] = "Student First Name";
 			//prefill_data_by_user
 			if (!prefill) {
 				prefill={}; //prevent crashes related to "in" keyword
