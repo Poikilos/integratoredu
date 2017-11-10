@@ -1,0 +1,144 @@
+#!/bin/sh
+echo
+echo
+
+oi_bin=outputinspector
+oi_path=$(command -v $oi_bin)
+oi_debug_dir="$HOME/Documents/GitHub/build-outputinspector-Desktop-Debug"
+oi_release_dir="$HOME/Documents/GitHub/build-outputinspector-Desktop-Release"
+#ALWAYS use quotes after -f since [ -f ] returns true
+if [ ! -f "$oi_path" ]; then
+  try_path="$oi_debug_dir/outputinspector"
+  if [ -f "$try_path" ]; then
+    oi_path="$try_path"
+  fi
+  try_path="$oi_release_dir/outputinspector"
+  if [ "$oi_path" -ot "$try_path" ]; then
+    oi_path="$try_path"
+  fi
+fi
+
+echo
+if [ ! -d "etc" ]; then
+  cd ..
+fi
+if [ ! -d "etc" ]; then
+  cd ..
+fi
+if [ ! -d "ect" ]; then
+  echo
+  echo
+  echo "WARNING:"
+  echo "This code quality script must be placed in the etc folder"
+  echo " of your repo in order to jump back and forth between its data"
+  echo " and yours. Continuing anyway (may not be able to close"
+  echo " old copies of outputinspector)..."
+  echo
+fi
+#NOTE: -s can be used instead to check that file exists and size>0
+if [ -f "etc/quality.tmp" ]; then
+  echo "found quality.tmp at:"
+  realpath etc/quality.tmp
+  oi_pid=$(cat etc/quality.tmp)
+  rm etc/quality.tmp
+  #-z means empty
+  if [ ! -z $oi_pid ]; then
+    #echo "stopping $io_pid"
+    #kill $oi_pid
+    #if kill $oi_pid > /dev/null 2>&1; then
+    #fi
+    kill $oi_pid
+  fi
+fi
+
+#if [ -d "etc" ]; then
+#  cd etc
+#fi
+echo "running code quality script in $(pwd)"
+
+# notes on js linting commands and their linux package names
+# (some packages may also be available as npm packages
+# * if command is jslint: nodejs-jslinter or jslint
+# * if command is jshlint: jshlint (by sudokode)
+# * if command is jshint: nodejs-jshint
+# * upstream jslint (douglascrockford) is static javascript page: none
+
+q_bin=jslint
+#NOTE: as long as q_bin_original is jslint, the list of node.js code quality tools will appear if none are found.
+q_bin_original=$q_bin
+q_path=$(command -v $q_bin)
+# notes on other tools:
+# * package named jslint won't work since client script (delivered by node)
+# * jshlint (jslint in a console) is comparable to js
+# * jslinter (command is still jslint)  
+#   * is a server-side API in addition to a shell command
+#   * similar to jshlint but passes jslint & syncs to upstream
+
+
+#silently detect an alternative code quality binary:
+if [ ! -f "$q_path" ]; then
+  if [ "$q_bin" = "jslint" ]; then
+    q_bin=jshint
+    q_path=$(command -v $q_bin)
+    #NOTE: ALWAYS use quotes, since if blank value, [ -f ] returns true!
+    if [ ! -f "$q_path" ]; then
+      q_bin=jshlint
+      q_path=$(command -v $q_bin)
+    fi
+  fi
+fi
+
+#then check again whether it exists:
+if [ ! -f "$q_path" ]; then
+  if [ "q_bin_original" = "jslint" ]; then
+    echo
+    echo "you must install a code quality tool that"
+    echo "can process node.js or javascript first, "
+    echo "such as:"
+    echo "* jslint via the nodejs-jslint package"
+    echo "      or via the jslint npm package"
+    echo "      (both packages are reid's node-jslint project on GitHub)"
+    echo "  (as opposed to the html+javascript page jslint by douglascrockford)"
+    echo "* jshint via the nodejs-jshint package"
+    echo
+    echo "or modify this script to use yours by changing the value for q_bin"
+    echo
+    echo
+  else
+    echo
+    echo "You must install $q_bin_original in order to use this code quality script."
+    echo
+    echo
+  fi
+  exit 1
+else
+  echo "Detected code quality tool: $q_bin."
+fi
+
+$q_bin app.js > err.txt
+$q_bin functions.js >> err.txt
+
+if [ -f "$oi_path" ]; then
+  "$oi_path" &
+  oi_pid=$!
+  #save pid so on next run we can kill only this outputinspector instance and not other instances run not run by this script that may be checking other projects on same machine
+  echo $oi_pid > quality.tmp
+  if [ ! -d etc ]; then 
+    cd ..
+  fi
+  if [ -d etc ]; then
+    cd etc
+  fi
+else
+  echo "outputinspector was not found."
+  echo "(to automate jumping to the line of your code quality issue in your source code in Kate,"
+  echo " outputinspector must be installed, usually via its install script, or outputinspector binary must be built and be in:"
+  echo " $oi_release_dir"
+  echo " or"
+  echo " $oi_debug_dir)"
+  echo
+fi
+
+
+echo
+echo

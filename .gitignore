@@ -63,3 +63,5 @@ typings/
 /.app.js.kate-swp
 /package-lock.json
 /err.txt
+/etc/quality.tmp
+/quality.tmp
