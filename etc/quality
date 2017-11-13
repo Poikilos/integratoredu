@@ -25,7 +25,7 @@ fi
 if [ ! -d "etc" ]; then
   cd ..
 fi
-if [ ! -d "ect" ]; then
+if [ ! -d "etc" ]; then
   echo
   echo
   echo "WARNING:"
@@ -122,13 +122,13 @@ if [ -f "$oi_path" ]; then
   "$oi_path" &
   oi_pid=$!
   #save pid so on next run we can kill only this outputinspector instance and not other instances run not run by this script that may be checking other projects on same machine
-  echo $oi_pid > quality.tmp
   if [ ! -d etc ]; then 
     cd ..
   fi
   if [ -d etc ]; then
     cd etc
   fi
+  echo $oi_pid > quality.tmp
 else
   echo "outputinspector was not found."
   echo "(to automate jumping to the line of your code quality issue in your source code in Kate,"

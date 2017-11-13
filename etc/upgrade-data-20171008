@@ -3,11 +3,22 @@ repo_path=.
 if [ -d ../data ]; then
   repo_path=..
 fi
+if [ ! -d "$repo_path/data" ]; then
+  echo
+  echo
+  echo "ERROR: Nothing done since cannot find 'data' directory. This script is only necessary for an existing installation with data, and must be run from the main repository folder or etc under it (otherwise script repo_path must be manually be modified before running script)."
+  echo
+  echo
+  exit 1
+fi
 #unit_no is same for whole campus:
 unit_no=0
 storage_path="$repo_path/data"
+
+#Final structure:
 units_path="$storage_path/units"
 unit_path="$storage_path/units/$unit_no"
+
 #first convert in intermediate structure that was used for part of the development process
 
 if [ ! -d "$unit_path" ]; then
@@ -16,36 +27,34 @@ if [ ! -d "$unit_path" ]; then
 
 #first convert from original structure, which is $storage_path/$section
 #             to development structure, which is $storage_path/$section/student-microevents
-section=care
+#section=care
+upgrade_to_intermediate() {
+section=$1
 if [ ! -d "$storage_path/$section/student-microevents" ]; then
   if [ ! -d "$unit_path" ]; then
     #only make if intermediate structure does not already exist
     mv "$storage_path/$section" "$storage_path/$section-tmp"
     mkdir "$storage_path/$section"
     mv "$storage_path/$section-tmp" "$storage_path/$section/student-microevents"
+    echo "successfully migrated $section to intermediate structure"
+  else
+    echo "$section was already migrated to final structure (units)"
   fi
 else
-  echo "already migrated to $storage_path/$section/student-microevents" 
+  echo "already migrated to intermediate structure: $storage_path/$section/student-microevents" 
 fi
-section=commute
-if [ ! -d "$storage_path/$section/student-microevents" ]; then
-  if [ ! -d "$unit_path" ]; then
-    #only make if intermediate structure does not already exist
-    mv "$storage_path/$section" "$storage_path/$section-tmp"
-    mkdir "$storage_path/$section"
-    mv "$storage_path/$section-tmp" "$storage_path/$section/student-microevents"
-  fi
-else
-  echo "already migrated to $storage_path/$section/student-microevents"
-fi
+}
+#section=commute
+upgrade_to_intermediate "care"
+upgrade_to_intermediate "commute"
 
-echo "successfully migrated to intermediate structure"
 exit 0
 echo ""
 echo "migrating to next structure..."
 #do next part as a second stage so this script will also work on the development version
 #(structure is being changed again shortly--see README)
 
+#region applies to all categories
 # first make a unit and move settings into it (before, data structure was not taking into consideration multiple organizations or campuses)
 if [ ! -d "$unit_path" ]; then
   mkdir "$unit_path"
@@ -62,8 +71,11 @@ fi
 #                                        such as $unit_path/$section/transactions/student
 filedb_name="transactions"
 category="student"
+#endregion applies to all categories
 
-section=care
+#section=care
+upgrade_to_final() {
+section=$1
 if [ ! -d "$unit_path/$section" ]; then
   mv "$storage_path/$section" "$unit_path/$section"
 fi
@@ -74,24 +86,14 @@ if [ ! -d "$unit_path/$section/$filedb_name/$category" ]; then
   if [ -d "$unit_path/$section/student-microevents" ]; then
   mv "$unit_path/$section/student-microevents" "$unit_path/$section/$filedb_name/$category"
   else
-  echo "ERROR converting: unknown directory structure, since $unit_path/$section/student-microevents does not exist"
+  echo "ERROR converting: unknown existing directory structure (or previous function upgrade_to_intermediate failed), since $unit_path/$section/student-microevents does not exist"
   fi
 fi
-section=commute
-if [ ! -d "$unit_path/$section" ]; then
-  mv "$storage_path/$section" "$unit_path/$section"
-fi
-if [ ! -d "$unit_path/$section/$filedb_name" ]; then
-  mkdir "$unit_path/$section/$filedb_name"
-fi
-if [ ! -d "$unit_path/$section/$filedb_name/$category" ]; then
-  if [ -d "$unit_path/$section/student-microevents" ]; then
-  mv "$unit_path/$section/student-microevents" "$unit_path/$section/$filedb_name/$category"
-  else
-  echo "ERROR converting: unknown directory structure, since $unit_path/$section/student-microevents does not exist"
-  fi
-fi
-
-
+}
+upgrade_to_final "care"
+upgrade_to_final "commute"
+#section=commute
 #endregion only do this if not in 0.2.0 structure
+else
+echo "Nothing to do--already in final structure"
 fi

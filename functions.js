@@ -29,7 +29,7 @@ exports.localReg = function (username, password) {
 			//check if username is already assigned in our database
 			collection.findOne({'username' : username})
 			.then(function (result) {
-				if (null != result) {
+				if (result !== null) {
 					console.log("USERNAME ALREADY EXISTS:", result.username);
 					//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead--removing the collection removes all users)
 					//if (result.username=="attendance") {
@@ -44,7 +44,7 @@ exports.localReg = function (username, password) {
 						"username": username,
 						"password": hash
 						//"avatar": "sign/users/profilepics/" + username + ".jpg"
-					}
+					};
 
 				console.log("CREATING USER:", username);
 
@@ -60,18 +60,18 @@ exports.localReg = function (username, password) {
 			user = {};
 			if (err) user.error = err;
 			else user.error = "Cannot connect to database (database did not reply with error).";
-			console.log("localReg CANNOT CONNECT TO DATABASE: " + user.error)
+			console.log("localReg CANNOT CONNECT TO DATABASE: " + user.error);
 			deferred.resolve(user);
 		}
         });
     }
     else {
-        console.log("localReg: MISSING PASSWORD")
+        console.log("localReg: MISSING PASSWORD");
         deferred.resolve(false);
     }
   }
   else {
-    console.log("localReg: MISSING USERNAME")
+    console.log("localReg: MISSING USERNAME");
     deferred.resolve(false);
   }
 
@@ -84,14 +84,12 @@ exports.localReg = function (username, password) {
   //if user doesn't exist or password doesn't match tell them it failed
 exports.localAuth = function (username, password) {
   var deferred = Q.defer();
-
   MongoClient.connect(mongodbUrl, function (err, db) {
-      
     var collection = db.collection('localUsers');
     if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
     collection.findOne({'username' : username})
       .then(function (result) {
-        if (null == result) {
+        if (null === result) {
           console.log("USERNAME NOT FOUND:", username);
 
           deferred.resolve(false);
@@ -112,9 +110,8 @@ exports.localAuth = function (username, password) {
         db.close();
       });
   });
-
   return deferred.promise;
-}
+};
 
 
 
@@ -131,29 +128,29 @@ exports.getDirectories = function(path) {
 	return fs.readdirSync(path).filter(function (file) {
 		return fs.statSync(path+'/'+file).isDirectory();
 	});
-}
+};
 
 exports.getFiles = function(path) {
 	return fs.readdirSync(path).filter(function (file) {
 		return !fs.statSync(path+'/'+file).isDirectory();
 	});
-}
+};
 //versions below ignore if starting with "."
 exports.getVisibleDirectories = function(path) {
 	return fs.readdirSync(path).filter(function (file) {
 		return fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
 	});
-}
+};
 
 exports.getVisibleFiles = function(path) {
 	return fs.readdirSync(path).filter(function (file) {
 		return !fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
 	});
-}
+};
 
 exports.contains = function(haystack, needle) {
 	return haystack.indexOf(needle) > -1;
-}
+};
 
 exports.array_contains = function(haystack, needle) {
 	//NOTE: do NOT use haystack.includes(needle), since that is hidden behind harmony flags in node.js for backward compatibility
@@ -166,14 +163,14 @@ exports.array_contains = function(haystack, needle) {
 		}
 	}
 	return false;
-}
+};
 
 exports.zero_padded = function(str, len) {
 	var result = str;
 	if (typeof(str)!="string") result = ""+str;
 	while (result.length<len) result = "0"+result;
 	return result;
-}
+};
 
 //Like in python, "Return the base name of pathname path. This is the second element of the pair returned by passing path to the function split(). Note that the result of this function is different from the Unix basename program; where basename for '/foo/bar/' returns 'bar', the basename() function returns an empty string ('')."
 exports.basename = function(path) {
@@ -186,7 +183,7 @@ exports.basename = function(path) {
 		//else result is param given (as initialized)
 	}
 	return result;
-}
+};
 
 //Like in python, "Split the pathname path into a pair (root, ext) such that root + ext == path, and ext is empty or begins with a period and contains at most one period. Leading periods on the basename are ignored; splitext('.cshrc') returns ('.cshrc', '')."
 exports.splitext = function(path) {
@@ -196,7 +193,7 @@ exports.splitext = function(path) {
 		var last_slash_i = path.lastIndexOf('/');
 		if (last_dot_i>-1) {
 			if (last_slash_i<=-1 || last_dot_i>last_slash_i) {
-				if ((last_slash_i<=-1&&last_dot_i!=0)||(last_slash_i>-1&&last_dot_i!=last_slash_i+1)) {
+				if ((last_slash_i<=-1&&last_dot_i!==0)||(last_slash_i>-1&&last_dot_i!==last_slash_i+1)) {
 					chunks[0] = path.substring(0,last_dot_i);
 					chunks[1] = path.substring(last_dot_i+1);
 				}
@@ -207,7 +204,7 @@ exports.splitext = function(path) {
 		else chunks[0] = path; //no extension, since no dot
 	}
 	return chunks;
-}
+};
 
 
 /*
@@ -267,7 +264,7 @@ exports.get_human_delimited_values = function(input_string) {
 		}
 	}
 	return result;
-}
+};
 
 
 
@@ -285,13 +282,14 @@ exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
 		}
 	}
 	return result;
-}
+};
 
 
 exports.is_blank = function (str) {
 	//if trimmed to a blank string, then is blank
 	//not equal to self implies value is NaN in str!==str below--NaN is considered not blank.
 	//regarding non-string tests below, see similar topic: https://stackoverflow.com/questions/19839952/all-falsey-values-in-javascript
+	//                                                                                                to check for NaN, MUST DO (str!==str)
 	return (   ( (typeof(str)=="string") && str.trim()==="" )   ||   (  (!str) && (str!==false) && (str!==0) && (str!==-0) && (!(str!==str))  )   );
 	//return str===null  ||  str.trim  &&  (  || (str.trim()==="") ); //|| (str===undefined) || (str===null) || (str==="") 
 	//if (typeof(str)=="string") console.log("[ verbose message ] is string:");
@@ -299,18 +297,18 @@ exports.is_blank = function (str) {
 	//if (result) console.log("  [ verbose message ] is blank: "+str);
 	//else console.log("  [ verbose message ] is not blank: "+str);
 	//return result;
-}
+};
 
 exports.is_true = function (str) {
 	var str_lower = null;
 	if ((typeof str)=="string") str_lower=str.toLowerCase();
 	return (str===true) || ((str_lower!==null) && (str=="1"||str_lower=="true"||str_lower=="yes"||str_lower=="on"));
-}
+};
 
 exports.is_not_blank = function (str) {
 	//return str && str.trim();
     return !exports.is_blank(str);
-}
+};
 
 exports.to_ecmascript_value = function (val) {
 	var result = "\"<error reading variable>\"";
@@ -319,4 +317,4 @@ exports.to_ecmascript_value = function (val) {
 	else if ((typeof val)=="string") result="\""+val+"\"";
 	else result = JSON.stringify(val);
 	return result;
-}
+};
