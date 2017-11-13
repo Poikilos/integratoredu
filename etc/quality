@@ -37,24 +37,28 @@ if [ ! -d "etc" ]; then
 fi
 #NOTE: -s can be used instead to check that file exists and size>0
 if [ -f "etc/quality.tmp" ]; then
-  echo "found quality.tmp at:"
-  realpath etc/quality.tmp
+  #echo "found quality.tmp at:"
+  #realpath etc/quality.tmp
+  echo "looking for known outputinspector processes ids..."
   oi_pid=$(cat etc/quality.tmp)
   rm etc/quality.tmp
   #-z means empty
   if [ ! -z $oi_pid ]; then
     #echo "stopping $io_pid"
     #kill $oi_pid
-    #if kill $oi_pid > /dev/null 2>&1; then
-    #fi
-    kill $oi_pid
+    if kill $oi_pid > /dev/null 2>&1; then
+      echo "stopped outputinspector"
+	#else
+    #  echo "did not stop outputinspector"
+    fi
+    #kill $oi_pid
   fi
 fi
 
 #if [ -d "etc" ]; then
 #  cd etc
 #fi
-echo "running code quality script in $(pwd)"
+echo "running code quality script on target: $(pwd)"
 
 # notes on js linting commands and their linux package names
 # (some packages may also be available as npm packages
