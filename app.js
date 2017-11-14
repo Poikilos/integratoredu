@@ -244,6 +244,7 @@ _settings_default.care.local_start_time = '08:10:00';
 _settings_default.care.local_end_time = '15:05:00';
 _settings_default.care.bill_iso_day_of_week = 5;
 _settings_default.care.reports = {};
+_settings_default.care.reports.suggest_missing_required_fields_enable = true; //may cause slowness with loading reports when required fields are blank
 _settings_default.care.reports.selected_field_default = "family_id";
 _settings_default.care.reports.auto_select_month_enable = true;
 _settings_default.care.reports.years_heading = "<h3>Billing</h3>";
@@ -252,6 +253,9 @@ _settings_default.care.list_implies_qty = "first_name";
 _settings_default.care.list_implies_multiple_entries = "last_name";
 _settings_default.care.list_implies_multiple_entries_paired_with = "first_name";
 _settings_default.care.list_implies_multiple_entries_paired_with_unless_has_one = "grade_level";
+_settings_default.care.autofill_equivalents = {}; //stores lists of irregular values (must be lowercase!) where key is normal value (any case but case will be used for normalized value)
+_settings_default.care.autofill_equivalents.grade_level = {};
+_settings_default.care.autofill_equivalents.grade_level["k5"] = ["k","k-5", "k 5", "kindergarten"];
 _settings_default.care.autofill_requires = {};
 _settings_default.care.autofill_requires.family_id = ["first_name", "last_name", "grade_level"];
 _settings_default.care.autofill_requires.qty = ["first_name"];
@@ -263,6 +267,7 @@ _settings_default.commute.local_start_time = '08:10:00';
 _settings_default.commute.local_end_time = '15:05:00';
 _settings_default.commute.history_sheet_fields = ["time", "name", "grade_level"];  // "=get_date_from_path()", 
 _settings_default.commute.reports = {};
+_settings_default.commute.reports.suggest_missing_required_fields_enable = true; //may cause slowness with loading reports when required fields are blank
 _settings_default.commute.reports.auto_select_month_enable = true; //ok since in reports section
 _settings_default.commute.mode_priority = ["reports","create", "read"];
 //var startTimeString = startTime.format("HH:mm:ss");
@@ -301,6 +306,7 @@ _permissions.attendance.commute = ["create", "read", "reports"];
 
 //returns true if modified record (never true if write_to_record_enable is false)
 function autofill(section, record, write_to_record_enable) {
+	var allow_blanks_enable = false; //close to impossible since don't know the missing field values so can't get appropriate cache without deep search and allowing people with same first and last name to be incorrectly marked with grade_level of person with same name as other grade
 	var results = {};
 	results.filled_fields = [];
 	if (section) {
@@ -309,18 +315,52 @@ function autofill(section, record, write_to_record_enable) {
 			for (var requirer in _settings[section].autofill_requires) {
 				var present_count = 0;
 				var combined_primary_key = null;
+				var blanks_count = 0; //in case form was not validated, allow blanks as counting toward requirements
 				for (i=0; i<_settings[section].autofill_requires[requirer].length; i++) {
-					var key = _settings[section].autofill_requires[requirer][i];
-					var val = "";
-					if (record.hasOwnProperty(key)) {
-						if (combined_primary_key===null) combined_primary_key = record[key].replaceAll("+","&").toLowerCase().trim();
-						else combined_primary_key += "+" + record[key].replaceAll("+","&").toLowerCase().trim();
-						present_count++;
-						//console.log("[ ?@ ] verbose message: "+key+" present");
+					if (_settings[section].autofill_requires[requirer][i]!=undefined) {
+						console.log("[ ~ ] using value "+_settings[section].autofill_requires[requirer][i]);
+						var key = _settings[section].autofill_requires[requirer][i];
+						if (write_to_record_enable) {
+							if (has_setting(section+".autofill_equivalents."+key)) {
+								console.log("[ ~ ] checked irregularity list: found list for "+key+" in "+section);
+								irregularity_lists = peek_setting(section+".autofill_equivalents."+key);
+								for (var normal_value_as_key in irregularity_lists) {
+									if (irregularity_lists.hasOwnProperty(normal_value_as_key)) {
+										var irregularity_list = irregularity_lists[normal_value_as_key];
+										for (var irregular_value in irregularity_list) {
+											if (record[key].toLowerCase() == irregular_value) {
+												console.log("[ ~ ] normalizing "+record.key+" value "+record[key]+" in "+section+" to new value "+normal_value_as_key);
+												record[key] = normal_value_as_key;
+												results.filled_fields.push(key);
+											}
+										}
+									}
+								}
+							}
+							else {
+								console.log("[ ~ ] checked irregularity list: none for " + key + " in " + section);
+							}
+						}
+						
+						var val = "";
+						if (record.hasOwnProperty(key)) {
+							if (combined_primary_key===null) combined_primary_key = record[key].replaceAll("+","&").toLowerCase().trim();
+							else combined_primary_key += "+" + record[key].replaceAll("+","&").toLowerCase().trim();
+							present_count++;
+							console.log("[ ?@ ] verbose message: "+key+" present");
+						}
+						else {
+							if (allow_blanks_enable) {
+								blanks_count++;
+								//NOTE: can't autofill here, since can't possibly meet all required fields for an autofill since key is an autofill requirement
+							}
+						}
+						//else console.log("[ ?@ ] verbose message: "+key+" not present");
 					}
-					//else console.log("[ ?@ ] verbose message: "+key+" not present");
+					else console.log("ERROR: index "+i+" in autofill_requires for section "+section+" property "+requirer+" is undefined!");
 				}
-				if (present_count>0 && present_count==_settings[section].autofill_requires[requirer].length) {  //id_user_within_microevent[section].length) {
+				if (present_count>0 && (present_count==_settings[section].autofill_requires[requirer].length)
+				                       || ((present_count>=2) && (present_count+blanks_count==_settings[section].autofill_requires[requirer].length)) ) {  //id_user_within_microevent[section].length) {
 					console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
 					if (!record.hasOwnProperty(requirer)) {
 						if (write_to_record_enable) {
@@ -1680,6 +1720,72 @@ var hbs = exphbs.create({
 												ret += '</form>'+"\n";
 											}
 										}
+									}
+									
+									if (fun.is_blank(item[column_name])) {
+										if (has_setting(section+".reports.suggest_missing_required_fields_enable")) {
+											if (fun.is_true(peek_setting(section+".reports.suggest_missing_required_fields_enable"))) {
+												//if is an autofill requirement and is blank suggest value based on remaining fields:
+												if (has_setting(section+".autofill_requires")) {
+													for (var requirer in _settings[section].autofill_requires) {
+														var requirements = _settings[section].autofill_requires[requirer];
+														if (requirements.length>1) {
+															console.log("[ ] verbose message: found requirements "+JSON.stringify(requirements));
+															if (fun.array_contains(requirements, column_name)) {  // if (requirements.hasOwnProperty(column_name)) { //doesn't work
+																if (section in autofill_cache) {
+																	if (requirer in autofill_cache[section]) {
+																		for (var combined_primary_key in autofill_cache[section][requirer]) {
+																			var match_count=0;
+																			var suggested_val=null;
+																			var good_values = combined_primary_key.split("+");
+																			var debug_stack = [];
+																			for (var gv_i=0; gv_i<good_values.length; gv_i++) {
+																				//NOTE: gv_i should be exactly the same index in requirements since autofill_cache entries are based on requirements array
+																				if (item[requirements[gv_i]]!=undefined) {
+																					if (item[requirements[gv_i]].toLowerCase()==good_values[gv_i]) {
+																						match_count++;
+																					}
+																					else suggested_val = good_values[gv_i];
+																					debug_stack.push(item[requirements[gv_i]]);
+																				}
+																				else console.log("[ ]   ERROR: no "+requirements[gv_i]+" in item "+item.key+" only "+JSON.stringify(item));
+																			}
+																			//if (requirements!=undefined) {
+																				if (match_count>=requirements.length-1) { //if only misssing one value
+																					ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
+																					ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
+																					ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
+																					ret += '  <input type="hidden" name="mode" id="mode" value="reports"/>'+"\n";
+																					ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>'+"\n";
+																					ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>'+"\n";
+																					ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>'+"\n";
+																					ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
+																					ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n"; //SET missing required field
+																					ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>'+"\n";
+																					ret += '  <button class="btn btn-warning" type="submit">Set to '+suggested_val+'</button>'+"\n";
+																					ret += '</form>'+"\n";
+																				}
+																				else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
+																			//}
+																			//else console.log("[ ]   ERROR: no requirements are specified for "+column_name+" "+JSON.stringify(requirements));
+																		}
+																	}
+																	else console.log("[ ]   WARNING: nothing to suggest since no "+requirer+" for "+section+" in autofill_cache");
+																}
+																else console.log("[ ]   WARNING: nothing to suggest since no "+section+" in autofill_cache");
+																console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
+																break;
+															}
+															else console.log("[ ]   verbose message: "+column_name+" is not required for autofill of "+requirer);
+														}
+														//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested"); 
+													}
+												}
+												else console.log("[ ] WARNING: nothing to suggest since no autofill_requires for "+section);
+											}
+											else console.log("[ ] verbose message: suggestion of missing required values is not enabled");
+										}
+										else console.log("[ ] WARNING: missing setting "+section+".reports.suggest_missing_required_fields_enable");
 									}
 								}
 								
