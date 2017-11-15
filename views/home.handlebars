@@ -108,7 +108,7 @@
 		{{/if_eq}} {{!--end if mode is read--}}
 
 		{{#if_eq mode "reports"}}
-		{{show_reports "false" section user.username years months days selected_year selected_month selected_day section_report_edit_field}}
+		{{show_reports "false" section user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
 		{{/if_eq}} {{!--end if mode is report--}}
 		
 		{{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
@@ -118,6 +118,7 @@
 		<br/>
 		</div>
 	</div><!--end row-->
+	{{show_billing_cycle_preview section user.username selected_number}}
 {{else}}
 <div class="jumbotron">
 	<h1>IntegratorEdu</h1>

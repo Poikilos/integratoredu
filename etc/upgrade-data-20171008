@@ -21,8 +21,10 @@ unit_path="$storage_path/units/$unit_no"
 
 #first convert in intermediate structure that was used for part of the development process
 
-if [ ! -d "$unit_path" ]; then
-#region only do this if not in 0.2.0 structure
+if [ -d "$unit_path" ]; then
+  echo "Nothing to do--already in final structure"
+  #exit 0
+fi
 #(only do ANYTHING if not in the upgraded structure)
 
 #first convert from original structure, which is $storage_path/$section
@@ -48,14 +50,17 @@ fi
 upgrade_to_intermediate "care"
 upgrade_to_intermediate "commute"
 
-exit 0
+#exit 0
 echo ""
-echo "migrating to next structure..."
+echo "migrating to 0.2.0 structure..."
 #do next part as a second stage so this script will also work on the development version
 #(structure is being changed again shortly--see README)
 
 #region applies to all categories
 # first make a unit and move settings into it (before, data structure was not taking into consideration multiple organizations or campuses)
+if [ ! -d "$units_path" ]; then
+  mkdir "$units_path"
+fi
 if [ ! -d "$unit_path" ]; then
   mkdir "$unit_path"
 fi
@@ -66,6 +71,15 @@ if [ ! -f "$unit_path/unit.yml" ]; then
 else
   echo "already migrated settings to $unit_path/unit.yml"
 fi
+
+if [ ! -f "$unit_path/autofill_cache.yml" ]; then
+  if [ -f "$storage_path/autofill_cache.yml" ]; then
+    mv "$storage_path/autofill_cache.yml" "$unit_path/autofill_cache.yml"
+  fi
+else
+  echo "already migrated autofill_cache.yml to $unit_path/"
+fi
+
 #   convert from development structure, which is $storage_path/$section/student-microevents
 #                      structure 0.2.0, which is $unit_path/$section/$filedb_name/$category
 #                                        such as $unit_path/$section/transactions/student
@@ -74,26 +88,31 @@ category="student"
 #endregion applies to all categories
 
 #section=care
+
+
 upgrade_to_final() {
 section=$1
 if [ ! -d "$unit_path/$section" ]; then
-  mv "$storage_path/$section" "$unit_path/$section"
+  mv "$storage_path/$section" "$unit_path/"
 fi
 if [ ! -d "$unit_path/$section/$filedb_name" ]; then
+  #such as data/0/care/transactions
   mkdir "$unit_path/$section/$filedb_name"
 fi
 if [ ! -d "$unit_path/$section/$filedb_name/$category" ]; then
   if [ -d "$unit_path/$section/student-microevents" ]; then
-  mv "$unit_path/$section/student-microevents" "$unit_path/$section/$filedb_name/$category"
+    if [ ! -d "$unit_path/$section/$filedb_name" ]; then
+      mkdir "$unit_path/$section/$filedb_name"
+    fi
+    mv "$unit_path/$section/student-microevents" "$unit_path/$section/$filedb_name/$category"
   else
-  echo "ERROR converting: unknown existing directory structure (or previous function upgrade_to_intermediate failed), since $unit_path/$section/student-microevents does not exist"
+    echo "ERROR converting: unknown existing directory structure (or previous function upgrade_to_intermediate failed), since $unit_path/$section/student-microevents does not exist"
   fi
 fi
 }
+
 upgrade_to_final "care"
 upgrade_to_final "commute"
+
 #section=commute
-#endregion only do this if not in 0.2.0 structure
-else
-echo "Nothing to do--already in final structure"
-fi
+

@@ -8,7 +8,9 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
-* (2017-11-15) 
+* (2017-11-15) migrated to 0.2.0 file structure. Instructions (MUST be done in this order): stop integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008, start integratoredu.
+* (2017-11-15) repaired scrollto (was using ssf_i, named anchor should be generated using item_i, and only place in first column where ssf_i is 0)
+* (2017-11-15) fixed issue where non-string sent to peek_object (including indirectly via has_setting) causes major error (now, warning is shown in console instead and string operations are not attempted)
 * (2017-11-14) autofill now normalizes values (by using list where good value as key such as care.autofill_equivalents.grade_level["K5"]) [in cases where change_record_object_enable param for autofill is true where appropriate such as new entry or Autofill All button]
 * (2017-11-14) delete quantity (`delete new_item.qty;`) on items created by split-entry route
 * (2017-11-14) account for alternate values using equivalents table (where set in settings) for each possible expected value of each field name
@@ -90,6 +92,7 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* use of `fun.file_name_no_ext(s)` where actual code should be `fun.splitext(s)[0]` (autocomplete error)
 * Quote in end tag (such as '</div">')
 * Check against http://www.bootlint.com
 * req.session.info should instead be req.session.notice
@@ -109,6 +112,7 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* Billing cycle file is read twice without manually caching---see `cen_entry = get_table_entry(section, category, selected_number);`
 * most section-specific or even unit-specific variables (such as default_total) should be moved
 * permissions should specify unit_id (to determine which campuses the person can select [and which is their default, otherwise make campus priority list])
 * make section priority list able to be different for each unit
