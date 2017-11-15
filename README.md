@@ -8,6 +8,10 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
+* (2017-11-15) 
+* (2017-11-14) autofill now normalizes values (by using list where good value as key such as care.autofill_equivalents.grade_level["K5"]) [in cases where change_record_object_enable param for autofill is true where appropriate such as new entry or Autofill All button]
+* (2017-11-14) delete quantity (`delete new_item.qty;`) on items created by split-entry route
+* (2017-11-14) account for alternate values using equivalents table (where set in settings) for each possible expected value of each field name
 * (2017-11-08) 12:15PM changed data structure and modified /etc/upgrade-data-20171008 migration script. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008 (then you can start again)
 	* now structure for each microevents folder is: var filedb_name=microevents; var category_name="student"; storage_path+"/units/"+unit_i+"/"+filedb_name+"/"+category_name
 	(settings for each campus or company would go in different unit folders)

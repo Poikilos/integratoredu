@@ -152,11 +152,35 @@ exports.contains = function(haystack, needle) {
 	return haystack.indexOf(needle) > -1;
 };
 
+exports.get_row = function(obj, names) {
+	var result = [];
+	var n_i;
+	var n_len=names.length;
+	for (n_i=0; n_i<n_len; n_i++) {
+		if (names[n_i] in obj) result.push(obj[names[n_i]]);
+		else result.push("");
+	}
+	return result;
+};
+
+exports.array_index_of = function(haystack, needle) {
+	if (haystack && Array.isArray(haystack)) {
+		var findNaN = needle !== needle;
+		for (var i=0,len=haystack.length; i<len; i++) {
+			var item = haystack[i];
+			if ((findNaN && (item !== item)) || item === needle) {
+				return i;
+			}
+		}
+	}
+	return -1;
+};
+
 exports.array_contains = function(haystack, needle) {
 	//NOTE: do NOT use haystack.includes(needle), since that is hidden behind harmony flags in node.js for backward compatibility
 	// Per spec, the way to identify NaN is that it is not equal to itself
 	var findNaN = needle !== needle;
-	for (i=0,len=haystack.length; i<len; i++) {
+	for (var i=0,len=haystack.length; i<len; i++) {
 		var item = haystack[i];
 		if ((findNaN && (item !== item)) || item === needle) {
 			return true;
@@ -302,7 +326,7 @@ exports.is_blank = function (str) {
 exports.is_true = function (str) {
 	var str_lower = null;
 	if ((typeof str)=="string") str_lower=str.toLowerCase();
-	return (str===true) || ((str_lower!==null) && (str=="1"||str_lower=="true"||str_lower=="yes"||str_lower=="on"));
+	return (str===true) || ((str_lower!==null) && (str_lower=="true"||str_lower=="yes"||str_lower=="1"||str_lower=="on"));
 };
 
 exports.is_not_blank = function (str) {

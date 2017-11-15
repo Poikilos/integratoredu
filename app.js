@@ -232,7 +232,7 @@ default_total.care = "=careprice()";
 
 var _settings = null;
 var _selected_unit = 0;
-var settings_path = storage_path + "/units/" + _selected_unit + "/unit.yml";
+var settings_path = storage_path + "/settings.yml";//storage_path + "/units/" + _selected_unit + "/unit.yml";
 var _settings_default = {};
 _settings_default.name = "Campus";
 _settings_default.local_time_zone = "America/New_York";
@@ -255,7 +255,19 @@ _settings_default.care.list_implies_multiple_entries_paired_with = "first_name";
 _settings_default.care.list_implies_multiple_entries_paired_with_unless_has_one = "grade_level";
 _settings_default.care.autofill_equivalents = {}; //stores lists of irregular values (must be lowercase!) where key is normal value (any case but case will be used for normalized value)
 _settings_default.care.autofill_equivalents.grade_level = {};
-_settings_default.care.autofill_equivalents.grade_level["k5"] = ["k","k-5", "k 5", "kindergarten"];
+_settings_default.care.autofill_equivalents.grade_level["K5"] = ["k","k-5", "k.5", "k 5", "kindergarten", "kindergarden", "kindegarten"];
+_settings_default.care.autofill_equivalents.grade_level["1"] = ["first","1st"];
+_settings_default.care.autofill_equivalents.grade_level["2"] = ["second","2nd"];
+_settings_default.care.autofill_equivalents.grade_level["3"] = ["third","3rd"];
+_settings_default.care.autofill_equivalents.grade_level["4"] = ["fourth","forth","4th"];
+_settings_default.care.autofill_equivalents.grade_level["5"] = ["fifth","5th"];
+_settings_default.care.autofill_equivalents.grade_level["6"] = ["sixth","6th"];
+_settings_default.care.autofill_equivalents.grade_level["7"] = ["seventh","7th"];
+_settings_default.care.autofill_equivalents.grade_level["8"] = ["eighth","eigth","8th"];
+_settings_default.care.autofill_equivalents.grade_level["9"] = ["ninth","9th"];
+_settings_default.care.autofill_equivalents.grade_level["10"] = ["tenth","10th"];
+_settings_default.care.autofill_equivalents.grade_level["11"] = ["eleventh","11th"];
+_settings_default.care.autofill_equivalents.grade_level["12"] = ["twelth","twelfth","12th"];
 _settings_default.care.autofill_requires = {};
 _settings_default.care.autofill_requires.family_id = ["first_name", "last_name", "grade_level"];
 _settings_default.care.autofill_requires.qty = ["first_name"];
@@ -304,9 +316,8 @@ _permissions.commute.commute = ["create"];
 _permissions.attendance = {};
 _permissions.attendance.commute = ["create", "read", "reports"];
 
-//returns true if modified record (never true if write_to_record_enable is false)
-function autofill(section, record, write_to_record_enable) {
-	var allow_blanks_enable = false; //close to impossible since don't know the missing field values so can't get appropriate cache without deep search and allowing people with same first and last name to be incorrectly marked with grade_level of person with same name as other grade
+//returns true if modified record (never true if change_record_object_enable is false)
+function autofill(section, record, change_record_object_enable) {
 	var results = {};
 	results.filled_fields = [];
 	if (section) {
@@ -315,55 +326,64 @@ function autofill(section, record, write_to_record_enable) {
 			for (var requirer in _settings[section].autofill_requires) {
 				var present_count = 0;
 				var combined_primary_key = null;
-				var blanks_count = 0; //in case form was not validated, allow blanks as counting toward requirements
-				for (i=0; i<_settings[section].autofill_requires[requirer].length; i++) {
-					if (_settings[section].autofill_requires[requirer][i]!=undefined) {
-						console.log("[ ~ ] using value "+_settings[section].autofill_requires[requirer][i]);
-						var key = _settings[section].autofill_requires[requirer][i];
-						if (write_to_record_enable) {
+				for (var sar_i=0; sar_i<_settings[section].autofill_requires[requirer].length; sar_i++) {
+					if (_settings[section].autofill_requires[requirer][sar_i]!==undefined) {
+						//console.log("[ ~ ] looking for required field named "+_settings[section].autofill_requires[requirer][sar_i]);
+						var key = _settings[section].autofill_requires[requirer][sar_i];
+						if (change_record_object_enable) {
 							if (has_setting(section+".autofill_equivalents."+key)) {
-								console.log("[ ~ ] checked irregularity list: found list for "+key+" in "+section);
+								//for example, care.autofill_equivalents.grade_level is an object which contains a list with key k5 and values such as k-5 (and additional list for each expected grade_level)
+								//console.log("[ ~ ] checked irregularity list: found list for "+key+" in "+section);
 								irregularity_lists = peek_setting(section+".autofill_equivalents."+key);
 								for (var normal_value_as_key in irregularity_lists) {
-									if (irregularity_lists.hasOwnProperty(normal_value_as_key)) {
+									//if (irregularity_lists.hasOwnProperty(normal_value_as_key)) {
 										var irregularity_list = irregularity_lists[normal_value_as_key];
-										for (var irregular_value in irregularity_list) {
-											if (record[key].toLowerCase() == irregular_value) {
-												console.log("[ ~ ] normalizing "+record.key+" value "+record[key]+" in "+section+" to new value "+normal_value_as_key);
+										for (var il_i=0, il_len=irregularity_list.length; il_i<il_len; il_i++) {
+											if ( (key in record) && ((typeof record[key])=="string") && (record[key].toLowerCase() == irregularity_list[il_i]) ) {
+												console.log("  [ ~ ] normalizing "+record.key+" value "+record[key]+" in "+section+" to new value "+normal_value_as_key);
 												record[key] = normal_value_as_key;
 												results.filled_fields.push(key);
 											}
+											//else console.log("  [ ~ ] verbose message: "+record[key].toLowerCase()+" is not irregular "+irregularity_list[il_i]);
 										}
+									//}
+								}
+							}
+							//else console.log("[ ~ ] checked irregularity list: none for " + key + " in " + section);
+						}
+						//else console.log("[ ~ ] skipping regularity check since change_record_object_enable is false");
+						
+						var val = "";
+						if (key in record) { //hasOwnProperty(key) doesn't work
+							var cache_as_value = record[key].replaceAll("+","&").toLowerCase().trim();
+							if (has_setting(section+".autofill_equivalents."+key)) {
+								var irregular_values_lists = peek_setting(section+".autofill_equivalents."+key);
+								for (var normal_value_as_key in irregular_values_lists) {
+									var irregular_values = irregular_values_lists[normal_value_as_key];
+									if (fun.array_contains(irregular_values,cache_as_value)) {
+										cache_as_value = normal_value_as_key.toLowerCase();
+										break;
 									}
 								}
 							}
-							else {
-								console.log("[ ~ ] checked irregularity list: none for " + key + " in " + section);
-							}
-						}
-						
-						var val = "";
-						if (record.hasOwnProperty(key)) {
-							if (combined_primary_key===null) combined_primary_key = record[key].replaceAll("+","&").toLowerCase().trim();
-							else combined_primary_key += "+" + record[key].replaceAll("+","&").toLowerCase().trim();
+
+							if (combined_primary_key===null) combined_primary_key = cache_as_value;
+							else combined_primary_key += "+" + cache_as_value;
 							present_count++;
-							console.log("[ ?@ ] verbose message: "+key+" present");
+							//console.log("[ ?@ ] verbose message: "+key+" present");
 						}
 						else {
-							if (allow_blanks_enable) {
-								blanks_count++;
-								//NOTE: can't autofill here, since can't possibly meet all required fields for an autofill since key is an autofill requirement
-							}
+							//console.log("[ ?@ ] verbose message: "+key+" not present");
+							//NOTE: can't autofill here, since can't possibly meet all required fields for an autofill since key is an autofill requirement
 						}
 						//else console.log("[ ?@ ] verbose message: "+key+" not present");
 					}
-					else console.log("ERROR: index "+i+" in autofill_requires for section "+section+" property "+requirer+" is undefined!");
+					else console.log("ERROR: index "+sar_i+" in autofill_requires for section "+section+" property "+requirer+" is undefined!");
 				}
-				if (present_count>0 && (present_count==_settings[section].autofill_requires[requirer].length)
-				                       || ((present_count>=2) && (present_count+blanks_count==_settings[section].autofill_requires[requirer].length)) ) {  //id_user_within_microevent[section].length) {
-					console.log("[ ?@ ] combined_primary_key:"+combined_primary_key);
-					if (!record.hasOwnProperty(requirer)) {
-						if (write_to_record_enable) {
+				if ( present_count>0 && (present_count==_settings[section].autofill_requires[requirer].length) ) {  //id_user_within_microevent[section].length) {
+					//console.log("[ ?@ ] combined_primary_key is complete to fill "+requirer+": "+combined_primary_key);
+					if (!(record.hasOwnProperty(requirer)&&fun.is_not_blank(record[requirer]))) {
+						if (change_record_object_enable) {
 							if ( autofill_cache.hasOwnProperty(section) &&
 								 autofill_cache[section].hasOwnProperty(requirer) &&
 								 autofill_cache[section][requirer].hasOwnProperty(combined_primary_key)
@@ -372,15 +392,18 @@ function autofill(section, record, write_to_record_enable) {
 								record[requirer] = autofill_cache[section][requirer][combined_primary_key];
 								console.log("[ =@ ] (verbose message) cache hit: since autofill_cache["+section+"]["+requirer+"]["+combined_primary_key+"] was "+record[requirer]);
 							}
-							else console.log("[ /@ ] (verbose message) cache miss: since autofill_cache["+section+"]["+requirer+"] does not have "+combined_primary_key);
+							//else console.log("[ /@ ] (verbose message) cache miss: since autofill_cache["+section+"]["+requirer+"] does not have "+combined_primary_key);
 						}
 					}
 					else {
 						if (!autofill_cache.hasOwnProperty(section)) autofill_cache[section] = {};
 						if (!autofill_cache[section].hasOwnProperty(requirer)) autofill_cache[section][requirer] = {};
-						autofill_cache[section][requirer][combined_primary_key] = record[requirer];
-						//json.writeFile(autofill_cache_path, autofill_cache);
-						save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
+						if (fun.is_not_blank(record[requirer])) {
+							autofill_cache[section][requirer][combined_primary_key] = record[requirer];
+							//json.writeFile(autofill_cache_path, autofill_cache);
+							save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
+						}
+						else console.log("[ _@ ] verbose message: cache not written for "+requirer+" since blank for "+JSON.stringify(_settings[section].autofill_requires[requirer])+": "+fun.get_row(record, _settings[section].autofill_requires[requirer]));
 					}
 				}
 				else console.log("[ _@ ] cache not written for "+requirer+" since count of related field(s) entered is "+present_count+" not "+_settings[section].autofill_requires[requirer].length);//id_user_within_microevent[section].length);
@@ -561,7 +584,7 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 
 function peek_setting(dot_notation) {
 	var result = null;
-	if (dot_notation) {
+	if (dot_notation && ((typeof dot_notation)=="string")) {
 		//var dot_notation = section+"."+dot_notation;
 		var scope_stack = dot_notation.split(".");
 		var scope_o = null;
@@ -578,15 +601,15 @@ function peek_setting(dot_notation) {
 		else console.log("_settings not loaded while getting "+dot_notation);
 		//else console.log("[ . ] no "+scope_stack[0]+ " in _settings");
 	}
-	else console.log("WARNING: tried to peek with missing dot_notation");
+	else console.log("WARNING: tried to peek with missing dot_notation "+JSON.stringify(dot_notation));
 	return result;
 }
 
 has_setting_write_callback = function (err) {
-								if (err) {
-									return console.log("[ . ] Error while saving settings from a default setting: " + err);
-								}
-								else console.log("[ . ]: setting was missing so default written for: "+dot_notation);
+		if (err) {
+			return console.log("[ . ] Error while saving settings from a default setting: " + err);
+		}
+		else console.log("[ . ]: setting was missing so default written");// for: "+dot_notation);
 };
 
 function has_setting(dot_notation) {
@@ -608,7 +631,7 @@ function has_setting(dot_notation) {
 	}
 	else {
 		if (peek_setting(dot_notation)===null) {
-			console.log("  [ . ] checking for "+dot_notation);
+			//console.log("  [ . ] checking for "+dot_notation);
 			var this_scoped = _settings;
 			var default_scoped = _settings_default;
 			for (i=0, len=scope_stack.length; i<len; i++) {
@@ -891,10 +914,11 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 	var ret = "";
 	//var years = get_years(section);
 	var years_heading = "Year:";
-	if (has_setting(section+"."+mode+".years_heading")) years_heading = peek_setting(section+"."+mode+".years_heading");
-	ret += '<div>'+years_heading;
+	if (has_setting(section+"."+mode+".years_heading"))
+		years_heading = peek_setting(section+"."+mode+".years_heading"); //such as <h3>Billing</h3>
+	ret += '<div>'+years_heading+"\n";
 	for (i=0, len=years.length; i<len; i++) {
-		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">'+"\n";
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
@@ -907,14 +931,15 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 		else {
 			ret += '<button class="btn btn-default" type="submit">'+years[i]+'</button>';
 		}
-		ret += '</form>';
-		ret += '</div>';
+		ret += '</form>'+"\n";
 	}
+	ret += '</div>'+"\n";
 	var months_heading = "Month:";
-	if (has_setting(section+"."+mode+".months_heading")) months_heading = peek_setting(section+"."+mode+".months_heading");
-	ret += '<div>'+months_heading;	
+	if (has_setting(section+"."+mode+".months_heading"))
+		months_heading = peek_setting(section+"."+mode+".months_heading");  // such as <h3>Reports</h3>
+	ret += '<div>'+months_heading+"\n";	
 	for (i=0, len=months.length; i<len; i++) {
-		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">'+"\n";
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
@@ -927,9 +952,9 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 		else {
 			ret += '<button class="btn btn-default" type="submit">'+months[i]+'</button>';
 		}
-		ret += '</form>';
+		ret += '</form>'+"\n";
 	}
-	ret += '</div>';
+	ret += '</div>'+"\n";
 	return ret;
 }
 
@@ -1546,9 +1571,10 @@ var hbs = exphbs.create({
 									var item_key = item_keys[item_key_i];
 									var item_path = d_path + "/" + item_key;
 									//console.log("  - "+item_key);
-									dat[section][selected_year][selected_month][this_day][item_key] = {};
+									//dat[section][selected_year][selected_month][this_day][item_key] = {};
 									if (fs.statSync(item_path).isFile()) {
 										try {
+											
 											dat[section][selected_year][selected_month][this_day][item_key] = yaml.readSync(item_path, "utf8");
 											dat[section][selected_year][selected_month][this_day][item_key].key = item_key;
 											//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
@@ -1648,12 +1674,17 @@ var hbs = exphbs.create({
 						if (hdv_item_splitter_name===null) console.log("[ verbose message ] no "+section+".list_implies_multiple_entries");
 						for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
 							var item = items[item_i];
-							var item_enable = (!item.hasOwnProperty("active") || (typeof(item.active)=="string" && item.active.trim().toLowerCase()=="true") || item.active===true);
+							var d_path = m_path+"/"+item.day;
+							var item_path = d_path+"/"+item.key
+							//console.log();
+							//console.log("[CHECKING#"+item_i+"]");
+							var item_enable = (!item.hasOwnProperty("active") || (fun.is_true(item.active)));
 							ret += '    <tr>'+"\n";
+							var a_name = 'scrollto'+item_i;
 							for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 								ret += '      <td>'+"\n";
-								var a_name = 'scrollto'+ssf_i;
-								ret += '<a name="'+a_name+'"></a>';
+								
+								if (ssf_i==0) ret += '<a name="'+a_name+'"></a>';
 								if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
 								var column_name = section_sheet_fields[section][ssf_i];
 								//NOTE: intentionally gets desired fields only
@@ -1730,28 +1761,66 @@ var hbs = exphbs.create({
 													for (var requirer in _settings[section].autofill_requires) {
 														var requirements = _settings[section].autofill_requires[requirer];
 														if (requirements.length>1) {
-															console.log("[ ] verbose message: found requirements "+JSON.stringify(requirements));
-															if (fun.array_contains(requirements, column_name)) {  // if (requirements.hasOwnProperty(column_name)) { //doesn't work
+															//console.log("[ ] verbose message: found requirements "+JSON.stringify(requirements));
+															var my_index = fun.array_index_of(requirements, column_name);
+															if (my_index>-1) {  // if (requirements.hasOwnProperty(column_name)) { //doesn't work
 																if (section in autofill_cache) {
 																	if (requirer in autofill_cache[section]) {
+																		var suggested_values = [];
 																		for (var combined_primary_key in autofill_cache[section][requirer]) {
 																			var match_count=0;
 																			var suggested_val=null;
 																			var good_values = combined_primary_key.split("+");
-																			var debug_stack = [];
+																			//var debug_stack = [];
 																			for (var gv_i=0; gv_i<good_values.length; gv_i++) {
 																				//NOTE: gv_i should be exactly the same index in requirements since autofill_cache entries are based on requirements array
-																				if (item[requirements[gv_i]]!=undefined) {
-																					if (item[requirements[gv_i]].toLowerCase()==good_values[gv_i]) {
-																						match_count++;
+																				if (gv_i==my_index) {
+																					suggested_val = good_values[gv_i];
+																					var last_irregular_values = null;
+																					if (has_setting(section+".autofill_equivalents."+column_name)) {
+																						var irregular_values_lists = peek_setting(section+".autofill_equivalents."+column_name);
+																						for (var normal_value_as_key in irregular_values_lists) {
+																							if (suggested_val.toLowerCase()==normal_value_as_key.toLowerCase() 
+																								&& suggested_val!=normal_value_as_key)
+																								suggested_val=normal_value_as_key; //convert case of cache to expected case
+																							var irregular_value_index = fun.array_index_of(irregular_values_lists[normal_value_as_key], suggested_val);
+																							last_irregular_values = irregular_values_lists[normal_value_as_key]
+																							if (irregular_value_index>-1) {
+																								suggested_val = normal_value_as_key;
+																								break;
+																							}
+																						}
+																						//console.log("[ ]   verbose message: suggested value is "+suggested_val+" for "+column_name+" in "+item.key+" (has "+JSON.stringify(fun.get_row(item,requirements))+")");
+																						//if (suggested_val!=good_values[gv_i]) console.log("        (normalized from "+good_values[gv_i]+")");
+																						//else console.log("        (same as cache since is "+suggested_val+" not in irregular values "+JSON.stringify(last_irregular_values)+")");
 																					}
-																					else suggested_val = good_values[gv_i];
-																					debug_stack.push(item[requirements[gv_i]]);
+																					//else don't try to make normal--field has no good value array of equivalent values
 																				}
-																				else console.log("[ ]   ERROR: no "+requirements[gv_i]+" in item "+item.key+" only "+JSON.stringify(item));
+																				else {
+																					if ((requirements[gv_i] in item) && fun.is_not_blank(item[requirements[gv_i]])) {
+																						if ((typeof item[requirements[gv_i]])=="string") {
+																							if (item[requirements[gv_i]].toLowerCase()==good_values[gv_i]) {
+																								match_count++;
+																							}
+																							//else suggested_val = good_values[gv_i];
+																						}
+																						else {
+																							if (item[requirements[gv_i]]==good_values[gv_i]) {
+																								match_count++;
+																							}
+																						}
+																						//debug_stack.push(item[requirements[gv_i]]);
+																					}
+																					else {
+																						//Do nothing. Form validation must not have been working (so required field is missing in saved data).
+																						//suggested_val = good_values[gv_i];
+																						//NOTE: d_path is not set here by user, only manually by metadata added during preprocessing in this method!
+																						//console.log("[ ]   ERROR: no "+requirements[gv_i]+" in item "+item_path); //+" only "+JSON.stringify(item)
+																					}
+																				}
 																			}
-																			//if (requirements!=undefined) {
-																				if (match_count>=requirements.length-1) { //if only misssing one value
+																			if (match_count>=requirements.length-1) { //if only misssing one value
+																				if (!fun.array_contains(suggested_values, suggested_val)) {
 																					ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
 																					ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 																					ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
@@ -1764,19 +1833,19 @@ var hbs = exphbs.create({
 																					ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>'+"\n";
 																					ret += '  <button class="btn btn-warning" type="submit">Set to '+suggested_val+'</button>'+"\n";
 																					ret += '</form>'+"\n";
+																					suggested_values.push(suggested_val);
 																				}
-																				else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
-																			//}
-																			//else console.log("[ ]   ERROR: no requirements are specified for "+column_name+" "+JSON.stringify(requirements));
+																			}
+																			//else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
 																		}
 																	}
 																	else console.log("[ ]   WARNING: nothing to suggest since no "+requirer+" for "+section+" in autofill_cache");
 																}
 																else console.log("[ ]   WARNING: nothing to suggest since no "+section+" in autofill_cache");
-																console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
+																//console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
 																break;
 															}
-															else console.log("[ ]   verbose message: "+column_name+" is not required for autofill of "+requirer);
+															//else console.log("[ ]   verbose message: "+column_name+" is not required for autofill of "+requirer);
 														}
 														//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested"); 
 													}
@@ -2780,6 +2849,7 @@ var autofill_query_callback = function (err) {
 };
 
 app.post('/autofill-query', function(req, res){
+	//aka autofilla all, aka autofill-all, aka autofill_all
 	var sounds_path_then_slash = "sounds/";
 	var update_match_count = 0;
 	var update_saved_count = 0;
@@ -2874,7 +2944,7 @@ app.post('/autofill-query', function(req, res){
 										}
 										else console.log("[ _ ] Cache missed for day "+day_key);
 									}//end of outermost for loop
-									req.session.success = msg + " " + update_saved_count + " of " + update_match_count + " record(s) found.";
+									req.session.success = msg + " " + update_saved_count + " of " + update_match_count + " record(s).";
 								}
 								else console.log("[ _ ] Cached missed -- 0 days in month "+req.body.selected_month);
 							}
@@ -3108,7 +3178,10 @@ app.post('/change-microevent-field', function(req, res){
 	}
 	
 	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
-	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?("#"+req.body.selected_key):""));
+	var a_suffix = "";
+	if (fun.is_not_blank(req.body.scroll_to_named_a)) a_suffix = "#"+req.body.scroll_to_named_a;
+	else if (fun.is_not_blank(req.body.selected_key)) a_suffix = "#"+req.body.selected_key;
+	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?(a_suffix):""));
 });  // change-microevent-field
 
 app.post('/add-end-dates-to-bill', function(req, res){
@@ -3236,6 +3309,7 @@ app.post('/split-entry', function(req, res){
 													new_item.split_source_field = req.body.selected_field;
 													new_item.split_time = split_time;
 													new_item.split_by = req.user.username;
+													delete new_item.qty;
 													new_item.split_source = "dated_folder_record " + section + "/" + req.body.selected_year + "/" + req.body.selected_month + "/" + req.body.selected_day + "/" + req.body.selected_key;
 													new_item[req.body.selected_field] = subvalues[i];
 													if (matching_pairs) {
