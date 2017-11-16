@@ -189,6 +189,25 @@ exports.array_contains = function(haystack, needle) {
 	return false;
 };
 
+//case-insensitive version
+exports.array_contains_ci = function(haystack, needle) {
+	//NOTE: do NOT use haystack.includes(needle), since that is hidden behind harmony flags in node.js for backward compatibility
+	// Per spec, the way to identify NaN is that it is not equal to itself
+	var findNaN = needle !== needle;
+	var needle_lower = needle;
+	if ((typeof needle_lower)=="string") needle_lower = needle_lower.toLowerCase();
+	for (var i=0,len=haystack.length; i<len; i++) {
+		var item = haystack[i];
+		if ((findNaN && (item !== item)) ||
+			(((typeof item)=="string") && item.toLowerCase() === needle_lower) ||
+			(((typeof item)!="string") && item === needle)
+		) {
+			return true;
+		}
+	}
+	return false;
+};
+
 exports.zero_padded = function(str, len) {
 	var result = str;
 	if (typeof(str)!="string") result = ""+str;
@@ -207,6 +226,14 @@ exports.basename = function(path) {
 		//else result is param given (as initialized)
 	}
 	return result;
+};
+
+exports.split_capitalized = function(delimited, delimiter) {
+	var results = delimited.split(delimiter);
+	for (var ds_i=0,ds_len=results.length; ds_i<ds_len; ds_i++) {
+		results[ds_i] = results[ds_i].charAt(0).toUpperCase() + results[ds_i].slice(1);
+	}
+	return results;
 };
 
 //Like in python, "Split the pathname path into a pair (root, ext) such that root + ext == path, and ext is empty or begins with a period and contains at most one period. Leading periods on the basename are ignored; splitext('.cshrc') returns ('.cshrc', '')."
@@ -307,6 +334,194 @@ exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
 	}
 	return result;
 };
+
+exports.good_time_string = function(human_written_time_string) {
+	var result = null;
+	if (human_written_time_string) {
+		var input_lower = human_written_time_string.toLowerCase().trim();
+		var am_i = input_lower.indexOf("am");
+		var hour_adder = 0;
+		var hour = null;
+		var minute = null;
+		var second = 0;
+		if (am_i>-1) {
+			input_lower = input_lower.substring(0, am_i).trim();
+		}
+		else {
+			var pm_i = input_lower.indexOf("pm");
+			if (pm_i>-1) {
+				hour_adder = 12;
+				input_lower = input_lower.substring(0, pm_i).trim();
+			}
+		}
+		var colon_i = input_lower.indexOf(":");
+		if (colon_i>-1) {
+			hour = parseInt(input_lower.substring(0,colon_i));
+			var chunk2 = input_lower.substring(colon_i+1);
+			var colon2_i = chunk2.indexOf(":");
+			if (colon2_i>-1) {
+				second = parseInt(chunk2.substring(colon2_i+1));
+				chunk2 = chunk2.substring(0,colon2_i);
+			}
+			minute = parseInt(chunk2);
+		}
+		else {
+			var n = parseInt(input_lower);
+			if (n>23) {
+				if (input_lower.length==3) {
+					//such as: read 640 as 6:40)
+					hour = parseInt(input_lower.substring(0,1));
+					minute = parseInt(input_lower.substring(1));
+				}
+				else if (input_lower.length==4) {
+					hour = parseInt(input_lower.substring(0,2));
+					minute = parseInt(input_lower.substring(2));
+				}
+			}
+			else {  //if (input_lower.length==1 || input_lower.length==2) {
+				hour = n;
+				minute = 0;
+			}
+		}
+		if (hour !== null) {
+			hour += hour_adder;
+			var h_str = hour.toString();
+			if (h_str.length<2) h_str = "0" + h_str;
+			var m_str = minute.toString();
+			if (m_str.length<2) m_str = "0" + m_str;
+			var s_str = second.toString();
+			if (s_str.length<2) s_str = "0" + s_str;
+			result = h_str+":"+m_str+":"+s_str; //assume 0 seconds
+		}
+	}
+	return result;
+};
+
+exports.get_date_or_stated_date = function(record) {
+	var stated_date_enable = false;
+	var stated_date = null;
+	var result = null;
+	if (("stated_date" in record) && exports.is_not_blank(record.stated_date)) {
+		stated_date = record.stated_date;
+		if (stated_date!==null) {
+			if (stated_date.length==10) {
+				if ( stated_date.substring(2,3)=="/" &&
+						stated_date.substring(5,6)=="/" &&
+						exports.only_contains_any_char(stated_date.substring(0,2), "0123456789") &&
+						exports.only_contains_any_char(stated_date.substring(3,5), "0123456789") &&
+						exports.only_contains_any_char(stated_date.substring(6), "0123456789")
+					) {
+					//convert MM/DD/YYYY to YYYY-MM-DD:
+					var original_stated_date = stated_date;
+					stated_date = stated_date.substring(6) + "-" + stated_date.substring(0,2) + "-" + stated_date.substring(3,5);
+					stated_date_enable = true;
+					console.log("  * NOTE: converted date " + original_stated_date + " to " + stated_date);
+				}
+				else if ( stated_date.substring(4,5)=="-" &&
+							stated_date.substring(7,8)=="-" &&
+							exports.only_contains_any_char(stated_date.substring(0,4), "0123456789") &&
+							exports.only_contains_any_char(stated_date.substring(5,7), "0123456789") &&
+							exports.only_contains_any_char(stated_date.substring(8), "0123456789")
+					) {
+					stated_date_enable = true;
+					console.log("  * NOTE: using stated_date " + stated_date);
+				}
+				else console.log("  * WARNING: skipped bad stated_date "+stated_date+" in get_date_or_stated_date");
+			}
+		}
+	}
+	if (stated_date_enable) result = stated_date;
+	else {
+		if ("ctime" in record) {
+			if ( (record.ctime.substring(4,5)=="-") &&
+				 (record.ctime.substring(7,8)=="-") ) {
+				result = record.ctime.substring(0,10);
+			}
+			else console.log("  * WARNING: skipped custom ctime "+record.ctime+" in get_date_or_stated_date");
+		}
+	}
+	return result;
+};
+
+exports.safe_equals_ci = function(par1, par2) {
+	if ((par1!==null)&&(par2!==null)&&(par1!==undefined)&&(par2!==undefined)&&(par1===par1)&&(par2===par2)) { ///=== to ensure is not NaN
+		if ((typeof par1)!="string") par1 = ""+par1;
+		if ((typeof par2)!="string") par2 = ""+par2;
+		par1=par1.trim().toLowerCase();
+		par2=par2.trim().toLowerCase();
+		return par1==par2;
+	}
+	return false;
+};
+
+exports.single_level_copy = function(src) {
+	result = {};
+	for (var index in src) {
+		if ( ((typeof src[index])!=="undefined") ){
+			if ((typeof src[index]) == "object") {
+				if (src[index]===null) result[index]=null;
+				else result[index] = JSON.parse(JSON.stringify(src[index]));
+			}
+			else if ((typeof src[index]) == "boolean") result[index] = src[index];
+			else if ((typeof src[index]) == "number") result[index] = src[index];
+			else if ((typeof src[index]) == "string") result[index] = src[index];
+			else if ((typeof src[index]) == "boolean") result[index] = src[index];
+			else if ((typeof src[index]) == "symbol") result[index] = src[index];
+			else if ((typeof src[index]) == "function") result[index] = src[index];
+		}
+	}
+	return result;
+};
+
+exports.get_time_or_stated_time = function(record) {
+	var result = null;
+	if ("stated_time" in record) {
+		var good_time = exports.good_time_string(record.stated_time);
+		if (good_time !== null) {
+			result = good_time;
+			//var good_date = exports.get_date_or_stated_date(record);
+			//if (good_date !== null) {
+			//	result = good_date + " " + good_time;
+			//}
+			//else {
+			//	result = moment().format("YYYY-MM-DD") + " " + good_time;
+			//}
+		}
+		else console.log("WARNING: ignored bad stated_time "+record.stated_time+" in "+get_time_or_stated_time);
+	}
+	var NaN_warning_enable = true;
+	if ((result===null) || (result.indexOf("NaN")>-1)) {
+		if ((result!==null) && (result.indexOf("NaN")>-1)) {
+			var key_msg="";
+			if ("key" in record) key_msg += " key:"+record.key;
+			if ("first_name" in record) key_msg += " first_name:"+record.key;
+			if ("last_name" in record) key_msg += " last_name:"+record.key;
+			if ("stated_date" in record) key_msg += " stated_date:"+record.key;
+			else if ("ctime" in record) key_msg += " date():"+record.ctime.substring(0,10);
+			if (key_msg.length===0) key_msg = JSON.stringify(record);
+			console.log("WARNING: got NaN in get_time_or_stated_time for stated_time in record "+key_msg);
+			NaN_warning_enable = false;
+		}
+		if ("time" in record) {
+			result = record.time;
+			if (result.indexOf("NaN")>-1) console.log("WARNING: got NaN in get_time_or_stated_time for time in record "+JSON.stringify(record));
+		}
+	}
+	//if (result !== null) {
+	//	if (result.indexOf("NaN")>-1) console.log("WARNING: got NaN in get_time_or_stated_time for record "+JSON.stringify(record));
+	//}
+	return result;
+};
+
+exports.get_datetime_or_stated_datetime = function(record) {
+	var good_date = exports.get_date_or_stated_date(record);
+	var good_time = exports.get_time_or_stated_time(record);
+	var result = null;
+	if (good_time!==null && good_date!==null) result = good_date + " " + good_time;
+	else if ("ctime" in record) result = record.ctime;
+	else if ("mtime" in record) result = record.ctime;
+	return result;
+}
 
 
 exports.is_blank = function (str) {

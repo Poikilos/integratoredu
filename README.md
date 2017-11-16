@@ -8,6 +8,11 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
+* (2017-11-15) cleaned up time counting code for billing reports (multi-week list now can display values since subtotal logic [see use of key_totals_by_end_date] is corrected)
+* (2017-11-15) added "Mark as Duplicate" button
+* (2017-11-15) corrected usages of fun.splitext result
+* (2017-11-15) show multiple initials where appropriate
+* (2017-11-15) added invoicing by adding then viewing billing cycles (click Year in reports for a section where enabled--care by default)
 * (2017-11-15) migrated to 0.2.0 file structure. Instructions (MUST be done in this order): stop integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008, start integratoredu.
 * (2017-11-15) repaired scrollto (was using ssf_i, named anchor should be generated using item_i, and only place in first column where ssf_i is 0)
 * (2017-11-15) fixed issue where non-string sent to peek_object (including indirectly via has_setting) causes major error (now, warning is shown in console instead and string operations are not attempted)
@@ -92,6 +97,9 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* strip() should be trim() in javascript
+* fun.fun. should be fun. no really that could be type-o for calls to functions.js
+* remember that javascript string substring method takes slice-like params (start, endbefore [NOT length]) 
 * use of `fun.file_name_no_ext(s)` where actual code should be `fun.splitext(s)[0]` (autocomplete error)
 * Quote in end tag (such as '</div">')
 * Check against http://www.bootlint.com
@@ -112,7 +120,6 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
-* Billing cycle file is read twice without manually caching---see `cen_entry = get_table_entry(section, category, selected_number);`
 * most section-specific or even unit-specific variables (such as default_total) should be moved
 * permissions should specify unit_id (to determine which campuses the person can select [and which is their default, otherwise make campus priority list])
 * make section priority list able to be different for each unit
@@ -163,7 +170,11 @@ html tag) data is written sometimes (but not anymore?)
 * improve form repopulation such as with express-forms, or flashify as per Jason Gelinas at https://stackoverflow.com/questions/10706588/how-do-i-repopulate-form-fields-after-validation-errors-with-express-form
 * Clicking create account followed by "I have an account..." leaves both the New and login subpanels open (each is only closed by clicking again on the same button)
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
-* (?) cache checking code during page load was not using hasOwnProperty but rather "!" operator -- this may be a problem even though 0 is never a year, month, or day.* (?) Reading incorrectly formatted YAML can crash app on line: yaml.readSync(item_path, "utf8"); -- for some reason bad (some kind of error flag that looks like an * (~) validate date by exploding by slash or hyphen, then adding zero padding.
+* (?) cache checking code during page load was not using hasOwnProperty but rather "!" operator -- this may be a problem even though 0 is never a year, month, or day.
+* (?) Reading incorrectly formatted YAML can crash app on line: yaml.readSync(item_path, "utf8"); -- for some reason bad (some kind of error flag that looks like an
+* (~) get_care_time_info runs multiple times per entry during month report
+* (~) Billing cycle file is read twice without manually caching---see `cen_entry = get_table_entry(section, category, selected_number);`
+* (~) validate date by exploding by slash or hyphen, then adding zero padding.
 * (~) bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/
 * (~) Change section chooser from button to drop-down: https://www.w3schools.com/bootstrap/bootstrap_dropdowns.asp
 * (~ partially resolved by having section name have display name [friendly_section_names]) display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
