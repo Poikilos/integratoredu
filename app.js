@@ -463,7 +463,7 @@ function _get_settings_names_recursively(scope_stack) {
 	if (scope_stack === null) scope_stack = [];
 	scope = _settings;
 	var name = "";
-	for (i=0, len=scope_stack.length; i<len; i++) {
+	for (var i=0, len=scope_stack.length; i<len; i++) {
 		scope = scope[scope_stack[i]];
 		if (name==="") name=scope_stack[i];
 		else name+="."+scope_stack[i];
@@ -519,7 +519,7 @@ function _poke_object(info, scope_o, scope_stack, asserted_depth, val) {
 		_poke_object(info, scope_o[scope_stack[asserted_depth]], scope_stack, asserted_depth, val);
 	}
 	//if (o && o.hasOwnProperty(section)) {
-	//	for (i=0; i<scope_stack.length; i++) {
+	//	for (var i=0; i<scope_stack.length; i++) {
 	//		var key = scope_stack[i];
 	//	}
 	//}
@@ -578,7 +578,7 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 		}
 		else {
 			var breadcrumbs = "";
-			for (i=0; i<scope_stack.length; i++) {
+			for (var i=0; i<scope_stack.length; i++) {
 				breadcrumbs += scope_stack[i] + " ";
 			}	
 			//console.log("[ ./ ] ERROR: no "+scope_stack[asserted_depth]+" ("+breadcrumbs+"-- at "+asserted_depth+" so far of "+scope_stack.length+"), only has ");
@@ -645,7 +645,7 @@ function has_setting(dot_notation) {
 			//console.log("  [ . ] checking for "+dot_notation);
 			var this_scoped = _settings;
 			var default_scoped = _settings_default;
-			for (i=0, len=scope_stack.length; i<len; i++) {
+			for (var i=0, len=scope_stack.length; i<len; i++) {
 				if (!this_scoped.hasOwnProperty(scope_stack[i])) {
 					if (default_scoped.hasOwnProperty(scope_stack[i])) {
 						this_scoped[scope_stack[i]] = JSON.parse(JSON.stringify(default_scoped[scope_stack[i]]));
@@ -904,7 +904,7 @@ function get_years(section) {
 function get_year_buttons_from_cache(section, username) {
 	var ret = "";
 	var years = get_years(section);
-	for (i=0, len=years.length; i<len; i++) {
+	for (var i=0, len=years.length; i<len; i++) {
 		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
@@ -929,6 +929,7 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 	if (has_setting(section+"."+mode+".years_heading"))
 		years_heading = peek_setting(section+"."+mode+".years_heading"); //such as <h3>Billing</h3>
 	ret += '<div>'+years_heading+"\n";
+	var i=0;
 	for (i=0, len=years.length; i<len; i++) {
 		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">'+"\n";
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
@@ -1267,7 +1268,7 @@ function push_next_table_entry(section, category, item, as_username, autofill_en
 		results = write_record_without_validation(null, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_table_entry had to try again since '"+results.error+"'");
-			var this_index = get_next_table_index(section, category, true);
+			this_index = get_next_table_index(section, category, true);
 			results = write_record_without_validation(null, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
 		}
 	}
@@ -1503,12 +1504,12 @@ function is_after_school(section, this_time) {
 		if (currentTimeString >= endTimeString) {
 			//console.log("is_after_school: yes, now " + currentTimeString + " >= " + endTimeString);
 			//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is not after " + moment().format("HH:mm:ss"));
-			return true
+			return true;
 		}
 		else {
 			//console.log("is_after_school: no, now " + currentTimeString + " < " + endTimeString);
 			//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is after " + moment().format("HH:mm:ss"));
-			return false
+			return false;
 		}
 	}
 	else {
@@ -1575,7 +1576,7 @@ var hbs = exphbs.create({
 			var is_match = false;
 			var arr = ["create", "modify"];
 			//if (Array.isArray(arr)) {
-			for (i=0, len=arr.length; i<len; i++) {
+			for (var i=0, len=arr.length; i<len; i++) {
 				if (mode==arr[i]) {
 					is_match = true;
 					break;
@@ -1617,7 +1618,7 @@ var hbs = exphbs.create({
 				//ret += '  <button class="btn btn-default" type="submit">Peek</button>'+"\n";
 				//ret += '</form>'+"\n";
 				var settings_keys = get_all_settings_names();
-				for (i=0, len=settings_keys.length; i<len; i++) {
+				for (var i=0, len=settings_keys.length; i<len; i++) {
 					if (settings_keys[i]!=selected_setting) ret += '<a href="'+config.proxy_prefix_then_slash+"?selected_setting="+settings_keys[i]+'">'+settings_keys[i]+"</a><br/>";
 					else {
 						ret += '<table>'+"\n";
@@ -1720,10 +1721,10 @@ var hbs = exphbs.create({
 									var y_s = fun.zero_padded(selected_year, 2);
 									var m_s = fun.zero_padded(selected_month, 2);
 									var d_s = fun.zero_padded(selected_day, 2);
-									var this_date = moment(selected_year+"-"+m_s+"-"+d_s);
-									var this_dow = this_date.day(); //where 1 is monday and 5 is friday
+									var folder_date_s = moment(selected_year+"-"+m_s+"-"+d_s);
+									var this_dow = folder_date_s.day(); //where 1 is monday and 5 is friday
 									//if (this_dow==bill_dow) {
-									//ret += "bill on "+this_date.format('dddd')+' '+this_date.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
+									//ret += "bill on "+folder_date_s.format('dddd')+' '+folder_date_s.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
 									var used_days_count = 0;
 									for (var d_backstep=0; d_backstep<7; d_backstep++) {
 										var back_dow_i = this_dow-d_backstep;
@@ -1731,7 +1732,7 @@ var hbs = exphbs.create({
 										var back_d_i = d_i-d_backstep;
 										var back_m_i = m_i;
 										var back_y_i = y_i;
-										var back_dim = this_date.daysInMonth();
+										var back_dim = folder_date_s.daysInMonth();
 										var back_y_s = fun.zero_padded(back_y_i, 4); //does convert to string
 										var back_m_s = fun.zero_padded(back_m_i, 2);
 										if (back_d_i<=0) {
@@ -1766,7 +1767,7 @@ var hbs = exphbs.create({
 													//else if ("time" in this_item) this_item.tmp.time = this_item.time;
 													//else {
 													this_item.tmp.time = fun.get_time_or_stated_time(this_item);
-													if (this_item.tmp.time==null) {
+													if (this_item.tmp.time===null) {
 														var name_as_time = fun.splitext(item_key)[0];
 														if (name_as_time.length>=6) {
 															this_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
@@ -1779,7 +1780,7 @@ var hbs = exphbs.create({
 													//else if ("date" in this_item) this_item.tmp.date = this_item.date;
 													//else {
 													this_item.tmp.date = fun.get_date_or_stated_date(this_item, item_key+" in show_billing_cycle_preview helper for year view");
-													if (this_item.tmp.date==null) {
+													if (this_item.tmp.date===null) {
 														this_item.tmp.date = back_y_s+"-"+back_m_s+"-"+back_d_s;
 														//else {
 														//	warnings += '<div class="alert alert-warning">cannot derive date for '+item_path+'</div>';
@@ -1880,7 +1881,7 @@ var hbs = exphbs.create({
 													}
 													else warnings+='<div class="alert alert-warning">no data for '+item_path+'</div>';
 												}
-												else console.log("Skipped "+item_path+": non-YAML extension")
+												else console.log("Skipped "+item_path+": non-YAML extension");
 											}
 											used_days_count++;
 										}
@@ -1891,8 +1892,8 @@ var hbs = exphbs.create({
 									if (used_days_count>0) {
 										//ret += '      <div class="form-check">'+"\n";
 										//ret += '        <label class="form-check-label">'+"\n";
-										//ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+this_date.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
-										//ret += '          '+this_date.format('dddd')+' '+this_date.format("MMM D, Y")+'<br/>'+"\n";
+										//ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+folder_date_s.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
+										//ret += '          '+folder_date_s.format('dddd')+' '+folder_date_s.format("MMM D, Y")+'<br/>'+"\n";
 										//ret += '        </label>'+"\n";
 										//ret += '      </div>'+"\n";
 									}
@@ -1904,7 +1905,7 @@ var hbs = exphbs.create({
 									if (fun.is_not_blank(error)) ret += '<div class="alert alert-warning">'+error+"</div>"+"\n";
 									ret += '    </div><!--end col-sm-10-->'+"\n";
 									ret += '  </div><!--end report group row-->'+"\n";
-								}unused_items
+								}//TODO: why was unused_items pasted here (unfinished code??)
 							}
 							ed_i = null; //out of loop, wait for next
 							ed_len = null; //out of loop, wait for next
@@ -2216,6 +2217,7 @@ var hbs = exphbs.create({
 				// END OF RIBBON
 				ret += '<hr/>'+"\n";
 				if (selected_month) {
+					var items_by_date = {};
 					if (section_sheet_fields.hasOwnProperty(section)) {
 						var parsing_info = "";
 						var parsing_error = "";
@@ -2278,7 +2280,7 @@ var hbs = exphbs.create({
 									//console.log("## ITEMS:"+items);
 									var msg = "";
 									//for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
-									var items_by_date = {};
+									
 									for (var item_key_i in item_keys) {
 										//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
 										//ret += '    <tr>'+"\n";
@@ -2296,15 +2298,15 @@ var hbs = exphbs.create({
 														original_item.tmp = {};
 													original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
 													original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
-													if (original_item.tmp.date==null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
+													if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
 													original_item.tmp.time = fun.get_time_or_stated_time(original_item);
-													if (original_item.tmp.time==null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+													if (original_item.tmp.time===null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
 													original_item.tmp["=get_day_from_path()"] = this_day;
 													//tui: table-unique identifier
 													original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
 													if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
 														items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
-														console.log("added date to items_by_date: "+original_item.tmp["=get_date_from_path()"]);
+														//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
 													}
 													items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
 													//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
@@ -2442,10 +2444,12 @@ var hbs = exphbs.create({
 								var dup_index = -1;
 								var this_date_items = null;
 								if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
+								var match_count=null;
 								if (item_enable && user_has_section_permission(username, section, mode)) {
 									if (section in section_form_fields) {
-									//console.log("[ == ] this "+this_date+" "+this_time+"...");
+									//console.log("[ == ] this "+this_date+" "+this_time+"..."); //this_date does not exist in this scope
 										//if (items_by_date.hasOwnProperty(items[item_i].tmp["=get_date_from_path()"])) {
+										
 										if (items[item_i].tmp["=get_date_from_path()"] in items_by_date) {
 											this_date_items = items_by_date[items[item_i].tmp["=get_date_from_path()"]];
 											//for (var prev_i=0; prev_i<item_i; prev_i++) { //this would be even slower
@@ -2453,7 +2457,7 @@ var hbs = exphbs.create({
 												//if ((!items[prev_i].hasOwnProperty("active")) || fun.is_true(items[prev_i].active)) {
 												if ((!this_date_items[inner_i].hasOwnProperty("active")) || fun.is_true(this_date_items[inner_i].active)) {
 													if (this_date_items[inner_i].key != this_date_items[inner_i].key) {
-														var match_count = 0;
+														match_count = 0;
 														var ff_len = section_form_fields[section].length;
 														//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
 														//var prev_date = fun.get_date_or_stated_date(items[prev_i], "item# "+item_i+"&"+prev_i);
@@ -2526,11 +2530,14 @@ var hbs = exphbs.create({
 																}
 															}
 														}
+														//NOTE: this_date is out of scope
 													}//else is same record (is self)
+													
+													match_count=null;
 												}//if is an active entry
 											}
 										}//end if is in items_by_date
-										else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date");
+										else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date: "+JSON.stringify(Object.keys(items_by_date)));
 									}
 								}
 								
@@ -2591,21 +2598,39 @@ var hbs = exphbs.create({
 									if (item_enable) {
 										if (hdv_item_splitter_name && (column_name==hdv_item_splitter_name)) {
 											var subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
-											//var co_subvalues = fun.get_human_delimited_values(item[asdf]); //TODO: if differs, DON'T offer split!
 											if (subvalues && (subvalues.length>1)) {
-												ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">'+"\n";
-												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n";
-												//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>'+"\n";
-												ret += '  <input type="hidden" name="expected_count" id="expected_count" value="'+subvalues.length+'"/>'+"\n";
-												ret += '  <button class="btn btn-danger" type="submit">Split into '+subvalues.length+' entries</button>'+"\n";
-												ret += '</form>'+"\n";
+												
+												var split_enable = true;
+												var hdv_paired_name = null;
+												if (has_setting(section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(section+".list_implies_multiple_entries_paired_with");
+												if (hdv_paired_name!==null) {
+													var co_subvalues = fun.get_human_delimited_values(item[hdv_paired_name]); //TODO: if differs, DON'T offer split!
+													if (co_subvalues!==null) {
+														if (co_subvalues.length==1) {
+															ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" does not.</div>';
+															//split_enable = false;
+														}
+													}
+													else {
+														ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" is missing.</div>';
+														split_enable = false;
+													}
+												}
+												if (split_enable) {
+													ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">'+"\n";
+													ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
+													ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
+													ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n";
+													//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>'+"\n";
+													ret += '  <input type="hidden" name="expected_count" id="expected_count" value="'+subvalues.length+'"/>'+"\n";
+													ret += '  <button class="btn btn-danger" type="submit">Split into '+subvalues.length+' entries</button>'+"\n";
+													ret += '</form>'+"\n";
+												}
 											}
 										}
 										else if (fun.is_blank(item[column_name]) && hdv_field_name && (column_name=="qty")) {
@@ -2646,7 +2671,7 @@ var hbs = exphbs.create({
 																		if (requirer in autofill_cache[section]) {
 																			var suggested_values = [];
 																			for (var combined_primary_key in autofill_cache[section][requirer]) {
-																				var match_count=0;
+																				match_count=0;
 																				var suggested_val=null;
 																				var good_values = combined_primary_key.split("+");
 																				//var debug_stack = [];
@@ -2716,6 +2741,7 @@ var hbs = exphbs.create({
 																				}
 																				//else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
 																			}
+																			match_count = null;  // out of scope
 																		}
 																		else {
 																			if (show_no_requirer_for_section_warning_enable) {
@@ -2858,10 +2884,10 @@ var hbs = exphbs.create({
 											var m_s = fun.zero_padded(m_i, 2);
 											for (var d_i=31; d_i>=1; d_i--) {
 												var d_s = fun.zero_padded(d_i, 2);
-												var this_date = moment(selected_year+"-"+m_s+"-"+d_s);
-												var this_dow = this_date.day(); //where 1 is monday and 5 is friday
+												var folder_date = moment(selected_year+"-"+m_s+"-"+d_s);
+												var this_dow = folder_date.day(); //where 1 is monday and 5 is friday
 												if (this_dow==bill_dow) {
-													//ret += "bill on "+this_date.format('dddd')+' '+this_date.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
+													//ret += "bill on "+folder_date.format('dddd')+' '+folder_date.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
 													var used_days_count = 0;
 													for (var d_backstep=0; d_backstep<7; d_backstep++) {
 														var back_dow_i = this_dow-d_backstep;
@@ -2869,7 +2895,7 @@ var hbs = exphbs.create({
 														var back_d_i = d_i-d_backstep;
 														var back_m_i = m_i;
 														var back_y_i = y_i;
-														var back_dim = this_date.daysInMonth();
+														var back_dim = folder_date.daysInMonth();
 														var back_y_s = fun.zero_padded(back_y_i, 4); //does convert to string
 														var back_m_s = fun.zero_padded(back_m_i, 2);
 														if (back_d_i<=0) {
@@ -2900,13 +2926,14 @@ var hbs = exphbs.create({
 													if (used_days_count>0) {
 														ret += '      <div class="form-check">'+"\n";
 														ret += '        <label class="form-check-label">'+"\n";
-														ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+this_date.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
-														ret += '          '+this_date.format('dddd')+' '+this_date.format("MMM D, Y")+'<br/>'+"\n";
+														ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+folder_date.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
+														ret += '          '+folder_date.format('dddd')+' '+folder_date.format("MMM D, Y")+'<br/>'+"\n";
 														ret += '        </label>'+"\n";
 														ret += '      </div>'+"\n";
 													}
 												}//end if bill_dow
 											}//end for day
+											//NOTE: folder_date is out of scope
 										}//end for month
 										ret += '    </form>'+"\n";
 									}
@@ -2924,7 +2951,8 @@ var hbs = exphbs.create({
 									var cycle_entry_numbers = get_table_entry_numbers(section, category);
 									//ret += get_table_entry_buttons(config.proxy_prefix_then_slash, "get", section, "BillingCycle", "selected_item_key", "=primary_key()");
 									if (cycle_entry_numbers) {
-										ret += "Found "+cycle_entry_numbers.length+" billing cycle(s):<br/>"+"\n";
+										ret += "Found "+cycle_entry_numbers.length+" billing cycle(s).<br/>"+"\n";
+										ret += "Click to generate report:<br/>"+"\n";
 										var cen_entry;
 										var cen_name;
 										for (var cen_i=0,cen_len=cycle_entry_numbers.length; cen_i<cen_len; cen_i++) {
@@ -3314,9 +3342,18 @@ var hbs = exphbs.create({
 					if (has_setting(section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(section+".list_implies_multiple_entries_paired_with");
 					var hdv_or_single_name = null;
 					if (has_setting(section+".list_implies_multiple_entries_paired_with_unless_has_one")) hdv_or_single_name = peek_setting(section+".list_implies_multiple_entries_paired_with_unless_has_one");
-					for (i=0, len=objects.length; i<len; i++) {
+					var len=objects.length;
+					//var oops_i=0;
+					//var hardcoded_limit_i=900;
+					for (var i=0; i<len; i++) {
+						//oops_i++;
+						//if (oops_i>hardcoded_limit_i) {
+						//	console.log("ERROR: executions over hardcoded_limit_i "+hardcoded_limit_i);
+						//	break;
+						//}
 						ret += "<tr>"+"\n";
-						var i_date = fun.get_date_or_stated_date(objects[i], "history item "+i); //gets stuck on history item 4 on 2017-11-16 using expertmm private test data
+						//NOTE: if i is used instead of var i, infinite loop occurs where i is always 4!
+						var i_date = fun.get_date_or_stated_date(objects[i], "history item "+i+" of "+len); //gets stuck on history item 4 on 2017-11-16 using expertmm private test data
 						//if (i_date==null) 
 						if (force_date_enable) {
 							ret += "<td>"+i_date+"</td>\n";
@@ -3341,10 +3378,10 @@ var hbs = exphbs.create({
 												if (objects[i].hasOwnProperty(params[0])) {
 													var hdvs = fun.get_human_delimited_values(objects[i][params[0]]);
 													var h_len=hdvs.length;
-													if (h_len>1 && ( ((hdv_item_splitter_name!==null) && (params[0]==hdv_item_splitter_name))
-													               ||((hdv_paired_name!==null) && (params[0]==hdv_paired_name))
-																   ||((hdv_or_single_name!==null) && (params[0]==hdv_or_single_name))
-																   ||((hdv_field_name!==null) && (params[0]==hdv_field_name))
+													if (h_len>1 && ( ((hdv_item_splitter_name!==null) && (params[0]==hdv_item_splitter_name)) ||
+													               ((hdv_paired_name!==null) && (params[0]==hdv_paired_name)) ||
+																   ((hdv_or_single_name!==null) && (params[0]==hdv_or_single_name)) ||
+																   ((hdv_field_name!==null) && (params[0]==hdv_field_name))
 																   )
 													   ) {
 														for (var h_i=0; h_i<h_len; h_i++) {
@@ -3689,14 +3726,14 @@ app.get('/', function(req, res){
 							selected_year = years[0];
 							req.session.selected_year = selected_year;
 							if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
-							else console.log("[   ] "+moment().format("HH:mm:ss")+" autoselected only year "+selected_year);
+							else console.log("[   ] "+moment().format("HH:mm:ss")+" verbose message: autoselected the only existing year "+selected_year);
 						}
 						else if (fun.is_blank(selected_year) && years.length>0) {
 							console.log("[   ] no selected_year "+selected_year);
 							selected_year = years[years.length-1];
 							req.session.selected_year = selected_year;
 							if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
-							else console.log("[   ] autoselected latest year "+selected_year);
+							else console.log("[   ] "+moment().format("HH:mm:ss")+" verbose message: autoselected the latest year "+selected_year);
 						}
 					}
 					if (!years) {
@@ -3816,7 +3853,7 @@ app.get('/', function(req, res){
 														var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
 														this_item.tmp = {};
 														this_item.tmp.time = fun.get_time_or_stated_time(this_item);
-														if (this_item.tmp.time==null) {
+														if (this_item.tmp.time===null) {
 															var name_as_time = fun.splitext(item_key)[0];
 															if (name_as_time.length>=6) {
 																this_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
@@ -3826,7 +3863,7 @@ app.get('/', function(req, res){
 															}
 														}
 														this_item.tmp.date = fun.get_date_or_stated_date(this_item, "saving "+item_key+" to cache");
-														if (this_item.tmp.date==null) this_item.tmp.date = selected_year + "-" + selected_month + "-" + selected_day;
+														if (this_item.tmp.date===null) this_item.tmp.date = selected_year + "-" + selected_month + "-" + selected_day;
 														items.push(this_item);
 														//for (var field_key in this_item) {
 															//if (this_item.hasOwnProperty(field_key)) {
@@ -3947,7 +3984,7 @@ app.post('/autofill-query', function(req, res){
 																if (dat[section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
 																	var item = dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key];
 																	//var match_count=0;
-																	//for (i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
+																	//for (var i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
 																	//	var key = _settings[section].autofill_requires[req.body.selected_field][i];
 																	//	var val = "";
 																	//	if (item.hasOwnProperty(key)) {
@@ -4081,8 +4118,8 @@ app.post('/update-query', function(req, res){
 															if (fs.existsSync(item_path)) {
 																if (dat[section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
 																	var item = dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key];
-																	var match_count=0;
-																	for (i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
+																	match_count=0;
+																	for (var i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
 																		var key = _settings[section].autofill_requires[req.body.selected_field][i];
 																		var val = "";
 																		if (item.hasOwnProperty(key)) {
@@ -4119,6 +4156,7 @@ app.post('/update-query', function(req, res){
 																	ok=true; //verified cache is ok either way
 																}
 																else console.log("[ ] Cache missed for item_key "+item_key);
+																match_count = 0; //out of scope
 															}
 															else {
 																msg="Failed to modify since can't find file "+item_path;
@@ -4382,8 +4420,8 @@ app.post('/split-entry', function(req, res){
 											console.log("[ | ] Splitting...");
 											
 											console.log(indent+"subvalues: "+JSON.stringify(subvalues));
-											if ( hdv_paired_name===null || (matching_pairs!==null&&matching_pairs.length===subvalues.length) &&
-												hdv_or_single_name===null || (matching_pairs_else_single_value!==null&&(matching_pairs_else_single_value.length===subvalues.length||matching_pairs_else_single_value.length==1))
+											if ( (hdv_paired_name===null || (matching_pairs!==null&&matching_pairs.length===subvalues.length)) &&
+												(hdv_or_single_name===null || (matching_pairs_else_single_value!==null&&(matching_pairs_else_single_value.length===subvalues.length||matching_pairs_else_single_value.length==1)))
 											) {
 												var error = "";
 												var notice = "";
@@ -4397,7 +4435,7 @@ app.post('/split-entry', function(req, res){
 													var date_array = [req.body.selected_year, req.body.selected_month, req.body.selected_day];
 													var tried_output_count = 0;
 													var optionally_paired_index_else_0 = 0;
-													//for (i=0,len=subvalues.length; i<len; i++) {
+													//for (var i=0,len=subvalues.length; i<len; i++) {
 													for (var i=0,len=subvalues.length; i<len; i++) {
 														var new_item = JSON.parse(JSON.stringify(original_item));
 														console.log(indent + " subvalue " + i + " of " + len + ": " + subvalues[i] + "...");

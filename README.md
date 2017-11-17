@@ -8,7 +8,11 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
-* (2017-11-17) for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path
+* (2017-11-17) button to change date to date of folder (in case of records written during bug that ended today) see also "should have button to move file to correct day"
+* (2017-11-17) (put call to show_billing_cycle_preview inside check for "reports" mode) avoid repeatedly showing result of username+' does not have permission to access '+mode+' in this section' in console when user doesn't have reports permission for section
+* (2017-11-17) (changed all instances of "for (i=" to "for (var i=") fix infinite loop in history
+* (2017-11-17) (added parenthesis to quantity matching case in split-entry route to fix logic) prevent split-entry from trying to write values where index is out of range (causes yaml to write bad yaml syntax with html tag denoting error)
+* (2017-11-17) (for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path) duplicate detection should not check different days in case of malformed record; also directly resolves (incorrectly diagnosed bug): mark as...Duplicate... button shoud not appear if either item_i or dup_index are in wrong date folder
 * (2017-11-17) (!) only write ctime if write_mode is "create" (and consolidated code for generated field and added warning for unknown write_mode)
 * (2017-11-17) (use get_date_or_stated_date instead of path for *item.tmp.year, *item.tmp.month, and *item.tmp.day) split-entry was putting new date instead of old date into new entries
 * (2017-11-16) should only search current day for duplicates (using date_from_path tmp variable)
@@ -108,6 +112,7 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* "for (i=" where should be "for (var i=" where i is any variable name (then check for lint and make sure another variable of same name in same scope doesn't exist otherwise rename the loop variable.
 * for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (always use get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path
 * use of console.error (doens't exist, should be console.log)
 * use of object sent to value checking method such as fun.is_true (where instead, member of object should have been sent)
@@ -137,8 +142,7 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
-* duplicate detection should not check different days in case of malformed record (private test data for expertmm contains an entry at 8:48:37 in 11-09 folder which is read as 11-16 and in latest version with searching only current day, 06:34:04 entry in 11-01 folder is detected as 11-16)
-* should have button to move file to correct day (AND Mark as...Duplicate... button shoud not appear if EITHER item_i or dup_index are in such a state)
+* should have button to move file to correct day
 * most section-specific or even unit-specific variables (such as default_total) should be moved
 * permissions should specify unit_id (to determine which campuses the person can select [and which is their default, otherwise make campus priority list])
 * make section priority list able to be different for each unit

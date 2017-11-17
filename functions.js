@@ -524,7 +524,7 @@ exports.get_datetime_or_stated_datetime = function(record, debug_msg) {
 	else if ("ctime" in record) result = record.ctime;
 	else if ("mtime" in record) result = record.ctime;
 	return result;
-}
+};
 
 
 exports.is_blank = function (str) {
