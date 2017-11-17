@@ -8,6 +8,14 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
+* (2017-11-16) should only search current day for duplicates (using date_from_path tmp variable)
+* (2017-11-16) enabled checking for visual_debug_enable in config.js (WARNING: enables some extra non-sensitive data to be displayed to user in some places)
+* (2017-11-16) created repair script moveit.py (place it in a day folder and run it: it will move file to correct dated folder, and remove redundant stated_date [same as date from ctime])
+* (2017-11-16) skip files without .yml extension in data folders
+* (2017-11-16) improved behavior of "create" write_mode (fails if file exists already [although push_next_* methods try again with new index], unless custom_file_name_else_null is null, in which case add hyphen and number)
+* (2017-11-16) in case of invalid stated_date in record during write_record_without_validation, added error checking and console message and reversion to current year, month, and/or day directory.
+* (2017-11-16) (fixed not finding friendly name during missing field message generation--see "member that is same of a variable name" in regression tests) show friendly name in missing fields error
+* (2017-11-16) (removed redundant calls) (~) get_care_time_info runs multiple times per entry during month report
 * (2017-11-15) cleaned up time counting code for billing reports (multi-week list now can display values since subtotal logic [see use of key_totals_by_end_date] is corrected)
 * (2017-11-15) added "Mark as Duplicate" button
 * (2017-11-15) corrected usages of fun.splitext result
@@ -97,6 +105,10 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* use of object sent to value checking method such as fun.is_true (where instead, member of object should have been sent)
+* use of visual_debug_enable where should be fun.visual_debug_enable (or if in functions.js, then exports.visual_debug_enable)
+* use of member that is same of a variable name (like when `var srf="first_name"; if (fields_friendly_names.srf) key_friendly_name = fields_friendly_names.srf;` is supposed to be `var srf="first_name"; if (srf in fields_friendly_names) key_friendly_name = fields_friendly_names[srf];`)
+* use of function pointer as param or value (such as in manual traceback scenario where name of function was intended to be passed along)
 * strip() should be trim() in javascript
 * fun.fun. should be fun. no really that could be type-o for calls to functions.js
 * remember that javascript string substring method takes slice-like params (start, endbefore [NOT length]) 
@@ -120,6 +132,8 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* duplicate detection should not check different days in case of malformed record (private test data for expertmm contains an entry at 8:48:37 in 11-09 folder which is read as 11-16 and in latest version with searching only current day, 06:34:04 entry in 11-01 folder is detected as 11-16)
+* should have button to move file to correct day (AND Mark as...Duplicate... button shoud not appear if EITHER item_i or dup_index are in such a state)
 * most section-specific or even unit-specific variables (such as default_total) should be moved
 * permissions should specify unit_id (to determine which campuses the person can select [and which is their default, otherwise make campus priority list])
 * make section priority list able to be different for each unit
@@ -172,7 +186,6 @@ html tag) data is written sometimes (but not anymore?)
 * fix callback for yaml.write so it can be used, instead of yaml.writeSync and req.session.notice.
 * (?) cache checking code during page load was not using hasOwnProperty but rather "!" operator -- this may be a problem even though 0 is never a year, month, or day.
 * (?) Reading incorrectly formatted YAML can crash app on line: yaml.readSync(item_path, "utf8"); -- for some reason bad (some kind of error flag that looks like an
-* (~) get_care_time_info runs multiple times per entry during month report
 * (~) Billing cycle file is read twice without manually caching---see `cen_entry = get_table_entry(section, category, selected_number);`
 * (~) validate date by exploding by slash or hyphen, then adding zero padding.
 * (~) bootstrap nav isn't used correctly (subtags do not utilize the nav class) -- see https://v4-alpha.getbootstrap.com/components/navbar/

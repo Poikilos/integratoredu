@@ -17,6 +17,8 @@ if (!config.mongodbHost) config.mongodbHost = "127.0.0.1";
 var mongodbUrl = 'mongodb://' + config.mongodbHost + ':27017/users';
 var MongoClient = require('mongodb').MongoClient;
 
+
+
 //used in local-signup strategy
 exports.localReg = function (username, password) { 
   var deferred = Q.defer();
@@ -397,7 +399,7 @@ exports.good_time_string = function(human_written_time_string) {
 	return result;
 };
 
-exports.get_date_or_stated_date = function(record) {
+exports.get_date_or_stated_date = function(record, debug_msg) {
 	var stated_date_enable = false;
 	var stated_date = null;
 	var result = null;
@@ -415,7 +417,7 @@ exports.get_date_or_stated_date = function(record) {
 					var original_stated_date = stated_date;
 					stated_date = stated_date.substring(6) + "-" + stated_date.substring(0,2) + "-" + stated_date.substring(3,5);
 					stated_date_enable = true;
-					console.log("  * NOTE: converted date " + original_stated_date + " to " + stated_date);
+					console.log("  * NOTE: ("+debug_msg+") converted date " + original_stated_date + " to " + stated_date);
 				}
 				else if ( stated_date.substring(4,5)=="-" &&
 							stated_date.substring(7,8)=="-" &&
@@ -424,9 +426,10 @@ exports.get_date_or_stated_date = function(record) {
 							exports.only_contains_any_char(stated_date.substring(8), "0123456789")
 					) {
 					stated_date_enable = true;
-					console.log("  * NOTE: using stated_date " + stated_date);
+					//if ((!("ctime" in record)) || (record.ctime.substring(0,10)!=stated_date.trim())) //commented for debug only
+						console.log("  * NOTE: ("+debug_msg+") using stated_date " + stated_date + " for " + (("ctime" in record)?record.ctime+" ":"") + record.key);
 				}
-				else console.log("  * WARNING: skipped bad stated_date "+stated_date+" in get_date_or_stated_date");
+				else console.log("  * WARNING: ("+debug_msg+") skipped bad stated_date "+stated_date+" in get_date_or_stated_date");
 			}
 		}
 	}
@@ -513,9 +516,9 @@ exports.get_time_or_stated_time = function(record) {
 	return result;
 };
 
-exports.get_datetime_or_stated_datetime = function(record) {
-	var good_date = exports.get_date_or_stated_date(record);
-	var good_time = exports.get_time_or_stated_time(record);
+exports.get_datetime_or_stated_datetime = function(record, debug_msg) {
+	var good_date = exports.get_date_or_stated_date(record, "get_datetime_or_stated_datetime"); //, "("+debug_msg+") get_datetime_or_stated_datetime");
+	var good_time = exports.get_time_or_stated_time(record);//, "("+debug_msg+") get_datetime_or_stated_datetime");
 	var result = null;
 	if (good_time!==null && good_date!==null) result = good_date + " " + good_time;
 	else if ("ctime" in record) result = record.ctime;
@@ -543,6 +546,10 @@ exports.is_true = function (str) {
 	if ((typeof str)=="string") str_lower=str.toLowerCase();
 	return (str===true) || ((str_lower!==null) && (str_lower=="true"||str_lower=="yes"||str_lower=="1"||str_lower=="on"));
 };
+
+exports.visual_debug_enable = config.hasOwnProperty("visual_debug_enable") && exports.is_true(config.visual_debug_enable);
+if (!config.hasOwnProperty("visual_debug_enable")) console.log("WARNING: no visual_debug_enable setting in config.js");
+else if (!exports.is_true(config.visual_debug_enable)) console.log("visual_debug_enable: "+config.visual_debug_enable+" ("+exports.is_true(config.visual_debug_enable)+")");
 
 exports.is_not_blank = function (str) {
 	//return str && str.trim();
