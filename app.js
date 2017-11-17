@@ -160,12 +160,14 @@ section_form_friendly_names.commute.stated_date = "Custom Date (blank for auto, 
 section_form_friendly_names.commute.pin = "override pin";
 
 var section_sheet_fields = {};
-section_sheet_fields.care = ["family_id", "=caretime()", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"];
+section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"];
 section_sheet_fields.commute = ["=get_date_from_path()", "time", "name", "grade_level"];
 
 var section_sheet_fields_friendly_names = {};
 section_sheet_fields_friendly_names.care = {};
 section_sheet_fields_friendly_names.care["=get_date_from_path()"] = "Stored";
+section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
+section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
 section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued";
 section_sheet_fields_friendly_names.care.first_name = "First";
 section_sheet_fields_friendly_names.care.last_name = "Last";
@@ -1914,10 +1916,11 @@ var hbs = exphbs.create({
 							for (var group_key in data_by_group) {
 								var group = data_by_group[group_key];
 								//ret += '<div style="page-break-before: always"> </div>'+"\n";
+								
 								ret += '  <div class="row" style="page-break-before: always">';
 								ret += '    <div class="col-sm-10">';
 								ret += '<h2 align="center">'+"\n";
-								ret += section_friendly_name + " Invoice";
+								ret += section_friendly_name + " Invoice"; //such as Extended Care Invoice (using friendly name for care section)
 								ret += '</h2><br/>'+"\n";
 								ret += '    </div>';
 								ret += '  </div>';
@@ -1925,6 +1928,7 @@ var hbs = exphbs.create({
 								ret += '  <div class="row">';
 								ret += '    <div class="col-sm-4">';
 								ret += groupby+': '+group_key+"\n";
+								ret += '<div id="weeks-ending-on">';
 								ret += 'weeks ending on:'+"\n";
 								ret += "<ul>\n";
 								for (ed_i=0,ed_len=cen_entry.end_dates.length; ed_i<ed_len; ed_i++) {
@@ -1945,6 +1949,7 @@ var hbs = exphbs.create({
 									}
 								}
 								ret += "</ul>\n";
+								ret += '</div>';
 								ret += "<br/>\n";
 								ret += "<br/>\n";
 								if ("identifiers" in group) {
@@ -2149,6 +2154,7 @@ var hbs = exphbs.create({
 					else {
 					}
 					//endregion CHANGE ALL MATCHING
+					
 
 					ret += '    </div><!--end 2nd col: col-sm-8-->'+"\n";
 					ret += '    <div class="col-sm-2">'+"\n";
@@ -2216,13 +2222,27 @@ var hbs = exphbs.create({
 				if (container_enable==="true") ret += '</div><!--end ribbon container-->'+"\n";
 				// END OF RIBBON
 				ret += '<hr/>'+"\n";
+				ret += '<div align="center">'+"\n";
+				if (selected_month) {
+					ret += '<p>';
+					ret += '<h3>Transaction Reports</h3>';
+					ret += '<div><em>For billing, click a year above.</em></div>';
+					ret += '</p>';
+				}
+				else if (selected_year) {
+					ret += '<p>';
+					ret += '<h3>Billing</h3>';
+					ret += '<div><em>To view details, click a month above.</em></div>';
+					ret += '</p>';
+				}
+				ret += '</div>'+"\n";
 				if (selected_month) {
 					var items_by_date = {};
 					if (section_sheet_fields.hasOwnProperty(section)) {
 						var parsing_info = "";
 						var parsing_error = "";
 						var items = [];
-						ret += '<table class="table table-bordered">'+"\n";
+						ret += '<table class="table table-bordered table-sm">'+"\n";
 						ret += '  <thead>'+"\n";
 						ret += '    <tr>'+"\n";
 						var url_params = "?";
@@ -2239,7 +2259,7 @@ var hbs = exphbs.create({
 								name = section_sheet_fields_friendly_names[section][key];
 							}
 							if (default_total.hasOwnProperty(section)) {
-								if (key==default_total[section]) name = "Total " + name;
+								if (key==default_total[section]) name = "Total " + name; //such as Total Accrued
 							}
 							
 							var override_key = null;
@@ -2824,7 +2844,7 @@ var hbs = exphbs.create({
 							//This is not really going to auto select, but true can imply that the user expectation is to see a month (see next line)
 							//if (auto_select_month_enable) ret += "(select a month)<br/>";  // they probably want a month if auto select is enabled
 							//else 
-							ret += "(to exit billing and to edit entries, select a month above)<br/><br/>"+"\n";  // they probably want a month if auto select is enabled
+							//ret += "(to exit billing and to edit entries, select a month above)<br/><br/>"+"\n";  // they probably want a month if auto select is enabled
 							if (container_enable=="true") ret += '<div class="container">'+"\n";
 							else {
 								ret += "</div><!--force end container-->";
@@ -2832,7 +2852,7 @@ var hbs = exphbs.create({
 							}
 							ret += '<div class="row">'+"\n";
 							ret += ' <div class="col-sm-4">'+"\n";
-							ret += "   <h3>Billing Cycle Designer</h3><br/>"+"\n";  // they probably want a month if auto select is enabled
+							ret += "   <h4>Billing Cycle Designer</h4><br/>"+"\n";  // they probably want a month if auto select is enabled
 							//var months = [];
 							//NOTE: months is already a param given to this helper
 							//var sub_months = [];
@@ -2944,7 +2964,7 @@ var hbs = exphbs.create({
 									//ret += ' </div><!--end col-->'+"\n";
 									
 									ret += ' <div class="col-sm-6 col-sm-offset-2">'+"\n";
-									ret += "<h3>Billing Cycles</h3><br/>"+"\n";
+									ret += "<h4>Billing Cycles</h4><br/>"+"\n";
 									var category = "BillingCycle";
 									//push_next_table_entry(section, category, item, req.user.username, false);
 									//cycle_paths = get_table_entry_paths(section, "BillingCycle");
@@ -2967,7 +2987,7 @@ var hbs = exphbs.create({
 												'&selected_month=(none)'+
 												'&selected_day=(none)'+
 												'&selected_number='+cen+
-												'">';
+												'#results">';
 											
 											
 											cen_entry = get_table_entry(section, category, cen);
@@ -3010,8 +3030,9 @@ var hbs = exphbs.create({
 											if (cen_entry) {
 												ret += "<br/>"+"\n";
 												ret += "<br/>"+"\n";
+												ret += '<a name="results"></a>'+"\n";
 												if (cen_name===null) ret += "<h4>Invoices for Billing Cycle "+selected_number+"</h4><br/>"+"\n";
-												else ret += "<h4>Invoices for "+cen_name+"</h4><br/>"+"\n";
+												else ret += "<h4>Invoices for "+cen_name+"</h4>"+"\n";
 												var billable_items = [];
 												ret += "with end dates: ";
 												if ("end_dates" in cen_entry) {
@@ -3039,7 +3060,7 @@ var hbs = exphbs.create({
 						}
 						//else no billing permission
 					}
-					else ret += "(select a year and month)<br/>"+"\n";
+					else ret += "(select a year or month)<br/>"+"\n";
 				}
 				//ret += '</div>';//end "panel-body"
 				//ret += '</div>';//end "panel panel-default"
