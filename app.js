@@ -19,6 +19,13 @@ var Handlebars = require('handlebars');
 //var dynamic_a_name = "dynamic_bookmark";
 
 var autofill_cache_format = "yml"; //yml or json
+var risky_write_missing_tz_info_using_current_enable = true; //in case of timezone info missing from record (such as in records written by early pre-0.1.0 versions), fill in next time record is modified (ASSUMES timezone info hasn't changed since original write)
+
+//region only show these once (missing optional settings)
+var show_no_requirer_for_section_warning_enable = true;
+var show_autofill_yet_in_section_warning_enable = true;
+var no_autofill_requires_in_section_warning_enable = true;
+//endregion only show these once (missing optional settings)
 
 ////// POLYFILLS //////
 
@@ -163,6 +170,7 @@ section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued";
 section_sheet_fields_friendly_names.care.first_name = "First";
 section_sheet_fields_friendly_names.care.last_name = "Last";
 section_sheet_fields_friendly_names.care.grade_level = "Grade Level";
+section_sheet_fields_friendly_names.care.chaperone = "Chaperone";
 section_sheet_fields_friendly_names.care.family_id = "FamilyID";
 section_sheet_fields_friendly_names.care.time = "Time";
 section_sheet_fields_friendly_names.care.qty = "Count";
@@ -1115,6 +1123,9 @@ function get_table_entry(section, category, number) {
 		var entry_path = parent_path + "/" + result_key;
 		if (fs.existsSync(entry_path)) {
 			result = yaml.readSync(entry_path);
+			result.tmp = {};
+			if ("stated_time" in result) result.tmp.time = result.stated_time;
+			else if ("time" in result) result.tmp.time = result.time;
 			result.key = result_key;
 		}
 		else console.log("ERROR: tried to get non-existant entry "+entry_path);
@@ -1267,14 +1278,8 @@ function push_next_table_entry(section, category, item, as_username, autofill_en
 function write_record_without_validation(req_else_null, section, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
 	var results = {};
 	var indent = "      ";
-	//automatically-generated values:
-	record.time = moment().format('HH:mm:ss');
-	record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
 	var local_time_zone = peek_setting("local_time_zone");
-	if (local_time_zone!==null) record.tz = local_time_zone;
-	else console.log(indent+"ERROR: missing local_time_zone during record save");
-	record.tz_offset_mins = moment().utcOffset();
-	//unique ones are below
+	//unique values are below
 	var table_path = get_table_path_if_exists_else_null(section, "transactions", "student", true);
 	if (table_path !== null) {
 		//write files
@@ -1342,12 +1347,6 @@ function write_record_without_validation(req_else_null, section, date_array_else
 		var out_path = deep_path + "/" + results.out_name;
 		//this callback doesn't work:
 		//yaml.write(out_path, record, "utf8", show_notice);
-		record.created_by = as_username;
-		if (req_else_null) {
-			record.created_by_ip = req_else_null.ip;
-			record.created_by_ips = req_else_null.ips;
-			record.created_by_hostname = req_else_null.hostname;
-		}
 		//NOTE: _settings[section].autofill_requires["family_id"] = ["first_name", "last_name", "grade"];
 		//NOTE: autofill_cache.care.qty["J&S"] = "2";
 		if (autofill_enable) autofill(section, record, true);
@@ -1378,8 +1377,51 @@ function write_record_without_validation(req_else_null, section, date_array_else
 			}
 			else results.error = "ERROR: Nothing written since in modify mode but file "+out_path+" does not exist.";
 		}
-		
 		if (finalize_enable) {
+			if ((write_mode!="create")&&(write_mode!="modify")) {
+				results.error = "ERROR: Nothing written, due to unknown write_mode "+write_mode;
+				console.log(results.error);
+				finalize_enable = false;
+			}
+		}
+		if (finalize_enable) {
+			//region generated fields
+			if (write_mode=="create") {
+				if (!("time" in record)) record.time = moment().format('HH:mm:ss');
+				if (!("ctime" in record)) record.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+				if (!("tz_offset_mins" in record)) record.tz_offset_mins = moment().utcOffset();
+				if (!("tz" in record)) {
+					if (local_time_zone!==null) record.tz = local_time_zone;
+					else console.log(indent+"ERROR: missing local_time_zone during record save");
+				}
+				record.created_by = as_username;
+				if (req_else_null) {
+					record.created_by_ip = req_else_null.ip;
+					record.created_by_ips = req_else_null.ips;
+					record.created_by_hostname = req_else_null.hostname;
+				}
+			}
+			else if (write_mode=="modify") {
+				if (!("modified_time" in record)) record.modified_time = moment().format('HH:mm:ss');
+				if (!("mtime" in record)) record.mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+				if (risky_write_missing_tz_info_using_current_enable) {
+					if (!("tz_offset_mins" in record)) record.tz_offset_mins = moment().utcOffset();
+					if (!("tz" in record)) {
+						if (local_time_zone!==null) record.tz = local_time_zone;
+						else console.log(indent+"ERROR: missing local_time_zone during record save");
+					}
+				}
+				if (!("modified_by" in record)) record.modified_by = as_username;
+				if (req_else_null) {
+					if (!("modified_by_ip" in record)) record.modified_by_ip = req_else_null.ip;
+					if (!("modified_by_ips" in record)) record.modified_by_ips = req_else_null.ips;
+					if (!("modified_by_hostname" in record)) record.modified_by_hostname = req_else_null.hostname;
+				}
+			}
+			//else already checked for bad write_mode and this code won't run in that case
+			//endregion generated fields
+			
+			
 			console.log(indent+"* WRITING "+out_path);
 			yaml.writeSync(out_path, record, "utf8");
 			results.out_path = out_path;
@@ -1428,7 +1470,7 @@ function write_record_without_validation(req_else_null, section, date_array_else
 			//else doesn't matter since cache will be loaded from drive and then be fresh
 			
 			results.notice = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
-			if (record.stated_time) results.notice += " (stated time " + record.stated_time + ")";
+			//if (record.stated_time) results.notice += " (stated time " + record.stated_time + ")";
 		}
 	}
 	else {
@@ -1718,6 +1760,31 @@ var hbs = exphbs.create({
 												var item_path = back_d_path + "/" + item_key;
 												if (item_path.endsWith(".yml")) {
 													var this_item = yaml.readSync(item_path, "utf8");
+													this_item.tmp = {};
+													
+													//if ("stated_time" in this_item) this_item.tmp.time = this_item.stated_time;
+													//else if ("time" in this_item) this_item.tmp.time = this_item.time;
+													//else {
+													this_item.tmp.time = fun.get_time_or_stated_time(this_item);
+													if (this_item.tmp.time==null) {
+														var name_as_time = fun.splitext(item_key)[0];
+														if (name_as_time.length>=6) {
+															this_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+														}
+														else {
+															warnings += '<div class="alert alert-warning">cannot derive time for '+item_path+'</div>';
+														}
+													}
+													//if ("stated_date" in this_item) this_item.tmp.date = this_item.stated_date;
+													//else if ("date" in this_item) this_item.tmp.date = this_item.date;
+													//else {
+													this_item.tmp.date = fun.get_date_or_stated_date(this_item, item_key+" in show_billing_cycle_preview helper for year view");
+													if (this_item.tmp.date==null) {
+														this_item.tmp.date = back_y_s+"-"+back_m_s+"-"+back_d_s;
+														//else {
+														//	warnings += '<div class="alert alert-warning">cannot derive date for '+item_path+'</div>';
+														//}
+													}
 													if (this_item) {
 														this_item.key = item_key;
 														if (!this_item.hasOwnProperty("active") || fun.is_true(this_item.active)) {
@@ -2221,21 +2288,39 @@ var hbs = exphbs.create({
 										//dat[section][selected_year][selected_month][this_day][item_key] = {};
 										if (fs.statSync(item_path).isFile()) {
 											if (item_path.endsWith(".yml")) {
-												try {
+												//try {
 													dat[section][selected_year][selected_month][this_day][item_key] = yaml.readSync(item_path, "utf8");
-													dat[section][selected_year][selected_month][this_day][item_key].key = item_key;
-													if (!dat[section][selected_year][selected_month][this_day][item_key].hasOwnProperty("tmp"))
-														dat[section][selected_year][selected_month][this_day][item_key].tmp = {};
-													dat[section][selected_year][selected_month][this_day][item_key].tmp.date_from_path = selected_year + "-" + selected_month + "-" + this_day;
-													if (!items_by_date.hasOwnProperty(dat[section][selected_year][selected_month][this_day][item_key].tmp.date_from_path))
-														items_by_date[dat[section][selected_year][selected_month][this_day][item_key].tmp.date_from_path] = [];
-													items_by_date[dat[section][selected_year][selected_month][this_day][item_key].tmp.date_from_path].push(dat[section][selected_year][selected_month][this_day][item_key]);
+													var original_item = dat[section][selected_year][selected_month][this_day][item_key];
+													original_item.key = item_key;
+													if (!original_item.hasOwnProperty("tmp"))
+														original_item.tmp = {};
+													original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
+													original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
+													if (original_item.tmp.date==null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
+													original_item.tmp.time = fun.get_time_or_stated_time(original_item);
+													if (original_item.tmp.time==null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+													original_item.tmp["=get_day_from_path()"] = this_day;
+													//tui: table-unique identifier
+													original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
+													if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
+														items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
+														console.log("added date to items_by_date: "+original_item.tmp["=get_date_from_path()"]);
+													}
+													items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
 													//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
-													//var this_item = dat[section][selected_year][selected_month][this_day][item_key];
-													var this_item = JSON.parse(JSON.stringify(dat[section][selected_year][selected_month][this_day][item_key]));
-													this_item.year = selected_year;
-													this_item.month = selected_month;
-													this_item.day = this_day;
+													//var this_item = original_item;
+													var this_item = JSON.parse(JSON.stringify(original_item));
+													var ymd = null;
+													if (this_item.tmp.date) {
+														ymd = this_item.tmp.date.split("-");
+														if ((ymd!==null) && (ymd.length==3)) {
+															this_item.tmp.year = selected_year;
+															this_item.tmp.month = selected_month;
+															this_item.tmp.day = this_day;
+														}
+														else console.log("bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
+													}
+													else console.log("missing this_item.date for " + original_item.tmp.tui);
 													var span_info = null;
 													span_info = get_care_time_info(this_item, section);
 													for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
@@ -2265,7 +2350,7 @@ var hbs = exphbs.create({
 																	if (span_info.hasOwnProperty("seconds")) {
 																		
 																		this_item["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
-																		if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.info + " in " + item_path;
+																		if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
 																	}
 																	else {
 																		this_item["=careprice()"] = 0.00;
@@ -2293,12 +2378,13 @@ var hbs = exphbs.create({
 																		this_item["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
 																	}
 																}
-																else if (op == "get_date_from_path") {
-																	this_item["=get_date_from_path()"] = selected_year+"-"+selected_month+"-"+this_day;
-																}
-																else if (op == "get_day_from_path") {
-																	this_item["=get_day_from_path()"] = this_day;
-																}
+																//below are already done further up (before copying item to this_item)
+																//else if (op == "get_date_from_path") {
+																//	this_item.tmp["=get_date_from_path()"] = this_item.tmp["=get_date_from_path()"];  // also the following is always accurate in this context: selected_year+"-"+selected_month+"-"+this_day;
+																//}
+																//else if (op == "get_day_from_path") {
+																//	this_item.tmp["=get_day_from_path()"] = this_item.tmp["=get_day_from_path()"];
+																//}
 															}
 															else {
 																console.log("undefined function :" + this_sff);
@@ -2315,10 +2401,10 @@ var hbs = exphbs.create({
 														//ret += '</td>'+"\n";
 													}
 													items.push(this_item);
-												}
-												catch (err) {
-													msg += "\n<br/>Could not finish reading "+item_path+": "+err;
-												}
+												//}
+												//catch (err) {
+												//	msg += "\n<br/>Could not finish reading "+item_path+": "+err;
+												//}
 											}
 											else console.log("Skipped "+item_path+": not a data file");
 										}
@@ -2344,10 +2430,9 @@ var hbs = exphbs.create({
 							if (hdv_field_name===null) console.log("[ verbose message ] no "+"settings."+section+".list_implies_qty");
 							if (has_setting(section+".list_implies_multiple_entries")) hdv_item_splitter_name = peek_setting(section+".list_implies_multiple_entries");
 							if (hdv_item_splitter_name===null) console.log("[ verbose message ] no "+section+".list_implies_multiple_entries");
-							
 							for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
 								var item = items[item_i];
-								d_path = m_path+"/"+item.day;
+								d_path = m_path+"/"+item.tmp.day;
 								item_path = d_path+"/"+item.key;
 								//console.log();
 								//console.log("[CHECKING#"+item_i+"]");
@@ -2360,73 +2445,92 @@ var hbs = exphbs.create({
 								if (item_enable && user_has_section_permission(username, section, mode)) {
 									if (section in section_form_fields) {
 									//console.log("[ == ] this "+this_date+" "+this_time+"...");
-										if (items_by_date.hasOwnProperty(items[item_i].tmp.date_from_path)) {
-											this_date_items = items_by_date[items[item_i].tmp.date_from_path];
+										//if (items_by_date.hasOwnProperty(items[item_i].tmp["=get_date_from_path()"])) {
+										if (items[item_i].tmp["=get_date_from_path()"] in items_by_date) {
+											this_date_items = items_by_date[items[item_i].tmp["=get_date_from_path()"]];
 											//for (var prev_i=0; prev_i<item_i; prev_i++) { //this would be even slower
 											for (var inner_i=0,inner_len=this_date_items.length; inner_i<inner_len; inner_i++) {
 												//if ((!items[prev_i].hasOwnProperty("active")) || fun.is_true(items[prev_i].active)) {
 												if ((!this_date_items[inner_i].hasOwnProperty("active")) || fun.is_true(this_date_items[inner_i].active)) {
-													var match_count = 0;
-													var ff_len = section_form_fields[section].length;
-													//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
-													//var prev_date = fun.get_date_or_stated_date(items[prev_i], "item# "+item_i+"&"+prev_i);
-													var prev_time = fun.get_time_or_stated_time(this_date_items[inner_i]);
-													var prev_date = fun.get_date_or_stated_date(this_date_items[inner_i]);
-													var this_time = fun.get_time_or_stated_time(items[item_i]);
-													//var this_date = fun.get_date_or_stated_date(items[item_i], "item# "+item_i+"&"+prev_i);
-													var this_date = fun.get_date_or_stated_date(items[item_i], "item# "+item_i+" & inner "+inner_i);
-													//console.log("[ == ] this "+this_date+" "+this_time+", prev "+prev_date+" "+prev_time+"...");
-													if (prev_date==this_date) {
-														//console.log("[ match ] "+prev_date + " == " + this_date);
-														if ((this_time.indexOf("NaN")<=-1)&&(prev_time.indexOf("NaN")<=-1)) {
-															if (fun.is_not_blank(this_date) && fun.is_not_blank(prev_date)) {
-																if ((prev_time!==null) && (this_time!==null)) {
-																	var this_is_after_school = is_after_school(section, this_date+" "+this_time);
-																	var prev_is_after_school = is_after_school(section, prev_date+" "+prev_time);
-																	if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
-																		//console.log("[ == ] this "+this_date+" "+this_time+" is"+(this_is_after_school?"":" not")+" after, prev "+prev_date+" "+prev_time+" is"+(prev_is_after_school?"":" not")+".");
-																		for (var ff_i=0; ff_i<ff_len; ff_i++) {
-																			/*
-																			if (fun.is_blank(items[item_i][section_form_fields[section][ff_i]]) || 
-																				(fun.safe_equals_ci(items[item_i][section_form_fields[section][ff_i]], items[prev_i][section_form_fields[section][ff_i]])) || 
-																				(
-																					((typeof items[item_i][section_form_fields[section][ff_i]])=="string") && 
-																					((typeof items[prev_i][section_form_fields[section][ff_i]])=="string") &&
-																					(items[item_i][section_form_fields[section][ff_i]].trim().toLowerCase() == items[prev_i][section_form_fields[section][ff_i]].trim().toLowerCase()) )
-																			) {
-																				//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + items[prev_i][section_form_fields[section][ff_i]]);
-																				match_count++;
+													if (this_date_items[inner_i].key != this_date_items[inner_i].key) {
+														var match_count = 0;
+														var ff_len = section_form_fields[section].length;
+														//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
+														//var prev_date = fun.get_date_or_stated_date(items[prev_i], "item# "+item_i+"&"+prev_i);
+														var prev_time = this_date_items[inner_i].tmp.time;
+														var prev_date =  this_date_items[inner_i].tmp.date; //pre-0.1.0 where date wasn't saved
+														var this_time = items[item_i].tmp.time;
+														//var this_date = fun.get_date_or_stated_date(items[item_i], "item# "+item_i+"&"+prev_i);
+														var this_date = items[item_i].tmp.date;
+														//console.log("[ == ] this "+this_date+" "+this_time+", prev "+prev_date+" "+prev_time+"...");
+														if (prev_date==this_date) {
+															//console.log("[ match ] "+prev_date + " == " + this_date);
+															if ((this_time.indexOf("NaN")<=-1)&&(prev_time.indexOf("NaN")<=-1)) {
+																if (fun.is_not_blank(this_date) && fun.is_not_blank(prev_date)) {
+																	if ((prev_time!==null) && (this_time!==null)) {
+																		var this_is_after_school = is_after_school(section, this_date+" "+this_time);
+																		var prev_is_after_school = is_after_school(section, prev_date+" "+prev_time);
+																		if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
+																			//console.log("[ == ] this "+this_date+" "+this_time+" is"+(this_is_after_school?"":" not")+" after, prev "+prev_date+" "+prev_time+" is"+(prev_is_after_school?"":" not")+".");
+																			for (var ff_i=0; ff_i<ff_len; ff_i++) {
+																				/*
+																				if (fun.is_blank(items[item_i][section_form_fields[section][ff_i]]) || 
+																					(fun.safe_equals_ci(items[item_i][section_form_fields[section][ff_i]], items[prev_i][section_form_fields[section][ff_i]])) || 
+																					(
+																						((typeof items[item_i][section_form_fields[section][ff_i]])=="string") && 
+																						((typeof items[prev_i][section_form_fields[section][ff_i]])=="string") &&
+																						(items[item_i][section_form_fields[section][ff_i]].trim().toLowerCase() == items[prev_i][section_form_fields[section][ff_i]].trim().toLowerCase()) )
+																				) {
+																					//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + items[prev_i][section_form_fields[section][ff_i]]);
+																					match_count++;
+																				}
+																				//else console.log(" [ <> ] "+items[item_i][section_form_fields[section][ff_i]] + " is not " + items[prev_i][section_form_fields[section][ff_i]]);
+																				*/
+																				if (section_form_fields[section][ff_i]=="stated_date") {
+																					//if (items[item_i][section_form_fields[section][ff_i]] == this_date_items[inner_i][section_form_fields[section][ff_i]]) {
+																					if (items[item_i].tmp.date==this_date_items[inner_i].tmp.date) {
+																						//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																						match_count++;
+																					}
+																				}
+																				else if (section_form_fields[section][ff_i]=="stated_time") {
+																					//if (items[item_i][section_form_fields[section][ff_i]] == this_date_items[inner_i][section_form_fields[section][ff_i]]) {
+																					if (items[item_i].tmp.time==this_date_items[inner_i].tmp.time) {
+																						//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																						match_count++;
+																					}
+																				}
+																				else {
+																					if (fun.is_blank(items[item_i][section_form_fields[section][ff_i]]) || 
+																						(fun.safe_equals_ci(items[item_i][section_form_fields[section][ff_i]], this_date_items[inner_i][section_form_fields[section][ff_i]])) || 
+																						(
+																							((typeof items[item_i][section_form_fields[section][ff_i]])=="string") && 
+																							((typeof this_date_items[inner_i][section_form_fields[section][ff_i]])=="string") &&
+																							(items[item_i][section_form_fields[section][ff_i]].trim().toLowerCase() == this_date_items[inner_i][section_form_fields[section][ff_i]].trim().toLowerCase()) )
+																					) {
+																						//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																						match_count++;
+																					}
+																				}
+																				//else console.log(" [ <> ] "+items[item_i][section_form_fields[section][ff_i]] + " is not " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
 																			}
-																			//else console.log(" [ <> ] "+items[item_i][section_form_fields[section][ff_i]] + " is not " + items[prev_i][section_form_fields[section][ff_i]]);
-																			*/
-																			if (fun.is_blank(items[item_i][section_form_fields[section][ff_i]]) || 
-																				(fun.safe_equals_ci(items[item_i][section_form_fields[section][ff_i]], this_date_items[inner_i][section_form_fields[section][ff_i]])) || 
-																				(
-																					((typeof items[item_i][section_form_fields[section][ff_i]])=="string") && 
-																					((typeof this_date_items[inner_i][section_form_fields[section][ff_i]])=="string") &&
-																					(items[item_i][section_form_fields[section][ff_i]].trim().toLowerCase() == this_date_items[inner_i][section_form_fields[section][ff_i]].trim().toLowerCase()) )
-																			) {
-																				//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
-																				match_count++;
+																			if (match_count>=ff_len) {
+																				//console.log("matched "+match_count+" of "+ff_len);//+JSON.stringify(section_form_fields[section]));
+																				//dup_index = prev_i;
+																				dup_index = inner_i;
+																				break;
 																			}
-																			//else console.log(" [ <> ] "+items[item_i][section_form_fields[section][ff_i]] + " is not " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
-																		}
-																		if (match_count>=ff_len) {
-																			//console.log("matched "+match_count+" of "+ff_len);//+JSON.stringify(section_form_fields[section]));
-																			//dup_index = prev_i;
-																			dup_index = inner_i;
-																			break;
 																		}
 																	}
+																	//else console.log(" [ <> ] prev_time is "+ prev_time + " this_time is " + this_time);
 																}
-																//else console.log(" [ <> ] prev_time is "+ prev_time + " this_time is " + this_time);
 															}
 														}
-													}
+													}//else is same record (is self)
 												}//if is an active entry
 											}
 										}//end if is in items_by_date
-										else console.log("ERROR: "+items[item_i].tmp.date_from_path+" is not in items_by_date");
+										else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date");
 									}
 								}
 								
@@ -2440,20 +2544,23 @@ var hbs = exphbs.create({
 									var val = "";
 									if (item.hasOwnProperty(column_name)) {
 										val = item[column_name];
-										if (selected_field==column_name) {
-											//don't show value yet if selected (see below)
-										}
-										else ret += val;
 									}
+									else if (item.tmp.hasOwnProperty(column_name)) {
+										val = item.tmp[column_name];
+									}
+									if (selected_field==column_name) {
+										//don't show value yet if selected (see below)
+									}
+									else ret += val;
 									
 									if (selected_field==column_name) { //show even if does NOT have property
 										ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
 										ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 										ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
 										ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-										ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>'+"\n";
-										ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>'+"\n";
-										ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>'+"\n";
+										ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+										ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+										ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
 										ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
 										ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>'+"\n";
 										ret += '  <input type="text" name="set_value" id="set_value" value="'+val+'"/>'+"\n";
@@ -2466,32 +2573,33 @@ var hbs = exphbs.create({
 										ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 										ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
 										ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-										ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>'+"\n";
-										ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>'+"\n";
-										ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>'+"\n";
+										ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+										ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+										ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
 										ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
 										ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>'+"\n";
 										ret += '  <input type="hidden" name="set_value" id="set_value" value="false"/>'+"\n";
-										ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+items[dup_index].key+'"/>'+"\n";
-										ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+items[dup_index].time+'"/>'+"\n";
-										ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+fun.get_date_or_stated_date(items[dup_index],"field for "+item_i)+'"/>'+"\n";
-										if (fun.visual_debug_enable) ret += '  <button class="btn btn-warning" type="submit">Mark dated '+fun.get_date_or_stated_date(items[item_i])+' <br/>Duplicate of '+fun.get_date_or_stated_date(items[dup_index],"button for "+item_i)+'<br/>(actual dup '+items[dup_index].key+': '+items[dup_index].ctime.substring(0,10)+') '+items[dup_index].time+'</button>'+"\n";
-										else ret += '  <button class="btn btn-warning" type="submit">Mark as Duplicate of '+fun.get_date_or_stated_date(items[dup_index],"button for"+item_i)+' '+items[dup_index].time+'</button>'+"\n";
-										//Mark '+item_i+':'+fun.get_date_or_stated_date(items[item_i],"button for "+item_i)+' Duplicate of '+fun.get_date_or_stated_date(items[dup_index],"button for"+item_i)+' (actual '+dup_index+': '+items[dup_index].ctime.substring(0,10)+') '+items[dup_index].time+'
+										ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+this_date_items[dup_index].key+'"/>'+"\n";
+										ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+this_date_items[dup_index].tmp.time+'"/>'+"\n";
+										ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+this_date_items[dup_index].tmp.date+'"/>'+"\n";
+										if (fun.visual_debug_enable) ret += '  <button class="btn btn-warning" type="submit">Mark dated '+items[item_i].tmp.date+' <br/>Duplicate of '+this_date_items[dup_index].tmp.date+'<br/>(actual dup '+this_date_items[dup_index].key+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'</button>'+"\n";
+										else ret += '  <button class="btn btn-warning" type="submit">Mark '+items[item_i].tmp.date+' as <br/>Duplicate of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>'+"\n";
+										//Mark '+item_i+':'+items[item_i].tmp.date+' Duplicate of '+this_date_items[dup_index].tmp.date+' (actual '+dup_index+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'
 										ret += '</form>';
 									}
 									
 									if (item_enable) {
 										if (hdv_item_splitter_name && (column_name==hdv_item_splitter_name)) {
 											var subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
+											//var co_subvalues = fun.get_human_delimited_values(item[asdf]); //TODO: if differs, DON'T offer split!
 											if (subvalues && (subvalues.length>1)) {
 												ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">'+"\n";
 												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
 												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>'+"\n";
+												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
 												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
 												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n";
 												//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>'+"\n";
@@ -2511,9 +2619,9 @@ var hbs = exphbs.create({
 													ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 													ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
 													ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-													ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>'+"\n";
-													ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>'+"\n";
-													ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+													ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
 													ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
 													ret += '  <input type="hidden" name="selected_field" id="selected_field" value="qty"/>'+"\n"; //SET qty
 													ret += '  <input type="hidden" name="set_value" id="set_value" value="'+hdvs.length+'"/>'+"\n";
@@ -2533,7 +2641,7 @@ var hbs = exphbs.create({
 															if (requirements.length>1) {
 																//console.log("[ ] verbose message: found requirements "+JSON.stringify(requirements));
 																var my_index = fun.array_index_of(requirements, column_name);
-																if (my_index>-1) {  // if (requirements.hasOwnProperty(column_name)) { //doesn't work
+																if (my_index>-1) {  // if (requirements.hasOwnProperty(column_name)) { //hasOwnProperty doesn't work
 																	if (section in autofill_cache) {
 																		if (requirer in autofill_cache[section]) {
 																			var suggested_values = [];
@@ -2595,9 +2703,9 @@ var hbs = exphbs.create({
 																						ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 																						ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
 																						ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-																						ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.year+'"/>'+"\n";
-																						ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.month+'"/>'+"\n";
-																						ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.day+'"/>'+"\n";
+																						ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+																						ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+																						ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
 																						ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
 																						ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n"; //SET missing required field
 																						ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>'+"\n";
@@ -2609,9 +2717,19 @@ var hbs = exphbs.create({
 																				//else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
 																			}
 																		}
-																		else console.log("[ ]   WARNING: nothing to suggest since no "+requirer+" for "+section+" in autofill_cache");
+																		else {
+																			if (show_no_requirer_for_section_warning_enable) {
+																				console.log("[ ]   WARNING: nothing to suggest since no "+requirer+" for "+section+" in autofill_cache");
+																				show_no_requirer_for_section_warning_enable = false;
+																			}
+																		}
 																	}
-																	else console.log("[ ]   WARNING: nothing to suggest since no "+section+" in autofill_cache");
+																	else {
+																		if (show_autofill_yet_in_section_warning_enable) {
+																			console.log("[ ]   WARNING: nothing to suggest since no "+section+" in autofill_cache");
+																			show_autofill_yet_in_section_warning_enable = false;
+																		}
+																	}
 																	//console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
 																	break;
 																}
@@ -2620,7 +2738,12 @@ var hbs = exphbs.create({
 															//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested"); 
 														}
 													}
-													else console.log("[ ] WARNING: nothing to suggest since no autofill_requires for "+section);
+													else {
+														if (no_autofill_requires_in_section_warning_enable) {
+															console.log("[ ] WARNING: nothing to suggest since no autofill_requires for "+section);
+															no_autofill_requires_in_section_warning_enable = false;
+														}
+													}
 												}
 												else console.log("[ ] verbose message: suggestion of missing required values is not enabled");
 											}
@@ -2632,6 +2755,25 @@ var hbs = exphbs.create({
 										ret += '</span>'+"\n";
 										if ((ssf_i===0) && ("duplicate_of_time" in items[item_i])) ret+='<span class="text-muted"> see '+items[item_i].duplicate_of_time;
 									}
+									if (column_name=="=get_date_from_path()") {
+										if (items[item_i].tmp["=get_date_from_path()"] != items[item_i].tmp.date) {
+											//ret+='<div class="alert alert-danger">'+items[item_i].tmp.date+'</div>';
+											ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
+											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
+											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
+											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
+											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
+											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
+											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="ctime"/>'+"\n"; //SET ctime
+											ret += '  <input type="hidden" name="set_value" id="set_value" value="'+items[item_i].ctime.replaceAll(items[item_i].tmp.date,items[item_i].tmp["=get_date_from_path()"])+'"/>'+"\n";
+											ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+items[item_i].tmp["=get_date_from_path()"]+'</button>'+"\n";
+											ret += '</form>'+"\n";
+											
+										}
+									}
+
 									ret += '</td>'+"\n";
 								}
 								ret += '    </tr>'+"\n";
@@ -3174,7 +3316,11 @@ var hbs = exphbs.create({
 					if (has_setting(section+".list_implies_multiple_entries_paired_with_unless_has_one")) hdv_or_single_name = peek_setting(section+".list_implies_multiple_entries_paired_with_unless_has_one");
 					for (i=0, len=objects.length; i<len; i++) {
 						ret += "<tr>"+"\n";
-						if (force_date_enable) ret += "<td>"+fun.get_date_or_stated_date(objects[i], "history item "+i)+"</td>\n";
+						var i_date = fun.get_date_or_stated_date(objects[i], "history item "+i); //gets stuck on history item 4 on 2017-11-16 using expertmm private test data
+						//if (i_date==null) 
+						if (force_date_enable) {
+							ret += "<td>"+i_date+"</td>\n";
+						}
 						for (field_i=0; field_i<f_len; field_i++) {
 							field_key = fields[field_i];
 							ret += "<td>"+"\n";
@@ -3543,7 +3689,7 @@ app.get('/', function(req, res){
 							selected_year = years[0];
 							req.session.selected_year = selected_year;
 							if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
-							else console.log("[   ] autoselected only year "+selected_year);
+							else console.log("[   ] "+moment().format("HH:mm:ss")+" autoselected only year "+selected_year);
 						}
 						else if (fun.is_blank(selected_year) && years.length>0) {
 							console.log("[   ] no selected_year "+selected_year);
@@ -3662,10 +3808,25 @@ app.get('/', function(req, res){
 											if (fs.statSync(item_path).isFile()) {
 												if (item_path.endsWith(".yml")) {
 													try {
+														var errors = "";
 														dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+														
 														dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
 														//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
 														var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+														this_item.tmp = {};
+														this_item.tmp.time = fun.get_time_or_stated_time(this_item);
+														if (this_item.tmp.time==null) {
+															var name_as_time = fun.splitext(item_key)[0];
+															if (name_as_time.length>=6) {
+																this_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+															}
+															else {
+																errors+='cannot derive time for '+item_path+" \n";
+															}
+														}
+														this_item.tmp.date = fun.get_date_or_stated_date(this_item, "saving "+item_key+" to cache");
+														if (this_item.tmp.date==null) this_item.tmp.date = selected_year + "-" + selected_month + "-" + selected_day;
 														items.push(this_item);
 														//for (var field_key in this_item) {
 															//if (this_item.hasOwnProperty(field_key)) {
@@ -3674,6 +3835,7 @@ app.get('/', function(req, res){
 																//console.log("    " + field_key + ": " + val);
 															//}
 														//}
+														if (errors.length>0) req.session.error = errors;
 													}
 													catch (err) {
 														req.session.error = "\nCould not finish reading "+item_path+": "+err;
@@ -4351,10 +4513,10 @@ app.post('/split-entry', function(req, res){
 					//if (!ok) req.session.error = "Cache failure in split-entry so skipped saving value for "+req.body.selected_field+"!";
 				}
 				else {
-					req.session.error = 'Skipping change to field since '+item_path+' does not exist.';
+					req.session.error = 'Skipping split-entry since '+item_path+' does not exist.';
 				}
 			}
-			else req.session.error = 'Skipping change to field since there is no category folder in transaction folder for '+section+'.';
+			else req.session.error = 'Skipping split-entry since there is no category folder in transaction folder for '+section+'.';
 		}
 		else {
 			req.session.error = "not authorized to modify data for '" + section + "'";

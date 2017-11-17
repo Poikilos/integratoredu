@@ -8,6 +8,9 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
+* (2017-11-17) for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path
+* (2017-11-17) (!) only write ctime if write_mode is "create" (and consolidated code for generated field and added warning for unknown write_mode)
+* (2017-11-17) (use get_date_or_stated_date instead of path for *item.tmp.year, *item.tmp.month, and *item.tmp.day) split-entry was putting new date instead of old date into new entries
 * (2017-11-16) should only search current day for duplicates (using date_from_path tmp variable)
 * (2017-11-16) enabled checking for visual_debug_enable in config.js (WARNING: enables some extra non-sensitive data to be displayed to user in some places)
 * (2017-11-16) created repair script moveit.py (place it in a day folder and run it: it will move file to correct dated folder, and remove redundant stated_date [same as date from ctime])
@@ -105,6 +108,8 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (always use get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path
+* use of console.error (doens't exist, should be console.log)
 * use of object sent to value checking method such as fun.is_true (where instead, member of object should have been sent)
 * use of visual_debug_enable where should be fun.visual_debug_enable (or if in functions.js, then exports.visual_debug_enable)
 * use of member that is same of a variable name (like when `var srf="first_name"; if (fields_friendly_names.srf) key_friendly_name = fields_friendly_names.srf;` is supposed to be `var srf="first_name"; if (srf in fields_friendly_names) key_friendly_name = fields_friendly_names[srf];`)
