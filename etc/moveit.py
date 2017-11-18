@@ -6,7 +6,7 @@ m_path = os.path.abspath(os.path.join(d_path, os.pardir))
 y_path = os.path.abspath(os.path.join(m_path, os.pardir))
 category_path = os.path.abspath(os.path.join(y_path, os.pardir))
 
-print("ERROR: only use this script and remove exit if you are really really sure you know what you're doing.")
+print("ERROR: use this script by removing exit only if you are really really sure you know what you're doing.")
 exit(1)
 
 print("day_path: "+d_path)

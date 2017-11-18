@@ -2,6 +2,10 @@
 import os
 #import time
 import datetime
+
+print("ERROR: use this script by removing exit only if you are really really sure you know what you're doing.")
+exit(1)
+
 folder_path = "."
 tmp_path = os.path.join(folder_path, "tmp")
 if not os.path.isdir(tmp_path):
