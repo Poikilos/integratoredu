@@ -5,11 +5,16 @@ http://github.com/expertmm/integratoredu
 This web app is under heavy development. Please use a release version (releases are, however, not production ready) by clicking "release(s)" above.
 For release notes, see a release or the "etc" folder.
 
-## Upgrade
+## Key Features
+* Bill parents/guardians for minors who come before school or stay after school
+* Track students who come to school late or leave early (for attendance purposes)
+
+## Upgrade Instructions
 * use etc/upgrade-data-20171008 to migrate to the intermediate structure used by all versions before Nov 9.
 
-## Install
+## Install Instructions
 ### On a GNU/Linux System (recommended)
+* For security, data files and config.js are theoretically impossible to access via the web since app.js does not create any route to the data folder. However, check with your organization policies before using this program. Pins are stored as plain text in a config.js (see "Universal post-install steps (required)" below), and student information (in whatever way parent/guardian types their first name, last name, and grade and parent/guardian name--however they can type mom or poppop or anything you want in the "Pickup/Dropoff by" field) is stored in plain text data files (as .yml files) on your server. You should use ssl (https protocol) with this app to avoid post data being transmitted across your network (or internet via your remote server) unencrypted.
 * make sure you have node.js installed
 * then in the repo folder which contains app.js run the following in terminal to download dependencies (after making sure you have npm installed):
 ```
@@ -30,7 +35,7 @@ chmod +x ./etc/startiedu  # this only has to be done once
 
 ### Universal post-install steps (required)
 * make a data folder in same folder as app.js
-	* place a new file called config.js in there:
+	* place a new file called config.js in that data folder, and call it:
 ```
 // config.js
 // This file contains private configuration details.
@@ -54,13 +59,18 @@ module.exports = {
 (for example there is not a user who can read but not edit commute history, but you can create one by creating a new group, putting a new username in the group, and changing that property of the permissions object in the code so that group has read permission for commute section [until groups.yml and permissions.yml are implemented, in which case do it there])
 
 ## Usage
-* care is for parents to use when signing in/out students such as with your tablet computer managed by a care workers (only the workers should know the password)
+* The purpose of the care section is for billing parents/guardians for minors who come before school or stay after school. The billing feature is implemented for this section.
+* The purpose of the commute section is to track when students came late or leave early, for attendance purposes (front desk person should ensure that student signs in/out using a computer or tablet device, and students coming late or leaving early should only be allowed to enter/exit via the front desk person).
+* care group (and user of same name) is for parents to use when signing in/out students such as with your tablet computer managed by a care workers (only the workers should know the password)
 	* care has the customtime permission, so that care workers can enter the time someone signed the minor in or out--parents should normally do this to avoid client issues where time is debated when they are billed. Parents can enter a custom time while logged into your tablet as care, so if that doesn't meet your security needs, remove the customtime permission from the care group (this will require worker to enter the office_pin in order to enter a custom time) by changing that property of the permissions object in app.js (or permissions.yml if that is implemented).
-* commute is for students (any student, commuter or not) to sign in/out at the front desk when they come to school late or leave early (they can know the password but this is not necessary if front desk worker makes sure that they are logged into the app and sign in/out using the commute form)
-* attendance manages and edits the commute history (password should only be known to attendance personnel)
-* accounting manages and edits the care history (very important--only accountant should have this password)
+* commute group (and user of same name) is for students (any student, commuter or not) to sign in/out at the front desk when they come to school late or leave early (they can know the password but this is not necessary if front desk worker makes sure that they are logged into the app and sign in/out using the commute form)
+* attendance group (and user of same name) manages and edits the commute history (password should only be known to attendance personnel)
+	* this username can be used to enter old commute data (such as from paper sign in/out sheet where students signed) without the time/date override pin
+* accounting group (and user of same name) manages and edits the care history (very important--only accountant should have this password)
 	* instructions for accounting person:
-		* before billing, resolve all problems in the "Reports" section: 
+		* this username can be used to enter old care data (such as from paper sign in/out sheet where parent/guardian signed in/out minors from before or after school care) without the time/date override pin
+		* before billing, resolve issues in the "Reports" section:
+			* At the top right under "Report Settings," change the hourly rate for care, the time when before school charges end, and the time when after school charges begin.
 			* click each month, then deal with fields marked with red or orange buttons in the row that has the problem.
 			* add a FamilyID to each family, then click Autofill All.
 			* if the family has no charge, make the family ID a negative number (or any sequence of characters starting with a hyphen).
@@ -217,6 +227,7 @@ module.exports = {
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* when students matriculate, their grade in autofill should be corrected--their graduation year should be tracked somehow so that autofill works for the next school year.
 * should have button to move file to correct day
 * most section-specific or even unit-specific variables (such as default_total) should be moved
 * permissions should specify unit_id (to determine which campuses the person can select [and which is their default, otherwise make campus priority list])
