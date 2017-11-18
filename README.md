@@ -5,7 +5,79 @@ http://github.com/expertmm/integratoredu
 This web app is under heavy development. Please use a release version (releases are, however, not production ready) by clicking "release(s)" above.
 For release notes, see a release or the "etc" folder.
 
-commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
+## Upgrade
+* use etc/upgrade-data-20171008 to migrate to the intermediate structure used by all versions before Nov 9.
+
+## Install
+### On a GNU/Linux System (recommended)
+* make sure you have node.js installed
+* then in the repo folder which contains app.js run the following in terminal to download dependencies (after making sure you have npm installed):
+```
+npm install
+```
+* to run the app, do the following in terminal in the repo folder:
+```
+chmod +x ./etc/noscreen  # this only has to be done once
+./etc/noscreen
+```
+OR, if you have installed the screen package, instead do:
+```
+chmod +x ./etc/startiedu  # this only has to be done once
+./etc/startiedu
+```
+* install mongodb
+* mongodb may not start automatically, in which case you must start the service. `chmod +x ./etc/mongo-start && ./etc/mongo-start` may or may not work for you depending on your linux distro. Run the command again after restart or enable mongodb to run on startup using your services tool for your operating system.
+
+### Universal post-install steps (required)
+* make a data folder in same folder as app.js
+	* place a new file called config.js in there:
+```
+// config.js
+// This file contains private configuration details.
+// Do not add it to your Git repository.
+module.exports = {
+  "mongodbHost" : "127.0.0.1",
+  "proxy_prefix_then_slash" : "/",
+  "office_pin" : "",
+  "it_pin" : "",
+  "debug_enable": "true",
+};
+```
+	* edit config.js and put a pin in the value for office_pin and it_pin (who gets these pins is explained below under Usage)
+	* it_pin (aka "admin pin") is required for creating new users
+	* office_pin should be only given to the front desk and/or attendance person (this pin is required for entering custom times when user's group, such as in the case of the commute user, does not have the customtime permission)--this should not be given to students since it allows them to state when they signed in/out (fills stated_time field, which overrides actual time in history and reports)
+* before forwarding ports, go to http://localhost:8080 and immediately create new users named admin, care, commute, attendance, and accounting
+* open port 8080 on your computer's firewall
+* using your router's interface, forward port 8080 to your computer.
+* if port 8080 is already used by another service, search for 8080 in app.js and change it.
+* make additional users if there is more than one person for each managing role.
+(for example there is not a user who can read but not edit commute history, but you can create one by creating a new group, putting a new username in the group, and changing that property of the permissions object in the code so that group has read permission for commute section [until groups.yml and permissions.yml are implemented, in which case do it there])
+
+## Usage
+* care is for parents to use when signing in/out students such as with your tablet computer managed by a care workers (only the workers should know the password)
+	* care has the customtime permission, so that care workers can enter the time someone signed the minor in or out--parents should normally do this to avoid client issues where time is debated when they are billed. Parents can enter a custom time while logged into your tablet as care, so if that doesn't meet your security needs, remove the customtime permission from the care group (this will require worker to enter the office_pin in order to enter a custom time) by changing that property of the permissions object in app.js (or permissions.yml if that is implemented).
+* commute is for students (any student, commuter or not) to sign in/out at the front desk when they come to school late or leave early (they can know the password but this is not necessary if front desk worker makes sure that they are logged into the app and sign in/out using the commute form)
+* attendance manages and edits the commute history (password should only be known to attendance personnel)
+* accounting manages and edits the care history (very important--only accountant should have this password)
+	* instructions for accounting person:
+		* before billing, resolve all problems in the "Reports" section: 
+			* click each month, then deal with fields marked with red or orange buttons in the row that has the problem.
+			* add a FamilyID to each family, then click Autofill All.
+			* if the family has no charge, make the family ID a negative number (or any sequence of characters starting with a hyphen).
+			* If any FamilyID remains blank, enter a family ID then do Autofill All again.
+			* To edit any fields manually, click the name of the name of the column at the top of the Reports sheet, scroll down, change the value that is in the text box, then push the Save button that is inside the same cell as the text box.
+			* If Autofill worked in one month and not another, the function gathered missing data when you clicked it for the one that worked, so go back to the month that didn't work and do Autofill All again (if fields are still blank, resolve any remaining issues, otherwise manually enter family id since there must be a mispelling--this will allow that mispelling to be autofilled the next time the person signs in/out).
+		* after all issues are resolved, click a year under "Billing"
+			* type a name for a new billing cycle (whatever name you want) such as "2017 Sep and last week of Aug" and check all weeks that you would like to add to the billing cycle, then click the green plus button to create the billing cycle (this only has to be done once per billing cycle)
+			* to view bills to give to parents or for your own use:
+				* click the billing cycle that you named under "Billing Cycles" (or, if you didn't name it, click the number)
+				* print the page for your records (Ctrl P, then choose a printer, or for PDF, choose Print to PDF and save it)--this is your report, so like with any report, it should be printed or saved for your financial records. Each Invoice (per family id) will appear on a separate page.
+				* The last page will list remaining issues:
+					* manually-entered times are converted to 24-hr time. You may need to verify these, but this is not a problem unless you suspect that manual entries were abused or entered incorrectly. If the manually entered date (+12 if PM) differs from the 24-hr date, please create an issue on the developer's website: <http://www.github.com/expertmm/integratoredu> (if doesn't already appear in the "Issues" tab). 
+		* If you find a bug:
+			* go to <http://www.github.com/expertmm/integratoredu>
+			* before entering an issue, search for the issue under "Known Issues" in the README.md and see if the problem is considered minor (is preceded by "(~)") and if so there is no need to report the issue--long-term requests will be considered at a future date.
+			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
 
 ## Changes
 * (2017-11-17) changed sheet friendly name for =careprice() from "Accrued" to "Accrued per 1" to annotate that qty (aka "Count") is not a part of that calculation
@@ -31,17 +103,17 @@ commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate s
 * (2017-11-15) corrected usages of fun.splitext result
 * (2017-11-15) show multiple initials where appropriate
 * (2017-11-15) added invoicing by adding then viewing billing cycles (click Year in reports for a section where enabled--care by default)
-* (2017-11-15) migrated to 0.2.0 file structure. Instructions (MUST be done in this order): stop integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008, start integratoredu.
+* (2017-11-15) migrated to 0.2.0 file structure. Instructions (MUST be done in this order): stop integratoredu, upgrade integratoredu, run `chmod +x ./etc/upgrade-data-20171008 && ./etc/upgrade-data-20171008`, start integratoredu whenever you want.
 * (2017-11-15) repaired scrollto (was using ssf_i, named anchor should be generated using item_i, and only place in first column where ssf_i is 0)
 * (2017-11-15) fixed issue where non-string sent to peek_object (including indirectly via has_setting) causes major error (now, warning is shown in console instead and string operations are not attempted)
 * (2017-11-14) autofill now normalizes values (by using list where good value as key such as care.autofill_equivalents.grade_level["K5"]) [in cases where change_record_object_enable param for autofill is true where appropriate such as new entry or Autofill All button]
 * (2017-11-14) delete quantity (`delete new_item.qty;`) on items created by split-entry route
 * (2017-11-14) account for alternate values using equivalents table (where set in settings) for each possible expected value of each field name
-* (2017-11-08) 12:15PM changed data structure and modified /etc/upgrade-data-20171008 migration script. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008 (then you can start again)
+* (2017-11-08) 12:15PM changed data structure and modified /etc/upgrade-data-20171008 migration script. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run `chmod +x ./etc/upgrade-data-20171008 && ./etc/upgrade-data-20171008` (then you can start again)
 	* now structure for each microevents folder is: var filedb_name=microevents; var category_name="student"; storage_path+"/units/"+unit_i+"/"+filedb_name+"/"+category_name
 	(settings for each campus or company would go in different unit folders)
 	* settings.yml becomes unit.yml in the unit folder (since every setting, especially timezone, could be different at other campus)
-* (2017-11-08) changed data structure and made /etc/upgrade-data-20171008 script for migrating data saved before that. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run ./etc/upgrade-data-20171008 (then you can start again)
+* (2017-11-08) changed data structure and made /etc/upgrade-data-20171008 script for migrating data saved before that. Instructions (MUST be done in this order): shut down integratoredu, upgrade integratoredu, run `chmod +x ./etc/upgrade-data-20171008 && ./etc/upgrade-data-20171008` (then you can start again)
 * (2017-11-08) data_dir* variables renamed to storage*; signs_dir* renamed to table* for consistency
 * (2017-11-06) Autofill All button, and "ribbon" (interface elements above the report) layout improvement
 * (2017-11-06) remove all commented code after peek_settings lines (since they are replaced by peek_settings successfully)
@@ -251,6 +323,7 @@ see etc/howto.txt for more
 see LICENSE file for license
 
 ## Developer Notes
+* run `chmod +x ./etc/quality && ./etc/quality` in terminal to check the code quality--it will give instructions if missing outputinspector or kate (optional) or code quality tool
 * To write a record, call write_record_without_validation after validating the form by any means necessary.
 * as of 2017-10-08 make sure folder structure remains compatible with my php app MoneyForesight (so MoneyForesight's features can be eventually merged into IntegratorEdu)
   as per the following documentation:
