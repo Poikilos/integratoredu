@@ -35,7 +35,7 @@ chmod +x ./etc/startiedu  # this only has to be done once
 
 ### Universal post-install steps (required)
 * make a data folder in same folder as app.js
-	* place a new file called config.js in that data folder, and call it:
+	* place a new file called config.js in that data folder, and paste the following:
 ```
 // config.js
 // This file contains private configuration details.
