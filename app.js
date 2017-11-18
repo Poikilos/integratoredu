@@ -1987,13 +1987,13 @@ var hbs = exphbs.create({
 									ret += '  <thead>'+"\n";
 									ret += '  <tr>'+"\n";
 									for (ssf_i=0,ssf_len=section_sheet_fields[section].length; ssf_i<ssf_len; ssf_i++) {
-										ret += '  <th>';
+										ret += '  <th><small>';
 										var field_title = section_sheet_fields[section][ssf_i];
 										if ((section in section_sheet_fields_friendly_names) && (field_title in section_sheet_fields_friendly_names[section])) {
 											field_title = section_sheet_fields_friendly_names[section][field_title];
 										}
 										ret += field_title;
-										ret += '  </th>'+"\n";
+										ret += '  </small></th>'+"\n";
 									}
 									ssf_i = null;
 									ssf_len = null;
@@ -2249,12 +2249,13 @@ var hbs = exphbs.create({
 						url_params += "section="+section+"&";
 						url_params += "mode="+mode+"&";
 						
-						if (fun.visual_debug_enable) ret += '      <th>#</th>';
+						if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>';
 						for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 							var key = section_sheet_fields[section][ssf_i];
 							var name = key;
 							if (selected_field==key) ret += '      <th class="bg-info">'+"\n";
 							else ret += '      <th>'+"\n";
+							ret += '<small>';
 							if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
 								name = section_sheet_fields_friendly_names[section][key];
 							}
@@ -2275,7 +2276,7 @@ var hbs = exphbs.create({
 							var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+override_key;
 							if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) ret += name;
 							else ret += '<a href="'+href+'">'+name+'</a>';
-							ret += '</th>';
+							ret += '</small></th>';
 						}
 						ret += '    </tr>'+"\n";
 						ret += '  </thead>'+"\n";
@@ -3031,6 +3032,7 @@ var hbs = exphbs.create({
 												ret += "<br/>"+"\n";
 												ret += "<br/>"+"\n";
 												ret += '<a name="results"></a>'+"\n";
+												ret += '(other billing cycle names appear above)';
 												if (cen_name===null) ret += "<h4>Invoices for Billing Cycle "+selected_number+"</h4><br/>"+"\n";
 												else ret += "<h4>Invoices for "+cen_name+"</h4>"+"\n";
 												var billable_items = [];
