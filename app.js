@@ -168,7 +168,7 @@ section_sheet_fields_friendly_names.care = {};
 section_sheet_fields_friendly_names.care["=get_date_from_path()"] = "Stored";
 section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
 section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
-section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued";
+section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued per 1";
 section_sheet_fields_friendly_names.care.first_name = "First";
 section_sheet_fields_friendly_names.care.last_name = "Last";
 section_sheet_fields_friendly_names.care.grade_level = "Grade Level";

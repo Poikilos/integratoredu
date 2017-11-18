@@ -8,6 +8,9 @@ For release notes, see a release or the "etc" folder.
 commit notes: use etc/upgrade-data-20171008 yet to migrate to the intermediate structure used by this version.
 
 ## Changes
+* (2017-11-17) changed sheet friendly name for =careprice() from "Accrued" to "Accrued per 1" to annotate that qty (aka "Count") is not a part of that calculation
+* (2017-11-17) small th (table heading) to fit better, and added more friendly names for formulas (they are shorter now)
+* (2017-11-17) remove =caretime() (seconds) from section_sheet_fields.care since calculation (span_info) is now available to other formulas regardless of whether caretime is used
 * (2017-11-17) button to change date to date of folder (in case of records written during bug that ended today) see also "should have button to move file to correct day"
 * (2017-11-17) (put call to show_billing_cycle_preview inside check for "reports" mode) avoid repeatedly showing result of username+' does not have permission to access '+mode+' in this section' in console when user doesn't have reports permission for section
 * (2017-11-17) (changed all instances of "for (i=" to "for (var i=") fix infinite loop in history
