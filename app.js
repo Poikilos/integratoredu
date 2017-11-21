@@ -10,6 +10,7 @@ var express = require('express'),
 	passport = require('passport'),
 	LocalStrategy = require('passport-local'),
 	yaml = require("node-yaml"),
+	util = require('util'),
 	fs = require('fs');
 //    TwitterStrategy = require('passport-twitter'),
 //    GoogleStrategy = require('passport-google'),
@@ -160,12 +161,13 @@ section_form_friendly_names.commute.stated_date = "Custom Date (blank for auto, 
 section_form_friendly_names.commute.pin = "override pin";
 
 var section_sheet_fields = {};
-section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"];
+section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "=get_origin_date()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "created_by", "modified_by"];
 section_sheet_fields.commute = ["=get_date_from_path()", "time", "name", "grade_level"];
 
 var section_sheet_fields_friendly_names = {};
 section_sheet_fields_friendly_names.care = {};
 section_sheet_fields_friendly_names.care["=get_date_from_path()"] = "Stored";
+section_sheet_fields_friendly_names.care["=get_origin_date()"] = "Created";
 section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
 section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
 section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued per 1";
@@ -174,6 +176,8 @@ section_sheet_fields_friendly_names.care.stated_date = "Stated Date";
 section_sheet_fields_friendly_names.care.first_name = "First";
 section_sheet_fields_friendly_names.care.last_name = "Last";
 section_sheet_fields_friendly_names.care.grade_level = "Grade Level";
+section_sheet_fields_friendly_names.care.created_by = "By";
+section_sheet_fields_friendly_names.care.modified_by = "Modified";
 section_sheet_fields_friendly_names.care.chaperone = "Chaperone";
 section_sheet_fields_friendly_names.care.family_id = "FamilyID";
 section_sheet_fields_friendly_names.care.time = "Time";
@@ -2332,6 +2336,22 @@ var hbs = exphbs.create({
 														original_item.tmp = {};
 													original_item.tmp["=get_day_from_path()"] = this_day;
 													original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
+													//original_item.tmp["=get_origin_date()"] = null;
+													if (original_item.hasOwnProperty("date"))
+														original_item.tmp["=get_origin_date()"] = original_item["date"];
+													else if (original_item.hasOwnProperty("ctime"))
+														original_item.tmp["=get_origin_date()"] = original_item.ctime.substring(0,10);
+													else {
+														var this_item_path = d_path+"/"+item_key;
+														var stats = fs.statSync(this_item_path);
+														var ctime = null;
+														if (stats.hasOwnProperty("ctime")) original_item.tmp["=get_origin_date()"] = stats['ctime'];
+														//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
+														//else if (stats.hasOwnProperty("mtime")) original_item.tmp["=get_origin_date()"] = stats['mtime'];
+														//ctime = new Date(util.inspect(stats.mtime));
+														//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
+														if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
+													}
 													original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
 													if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
 													original_item.tmp.time = fun.get_time_or_stated_time(original_item);
@@ -2533,7 +2553,7 @@ var hbs = exphbs.create({
 																		var these_fields = section_form_fields[section];
 																		if (identifying_fields!==null) these_fields = identifying_fields;
 																		var tf_len = these_fields.length;
-																		//if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
+																		if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
 																			//console.log("[ == ] this "+this_date+" "+this_time+" is"+(this_is_after_school?"":" not")+" after, prev "+prev_date+" "+prev_time+" is"+(prev_is_after_school?"":" not")+".");
 																			for (var ff_i=0; ff_i<tf_len; ff_i++) {
 																				/*
@@ -2565,7 +2585,7 @@ var hbs = exphbs.create({
 																					//}
 																				}
 																				else {
-																					if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
+																					if (//fun.is_blank(items[item_i][these_fields[ff_i]]) || 
 																						(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], this_date_items[inner_i][these_fields[ff_i]])) || 
 																						(
 																							((typeof items[item_i][these_fields[ff_i]])=="string") && 
@@ -2590,7 +2610,7 @@ var hbs = exphbs.create({
 																					//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui+" among "+JSON.stringify(these_fields));
 																				}
 																			}
-																		//}
+																		} //if more than one before school or after school for day
 																	}
 																	//else console.log(" [ <> ] prev_time is "+ prev_time + " this_time is " + this_time);
 																}
@@ -2658,10 +2678,13 @@ var hbs = exphbs.create({
 										ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+this_date_items[dup_index].key+'"/>'+"\n";
 										ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+this_date_items[dup_index].tmp.time+'"/>'+"\n";
 										ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+this_date_items[dup_index].tmp.date+'"/>'+"\n";
-										if (fun.visual_debug_enable) ret += '  <button class="btn btn-warning" type="submit">Mark dated '+items[item_i].tmp.date+' <br/>Duplicate of '+this_date_items[dup_index].tmp.date+'<br/>(actual dup '+this_date_items[dup_index].key+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'</button>'+"\n";
-										else ret += '  <button class="btn btn-warning" type="submit">Mark '+items[item_i].tmp.date+' as <br/>Duplicate of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>'+"\n";
+										var dup_msg = 'Mark as Duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time;
+										if (fun.visual_debug_enable) dup_msg = 'Mark dated '+items[item_i].tmp.date+' <br/>Duplicate of '+this_date_items[dup_index].tmp.date+'<br/>(actual dup '+this_date_items[dup_index].key+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time;
+										if (item.hasOwnProperty("stated_date") || item.hasOwnProperty("stated_time")) //ret += '<div class="alert alert-info">see duplicate: '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</div>';
+											ret += '  <button class="btn btn-info" type="submit">override as duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>'+"\n";
+										else ret += '  <button class="btn btn-warning" type="submit">'+dup_msg+'</button>'+"\n";
 										//Mark '+item_i+':'+items[item_i].tmp.date+' Duplicate of '+this_date_items[dup_index].tmp.date+' (actual '+dup_index+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'
-										ret += '</form>';
+										ret += '</form>'+"\n";
 									}
 									
 									if (item_enable) {
