@@ -8,6 +8,7 @@ For release notes, see a release or the "etc" folder.
 ## Key Features
 * Bill parents/guardians for minors who come before school or stay after school
 * Track students who come to school late or leave early (for attendance purposes)
+* Makes a sound (on operating systems where available, such as Linux and possibly Windows and Mac OS X; not tested on Android; doesn't seem to work on older iPads)
 
 ## Upgrade Instructions
 * use etc/upgrade-data-20171008 to migrate to the intermediate structure used by all versions before Nov 9.
@@ -90,6 +91,7 @@ module.exports = {
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
 
 ## Changes
+* (2017-11-20) made get_care_time_info use tmp.time (which is derived from whatever source is available)
 * (2017-11-17) changed sheet friendly name for =careprice() from "Accrued" to "Accrued per 1" to annotate that qty (aka "Count") is not a part of that calculation
 * (2017-11-17) small th (table heading) to fit better, and added more friendly names for formulas (they are shorter now)
 * (2017-11-17) remove =caretime() (seconds) from section_sheet_fields.care since calculation (span_info) is now available to other formulas regardless of whether caretime is used
@@ -97,6 +99,7 @@ module.exports = {
 * (2017-11-17) (put call to show_billing_cycle_preview inside check for "reports" mode) avoid repeatedly showing result of username+' does not have permission to access '+mode+' in this section' in console when user doesn't have reports permission for section
 * (2017-11-17) (changed all instances of "for (i=" to "for (var i=") fix infinite loop in history
 * (2017-11-17) (added parenthesis to quantity matching case in split-entry route to fix logic) prevent split-entry from trying to write values where index is out of range (causes yaml to write bad yaml syntax with html tag denoting error)
+	* (2017-11-20) add option to change last name with one space to last name with no space (in case of entry error or mobile device auto error)--example: suggests changing mc donald to McDonald (and does capitalization automatically), but only when there is only one space
 * (2017-11-17) (for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path) duplicate detection should not check different days in case of malformed record; also directly resolves (incorrectly diagnosed bug): mark as...Duplicate... button shoud not appear if either item_i or dup_index are in wrong date folder
 * (2017-11-17) (!) only write ctime if write_mode is "create" (and consolidated code for generated field and added warning for unknown write_mode)
 * (2017-11-17) (use get_date_or_stated_date instead of path for *item.tmp.year, *item.tmp.month, and *item.tmp.day) split-entry was putting new date instead of old date into new entries
@@ -197,6 +200,7 @@ module.exports = {
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* comparing an item to itself when not checking for NaN
 * "for (i=" where should be "for (var i=" where i is any variable name (then check for lint and make sure another variable of same name in same scope doesn't exist otherwise rename the loop variable.
 * for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (always use get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path
 * use of console.error (doens't exist, should be console.log)
@@ -227,6 +231,7 @@ module.exports = {
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* restore duplicate detection (see 2017-11-20 15:46:25 and 15:46:32 in expertmm private test data)
 * when students matriculate, their grade in autofill should be corrected--their graduation year should be tracked somehow so that autofill works for the next school year.
 * should have button to move file to correct day
 * most section-specific or even unit-specific variables (such as default_total) should be moved

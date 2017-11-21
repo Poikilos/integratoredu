@@ -232,9 +232,12 @@ exports.basename = function(path) {
 
 exports.split_capitalized = function(delimited, delimiter) {
 	var results = delimited.split(delimiter);
-	for (var ds_i=0,ds_len=results.length; ds_i<ds_len; ds_i++) {
-		results[ds_i] = results[ds_i].charAt(0).toUpperCase() + results[ds_i].slice(1);
+	if (delimiter) {
+		for (var ds_i=0,ds_len=results.length; ds_i<ds_len; ds_i++) {
+			results[ds_i] = results[ds_i].charAt(0).toUpperCase() + results[ds_i].slice(1);
+		}
 	}
+	else console.log("ERROR: no delimiter sent to split_capitalized");
 	return results;
 };
 

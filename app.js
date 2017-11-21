@@ -144,7 +144,7 @@ var section_form_friendly_names = {};
 section_form_friendly_names.care = {};
 section_form_friendly_names.care.first_name = "Student First Name";
 section_form_friendly_names.care.last_name = "Student Last Name";
-section_form_friendly_names.care.chaperone = "Pickup/Dropoff By";
+section_form_friendly_names.care.chaperone = "Pickup/Dropoff<br/>by&nbsp;Whom";
 section_form_friendly_names.care.grade_level = "Grade";
 section_form_friendly_names.care.stated_time = "Time (blank for auto, otherwise specify AM or PM)";
 section_form_friendly_names.care.stated_date = "Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
@@ -160,7 +160,7 @@ section_form_friendly_names.commute.stated_date = "Custom Date (blank for auto, 
 section_form_friendly_names.commute.pin = "override pin";
 
 var section_sheet_fields = {};
-section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"];
+section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "modified_by"];
 section_sheet_fields.commute = ["=get_date_from_path()", "time", "name", "grade_level"];
 
 var section_sheet_fields_friendly_names = {};
@@ -169,6 +169,8 @@ section_sheet_fields_friendly_names.care["=get_date_from_path()"] = "Stored";
 section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
 section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
 section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued per 1";
+section_sheet_fields_friendly_names.care.stated_time = "Stated Time";
+section_sheet_fields_friendly_names.care.stated_date = "Stated Date";
 section_sheet_fields_friendly_names.care.first_name = "First";
 section_sheet_fields_friendly_names.care.last_name = "Last";
 section_sheet_fields_friendly_names.care.grade_level = "Grade Level";
@@ -988,19 +990,21 @@ function get_care_time_info(this_item, section) {
 	// The code below the comment works since both are normally in same timezone.
 	// However, there may be issues since timezone offset (in yml) is not checked.	
 	
-	if (this_item.hasOwnProperty("time")) {
-		if (fun.is_not_blank(this_item.time)) {
-			foundTime = moment(this_item.time, "HH:mm:ss");
-			foundTimeString = moment(this_item.time, "HH:mm:ss").format("HH:mm:ss");
-		}
-	}
-	if (this_item.hasOwnProperty("stated_time")) {
-		if (fun.is_not_blank(this_item.stated_time)) {
-			foundTime = moment(fun.good_time_string(this_item.stated_time), "HH:mm:ss");
-			foundTimeString = foundTime.format("HH:mm:ss");
-			if (foundTimeString!=this_item.stated_time) result.warning = "stated_time: " + this_item.stated_time + " converted to 24-hr format: " + foundTimeString;
-		}
-	}
+	//if (this_item.hasOwnProperty("time")) {
+	//	if (fun.is_not_blank(this_item.time)) {
+	//		foundTime = moment(this_item.time, "HH:mm:ss");
+	//		foundTimeString = moment(this_item.time, "HH:mm:ss").format("HH:mm:ss");
+	//	}
+	//}
+	//if (this_item.hasOwnProperty("stated_time")) {
+	//	if (fun.is_not_blank(this_item.stated_time)) {
+	//		foundTime = moment(fun.good_time_string(this_item.stated_time), "HH:mm:ss");
+	//		foundTimeString = foundTime.format("HH:mm:ss");
+	//		if (foundTimeString!=this_item.stated_time) result.warning = "stated_time: " + this_item.stated_time + " converted to 24-hr format: " + foundTimeString;
+	//	}
+	//}
+	foundTime = moment(fun.good_time_string(this_item.tmp.time), "HH:mm:ss");
+	foundTimeString = foundTime.format("HH:mm:ss");
 	if (foundTime!==null) {
 		if (!section) console.log("ERROR: no section given to get_care_time_info");
 		if ( has_setting(section+".local_start_time") && //&& _settings[section].hasOwnProperty("local_start_time")
@@ -1019,6 +1023,7 @@ function get_care_time_info(this_item, section) {
 			}
 			else {
 				result.seconds = 0.0;
+				result.warning = "Care time was zero for time ";
 			}
 		}
 		else result.error = ("WARNING: For get_care_time_info, " + section + ".local_start_time and " + section + ".local_end_time must be set in " + settings_path + " (for building status features, and for extended hours billing feature)");
@@ -1658,7 +1663,7 @@ var hbs = exphbs.create({
 			}
 			return new Handlebars.SafeString(ret);
 		},
-		show_billing_cycle_preview: function(section, username, selected_number, opts) {
+		show_billing_cycle_preview: function(section, username, selected_number, opts) { //as opposed to having a billing-cycle route
 			var ret = "";
 			var mode = "reports";
 			var category = "BillingCycle";
@@ -1916,7 +1921,16 @@ var hbs = exphbs.create({
 							for (var group_key in data_by_group) {
 								var group = data_by_group[group_key];
 								//ret += '<div style="page-break-before: always"> </div>'+"\n";
-								
+								//ret += "You should save this report for your records, such as by printing or print to PDF (Ctrl P). Each "+groupby+" will print on a separate page.";
+								//ret += '<form class="form" id="download-billing-cycle-report" action="' + config.proxy_prefix_then_slash + 'download-billing-cycle-report">'+"\n";
+								//ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
+								//ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
+								//ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>'+"\n";
+								//ret += '    <input type="hidden" name="selected_month" id="selected_month" value="(none)"/>'+"\n";
+								//ret += '    <input type="hidden" name="selected_day" id="selected_day" value="(none)"/>'+"\n";
+								//ret += '    <input type="hidden" name="selected_number" id="selected_number" value="'+selected_number+'"/>'+"\n";
+								//TODO: download button and form and route for it
+								//ret += '</form>'+"\n";
 								ret += '  <div class="row" style="page-break-before: always">';
 								ret += '    <div class="col-sm-10">';
 								ret += '<h2 align="center">'+"\n";
@@ -1924,7 +1938,6 @@ var hbs = exphbs.create({
 								ret += '</h2><br/>'+"\n";
 								ret += '    </div>';
 								ret += '  </div>';
-								
 								ret += '  <div class="row">';
 								ret += '    <div class="col-sm-4">';
 								ret += groupby+': '+group_key+"\n";
@@ -2317,17 +2330,18 @@ var hbs = exphbs.create({
 													original_item.key = item_key;
 													if (!original_item.hasOwnProperty("tmp"))
 														original_item.tmp = {};
+													original_item.tmp["=get_day_from_path()"] = this_day;
 													original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
 													original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
 													if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
 													original_item.tmp.time = fun.get_time_or_stated_time(original_item);
 													if (original_item.tmp.time===null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
-													original_item.tmp["=get_day_from_path()"] = this_day;
 													//tui: table-unique identifier
 													original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
 													if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
 														items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
 														//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
+														console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
 													}
 													items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
 													//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
@@ -2453,6 +2467,25 @@ var hbs = exphbs.create({
 							if (hdv_field_name===null) console.log("[ verbose message ] no "+"settings."+section+".list_implies_qty");
 							if (has_setting(section+".list_implies_multiple_entries")) hdv_item_splitter_name = peek_setting(section+".list_implies_multiple_entries");
 							if (hdv_item_splitter_name===null) console.log("[ verbose message ] no "+section+".list_implies_multiple_entries");
+							var identifying_fields = null;
+							if (has_setting(section+".autofill_requires")) {
+								identifying_fields = [];
+								var ar = peek_setting(section+".autofill_requires");
+								for (var k in ar) {
+									var sub_ar_len = ar[k].length;
+									for (var sub_i=0; sub_i<sub_ar_len; sub_i++) {
+										if (!fun.array_contains(identifying_fields, ar[k][sub_i])) identifying_fields.push(ar[k][sub_i]);
+									}
+								}
+								if (identifying_fields.length<1) {
+									console.log("WARNING: <section name>.autofill_requires setting has zero variable-name-as key arrays, so duplicate detection won't work.");
+									identifying_fields = null;
+								}
+								else console.log("[ ] verbose message: Using identifying fields for duplicate detection (unique fields from <section name>.autofill_requires arrays): "+JSON.stringify(identifying_fields))
+							}
+							else console.log("WARNING: <section name>.autofill_requires does not exist in settings, so duplicate detection won't work.");
+							
+						
 							for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
 								var item = items[item_i];
 								d_path = m_path+"/"+item.tmp.day;
@@ -2474,10 +2507,12 @@ var hbs = exphbs.create({
 										if (items[item_i].tmp["=get_date_from_path()"] in items_by_date) {
 											this_date_items = items_by_date[items[item_i].tmp["=get_date_from_path()"]];
 											//for (var prev_i=0; prev_i<item_i; prev_i++) { //this would be even slower
+											var active_count = 0;
 											for (var inner_i=0,inner_len=this_date_items.length; inner_i<inner_len; inner_i++) {
 												//if ((!items[prev_i].hasOwnProperty("active")) || fun.is_true(items[prev_i].active)) {
 												if ((!this_date_items[inner_i].hasOwnProperty("active")) || fun.is_true(this_date_items[inner_i].active)) {
-													if (this_date_items[inner_i].key != this_date_items[inner_i].key) {
+													active_count++;
+													if (items[item_i].key != this_date_items[inner_i].key) {
 														match_count = 0;
 														var ff_len = section_form_fields[section].length;
 														//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
@@ -2495,61 +2530,73 @@ var hbs = exphbs.create({
 																	if ((prev_time!==null) && (this_time!==null)) {
 																		var this_is_after_school = is_after_school(section, this_date+" "+this_time);
 																		var prev_is_after_school = is_after_school(section, prev_date+" "+prev_time);
-																		if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
+																		var these_fields = section_form_fields[section];
+																		if (identifying_fields!==null) these_fields = identifying_fields;
+																		var tf_len = these_fields.length;
+																		//if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
 																			//console.log("[ == ] this "+this_date+" "+this_time+" is"+(this_is_after_school?"":" not")+" after, prev "+prev_date+" "+prev_time+" is"+(prev_is_after_school?"":" not")+".");
-																			for (var ff_i=0; ff_i<ff_len; ff_i++) {
+																			for (var ff_i=0; ff_i<tf_len; ff_i++) {
 																				/*
-																				if (fun.is_blank(items[item_i][section_form_fields[section][ff_i]]) || 
-																					(fun.safe_equals_ci(items[item_i][section_form_fields[section][ff_i]], items[prev_i][section_form_fields[section][ff_i]])) || 
+																				if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
+																					(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], items[prev_i][these_fields[ff_i]])) || 
 																					(
-																						((typeof items[item_i][section_form_fields[section][ff_i]])=="string") && 
-																						((typeof items[prev_i][section_form_fields[section][ff_i]])=="string") &&
-																						(items[item_i][section_form_fields[section][ff_i]].trim().toLowerCase() == items[prev_i][section_form_fields[section][ff_i]].trim().toLowerCase()) )
+																						((typeof items[item_i][these_fields[ff_i]])=="string") && 
+																						((typeof items[prev_i][these_fields[ff_i]])=="string") &&
+																						(items[item_i][these_fields[ff_i]].trim().toLowerCase() == items[prev_i][these_fields[ff_i]].trim().toLowerCase()) )
 																				) {
-																					//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + items[prev_i][section_form_fields[section][ff_i]]);
+																					//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + items[prev_i][these_fields[ff_i]]);
 																					match_count++;
 																				}
-																				//else console.log(" [ <> ] "+items[item_i][section_form_fields[section][ff_i]] + " is not " + items[prev_i][section_form_fields[section][ff_i]]);
+																				//else console.log(" [ <> ] "+items[item_i][these_fields[ff_i]] + " is not " + items[prev_i][these_fields[ff_i]]);
 																				*/
-																				if (section_form_fields[section][ff_i]=="stated_date") {
-																					//if (items[item_i][section_form_fields[section][ff_i]] == this_date_items[inner_i][section_form_fields[section][ff_i]]) {
+																				if (these_fields[ff_i]=="stated_date") {
+																					//if (items[item_i][these_fields[ff_i]] == this_date_items[inner_i][these_fields[ff_i]]) {
 																					if (items[item_i].tmp.date==this_date_items[inner_i].tmp.date) {
-																						//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																						console.log(" [ == ] "+items[item_i].tmp.date + " is " + this_date_items[inner_i].tmp.date);
 																						match_count++;
 																					}
 																				}
-																				else if (section_form_fields[section][ff_i]=="stated_time") {
-																					//if (items[item_i][section_form_fields[section][ff_i]] == this_date_items[inner_i][section_form_fields[section][ff_i]]) {
-																					if (items[item_i].tmp.time==this_date_items[inner_i].tmp.time) {
-																						//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																				else if (these_fields[ff_i]=="stated_time") {
+																					//do not check time (duplicate can be different time!)
+																					//if (items[item_i][these_fields[ff_i]] == this_date_items[inner_i][these_fields[ff_i]]) {
+																					//if (items[item_i].tmp.time==this_date_items[inner_i].tmp.time) {
+																						//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + this_date_items[inner_i][these_fields[ff_i]]);
 																						match_count++;
-																					}
+																					//}
 																				}
 																				else {
-																					if (fun.is_blank(items[item_i][section_form_fields[section][ff_i]]) || 
-																						(fun.safe_equals_ci(items[item_i][section_form_fields[section][ff_i]], this_date_items[inner_i][section_form_fields[section][ff_i]])) || 
+																					if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
+																						(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], this_date_items[inner_i][these_fields[ff_i]])) || 
 																						(
-																							((typeof items[item_i][section_form_fields[section][ff_i]])=="string") && 
-																							((typeof this_date_items[inner_i][section_form_fields[section][ff_i]])=="string") &&
-																							(items[item_i][section_form_fields[section][ff_i]].trim().toLowerCase() == this_date_items[inner_i][section_form_fields[section][ff_i]].trim().toLowerCase()) )
+																							((typeof items[item_i][these_fields[ff_i]])=="string") && 
+																							((typeof this_date_items[inner_i][these_fields[ff_i]])=="string") &&
+																							(items[item_i][these_fields[ff_i]].trim().toLowerCase() == this_date_items[inner_i][these_fields[ff_i]].trim().toLowerCase()) )
 																					) {
-																						//console.log(" [ == ] "+items[item_i][section_form_fields[section][ff_i]] + " is " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																						//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + this_date_items[inner_i][these_fields[ff_i]]);
 																						match_count++;
 																					}
 																				}
-																				//else console.log(" [ <> ] "+items[item_i][section_form_fields[section][ff_i]] + " is not " + this_date_items[inner_i][section_form_fields[section][ff_i]]);
+																				//console.log(" [ <> ] "+items[item_i][these_fields[ff_i]] + " is not " + this_date_items[inner_i][these_fields[ff_i]]);
 																			}
-																			if (match_count>=ff_len) {
-																				//console.log("matched "+match_count+" of "+ff_len);//+JSON.stringify(section_form_fields[section]));
+																			if (match_count>=tf_len) {
+																				//console.log("matched "+match_count+" of "+tf_len);//+JSON.stringify(these_fields));
 																				//dup_index = prev_i;
+																				console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui);//+" among "+JSON.stringify(these_fields));
 																				dup_index = inner_i;
 																				break;
 																			}
-																		}
+																			else {
+																				if (match_count>1) {
+																					//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui+" among "+JSON.stringify(these_fields));
+																				}
+																			}
+																		//}
 																	}
 																	//else console.log(" [ <> ] prev_time is "+ prev_time + " this_time is " + this_time);
 																}
+																else console.log(" [ <> ] Warning: blank date ("+this_date_items[inner_i].tmp.date+" against "+items[item_i].tmp.date+")");
 															}
+															else console.log("Warning: Found NaN in time ("+this_date_items[inner_i].tmp.time+" against "+items[item_i].tmp.time+")");
 														}
 														//NOTE: this_date is out of scope
 													}//else is same record (is self)
@@ -2557,6 +2604,7 @@ var hbs = exphbs.create({
 													match_count=null;
 												}//if is an active entry
 											}
+											//console.log("Checked "+active_count+" active item(s) against "+items[item_i].tmp.tui);
 										}//end if is in items_by_date
 										else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date: "+JSON.stringify(Object.keys(items_by_date)));
 									}
@@ -2635,6 +2683,20 @@ var hbs = exphbs.create({
 													else {
 														ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" is missing.</div>';
 														split_enable = false;
+													}
+													if (subvalues.length==2) {
+														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
+														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
+														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
+														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
+														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
+														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
+														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="last_name"/>'+"\n"; //SET last_name
+														ret += '  <input type="hidden" name="set_value" id="set_value" value="'+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'"/>'+"\n";
+														ret += '  <button class="btn btn-warning" type="submit">Set to '+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'</button>'+"\n";
+														ret += '</form>'+"\n";
 													}
 												}
 												if (split_enable) {
@@ -2838,7 +2900,7 @@ var hbs = exphbs.create({
 					}
 				}
 				else {
-					if (selected_year) {
+					if (selected_year) { //if no month selected, but does have year, show Billing Cycle Designer aka billing-cycle but this is not a route for downloading a csv
 						if (user_has_section_permission(username, section, "billing")) {
 							var auto_select_month_enable = true;
 							if (has_setting(section+"."+mode+".auto_select_month_enable")) auto_select_month_enable = peek_setting(section+"."+mode+".auto_select_month_enable");
