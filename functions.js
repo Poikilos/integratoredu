@@ -544,10 +544,15 @@ exports.is_blank = function (str) {
 	//return result;
 };
 
+
 exports.is_true = function (str) {
 	var str_lower = null;
 	if ((typeof str)=="string") str_lower=str.toLowerCase();
 	return (str===true) || ((str_lower!==null) && (str_lower=="true"||str_lower=="yes"||str_lower=="1"||str_lower=="on"));
+};
+
+exports.item_is_active = function (item) {
+	return ((!item.hasOwnProperty("active")) || exports.is_true(item.active));
 };
 
 exports.visual_debug_enable = config.hasOwnProperty("visual_debug_enable") && exports.is_true(config.visual_debug_enable);

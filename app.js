@@ -317,6 +317,7 @@ _groups.care = ["admin", "accounting", "care"];
 _groups.accounting = ["admin", "accounting"];
 _groups.commute = ["admin", "attendance", "commute"];
 _groups.attendance = ["admin", "attendance"];
+_groups.readattendance = ["cmcdonald"];
 
 var _permissions = {}; // permission.<group>.<section> equals array of permissions
 _permissions.admin = {};
@@ -331,6 +332,8 @@ _permissions.commute = {};
 _permissions.commute.commute = ["create"];
 _permissions.attendance = {};
 _permissions.attendance.commute = ["create", "read", "reports"];
+_permissions.readattendance = {};
+_permissions.readattendance.commute = ["read"];
 
 //returns true if modified record (never true if change_record_object_enable is false)
 function autofill(section, record, change_record_object_enable) {
@@ -1000,15 +1003,18 @@ function get_care_time_info(this_item, section) {
 	//		foundTimeString = moment(this_item.time, "HH:mm:ss").format("HH:mm:ss");
 	//	}
 	//}
-	//if (this_item.hasOwnProperty("stated_time")) {
-	//	if (fun.is_not_blank(this_item.stated_time)) {
-	//		foundTime = moment(fun.good_time_string(this_item.stated_time), "HH:mm:ss");
-	//		foundTimeString = foundTime.format("HH:mm:ss");
-	//		if (foundTimeString!=this_item.stated_time) result.warning = "stated_time: " + this_item.stated_time + " converted to 24-hr format: " + foundTimeString;
-	//	}
-	//}
 	foundTime = moment(fun.good_time_string(this_item.tmp.time), "HH:mm:ss");
 	foundTimeString = foundTime.format("HH:mm:ss");
+	if (this_item.hasOwnProperty("stated_time")) {
+		if (fun.is_not_blank(this_item.stated_time)) {
+			//foundTime = moment(fun.good_time_string(this_item.stated_time), "HH:mm:ss");
+			//foundTimeString = foundTime.format("HH:mm:ss");
+			if (fun.visual_debug_enable) {
+				if (foundTimeString!=this_item.stated_time) result.warning = "stated_time: " + this_item.stated_time + " converted to 24-hr format: " + foundTimeString;
+			}
+		}
+	}
+	
 	if (foundTime!==null) {
 		if (!section) console.log("ERROR: no section given to get_care_time_info");
 		if ( has_setting(section+".local_start_time") && //&& _settings[section].hasOwnProperty("local_start_time")
@@ -1491,76 +1497,101 @@ function write_record_without_validation(req_else_null, section, date_array_else
 	return results;
 }//end write_record_without_validation
 
-
+var ias_msg_stack = [];
 function is_after_school(section, this_time) {
-	if (!section) console.log("ERROR: no section given to is_after_school");
-	if (has_setting(section+".local_end_time")) {
-		var local_time_zone = null;
-		if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
-		//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
-		var local_now = moment(this_time);
-		//console.log("Using timezone "+local_time_zone);
-		if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading\
-		else console.log("ERROR: missing local_time_zone setting during is_after_school");
-		//old way (doesn't work for some reason--can't find current timezone from os) local_now.local();
-		var now_date_string = local_now.format("YYYY-MM-DD");
-		var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
-		var tmp_local_end_date = now_date_string+" "+peek_setting(section+".local_end_time");
-		//console.log("tmp_local_end_date:"+tmp_local_end_date);
-		var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
-		var endTimeString = endTime.format("HH:mm:ss");			
-		//console.log("UTC Offset (minutes): "+local_now.utcOffset()); 
-		//console.log("Z: "+local_now.format("Z"));  for example, in EST, outputs -4:00 during Eastern Daylight Time, -5:00 the rest of the year
-		//if (!endTime.isAfter(local_now)) {
-		if (currentTimeString >= endTimeString) {
-			//console.log("is_after_school: yes, now " + currentTimeString + " >= " + endTimeString);
-			//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is not after " + moment().format("HH:mm:ss"));
-			return true;
+	if (!fun.is_blank(this_time)) {
+		if (!section) console.log("ERROR: no section given to is_after_school");
+		if (has_setting(section+".local_end_time")) {
+			var local_time_zone = null;
+			if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+			var local_now = moment(this_time);
+			//console.log("Using timezone "+local_time_zone);
+			if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading\
+			else console.log("ERROR: missing local_time_zone setting during is_after_school");
+			//old way (doesn't work for some reason--can't find current timezone from os) local_now.local();
+			var now_date_string = local_now.format("YYYY-MM-DD");
+			var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
+			var tmp_local_end_date = now_date_string+" "+peek_setting(section+".local_end_time");
+			//console.log("tmp_local_end_date:"+tmp_local_end_date);
+			var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
+			var endTimeString = endTime.format("HH:mm:ss");			
+			//console.log("UTC Offset (minutes): "+local_now.utcOffset()); 
+			//console.log("Z: "+local_now.format("Z"));  for example, in EST, outputs -4:00 during Eastern Daylight Time, -5:00 the rest of the year
+			//if (!endTime.isAfter(local_now)) {
+			var msg;
+			if (currentTimeString >= endTimeString) {
+				//msg = "is_after_school " + currentTimeString + ":y (>= " + endTimeString + ")";
+				//if (!fun.array_contains(ias_msg_stack, msg)) {
+				//	console.log(msg);
+				//	ias_msg_stack.push(msg);
+				//}
+				return true;
+			}
+			else {
+				//msg = "is_after_school " + currentTimeString + ":n (<  " + endTimeString + ")";
+				//if (!fun.array_contains(ias_msg_stack, msg)) {
+				//	console.log(msg);
+				//	ias_msg_stack.push(msg);
+				//}
+				return false;
+			}
 		}
 		else {
-			//console.log("is_after_school: no, now " + currentTimeString + " < " + endTimeString);
-			//console.log("is_after_school: " + endTime.format("HH:mm:ss") + " is after " + moment().format("HH:mm:ss"));
+			console.log("WARNING: missing "+section+".local_end_time");
 			return false;
 		}
 	}
 	else {
-		console.log("WARNING: missing "+section+".local_end_time");
-		return false;
-	}	
+		console.log("ERROR: no time given to is_after_school");
+		return null;
+	}
 }
 
 function is_before_school(section, this_time) {
-	if (!section) console.log("ERROR: no section given to is_before_school");
-	if (has_setting(section+".local_start_time")) {
-		var local_time_zone = null;
-		if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
-		else console.log("ERROR: missing local_time_zone setting during is_before_school");
-		//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
-		var local_now = moment(this_time);
-		if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading\
-		else console.log("ERROR: missing local_time_zone setting");
-		var now_date_string = local_now.format("YYYY-MM-DD");
-		var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
-		var tmp_local_start_date = now_date_string+" "+peek_setting(section+".local_start_time");
-		//console.log("tmp_local_start_date:"+tmp_local_start_date);
-		var startTime = moment(tmp_local_start_date); //, "HH:mm:ss" // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
-		var startTimeString = startTime.format("HH:mm:ss");
-		
-		//if (startTime.isAfter(local_now)) {
-		if (currentTimeString < startTimeString) {
-			//console.log("is_before_school: yes, now " + currentTimeString + " < " + startTimeString);
-			//console.log("is_before_school: " + startTime.format("HH:mm:ss") + " is after " + local_now.format("HH:mm:ss"));
-			return true;
+	if (!fun.is_blank(this_time)) {
+		if (!section) console.log("ERROR: no section given to is_before_school");
+		if (has_setting(section+".local_start_time")) {
+			var local_time_zone = null;
+			if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+			else console.log("ERROR: missing local_time_zone setting during is_before_school");
+			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+			var local_now = moment(this_time);
+			if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading\
+			else console.log("ERROR: missing local_time_zone setting");
+			var now_date_string = local_now.format("YYYY-MM-DD");
+			var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
+			var tmp_local_start_date = now_date_string+" "+peek_setting(section+".local_start_time");
+			//console.log("tmp_local_start_date:"+tmp_local_start_date);
+			var startTime = moment(tmp_local_start_date); //, "HH:mm:ss" // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
+			var startTimeString = startTime.format("HH:mm:ss");
+			
+			//if (startTime.isAfter(local_now)) {
+			if (currentTimeString < startTimeString) {
+				//msg = "is_before_school " + currentTimeString + ":y (<  " + endTimeString + ")";
+				//if (!fun.array_contains(ias_msg_stack, msg)) {
+				//	console.log(msg);
+				//	ias_msg_stack.push(msg);
+				//}
+				return true;
+			}
+			else {
+				//msg = "is_before_school " + currentTimeString + ":n (>= " + endTimeString + ")";
+				//if (!fun.array_contains(ias_msg_stack, msg)) {
+				//	console.log(msg);
+				//	ias_msg_stack.push(msg);
+				//}
+				return false;
+			}
 		}
 		else {
-			//console.log("is_before_school: no, now " + currentTimeString + " >= " + startTimeString);
-			//console.log("is_before_school: " + startTime.format("HH:mm:ss") + " is not after " + local_now.format("HH:mm:ss"));
+			console.log("WARNING: missing "+section+".local_end_time");
 			return false;
 		}
 	}
 	else {
-		console.log("WARNING: missing "+section+".local_end_time");
-		return false;
+		console.log("ERROR: no time given to is_before_school");
+		return null;
 	}
 }
 
@@ -1799,6 +1830,23 @@ var hbs = exphbs.create({
 													}
 													if (this_item) {
 														this_item.key = item_key;
+														this_item.tmp["=get_date_from_path()"] = back_date_s;
+														if (this_item.hasOwnProperty("date"))
+															this_item.tmp["=get_origin_date()"] = this_item["date"];
+														else if (this_item.hasOwnProperty("ctime"))
+															this_item.tmp["=get_origin_date()"] = this_item.ctime.substring(0,10);
+														else {
+															var this_item_path = back_d_path+"/"+item_key;
+															var stats = fs.statSync(this_item_path);
+															var ctime = null;
+															if (stats.hasOwnProperty("ctime")) this_item.tmp["=get_origin_date()"] = stats['ctime'];
+															//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
+															//else if (stats.hasOwnProperty("mtime")) this_item.tmp["=get_origin_date()"] = stats['mtime'];
+															//ctime = new Date(util.inspect(stats.mtime));
+															//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
+															//NOTE: this intentionally shows a full timestamp to indicate there was a problem getting the date via normal means:
+															if (ctime!==null) this_item.tmp["=get_origin_date()"] = ctime;
+														}
 														if (!this_item.hasOwnProperty("active") || fun.is_true(this_item.active)) {
 															if (fun.is_not_blank(this_item[groupby])) {
 																this_item[groupby] = this_item[groupby].trim();
@@ -1818,8 +1866,8 @@ var hbs = exphbs.create({
 																		if ("qty" in this_item) {
 																			qty_times_seconds *= parseInt(this_item.qty);  //ok since there only is a number type (no truncation will occur)
 																			if (span_info.seconds>0) {
-																				if (qty_times_seconds <= span_info.seconds) {
-																					console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower, so reverted to non-qty value!");
+																				if (qty_times_seconds < span_info.seconds) {
+																					console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
 																					qty_times_seconds = span_info.seconds;
 																				}
 																				else {
@@ -1828,29 +1876,29 @@ var hbs = exphbs.create({
 																				}
 																			}
 																		}
-																		this_item["=caretime()"] = qty_times_seconds;
-																		this_item["=caretime_m()"] = qty_times_seconds/60.0;
-																		this_item["=caretime_h()"] = qty_times_seconds/60.0/60.0; //NOTE: toFixed returns a STRING .toFixed(3);
-																		this_item["=careprice()"] = this_item["=caretime_h()"] * this_rate; //.toFixed(2);
+																		this_item.tmp["=caretime()"] = qty_times_seconds;
+																		this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
+																		this_item.tmp["=caretime_h()"] = qty_times_seconds/60.0/60.0; //NOTE: toFixed returns a STRING .toFixed(3);
+																		this_item.tmp["=careprice()"] = this_item.tmp["=caretime_h()"] * this_rate; //.toFixed(2);
 																		if (span_info.hasOwnProperty("warning")) warnings += '<div class="alert alert-info">' + span_info.info + " in " + item_path + '</div>';
 																	}
 																	else {
-																		this_item["=caretime()"] = 0.00;
-																		this_item["=caretime_m()"] = 0.00;
-																		this_item["=caretime_h()"] = 0.00;
-																		this_item["=careprice()"] = 0.00;
+																		this_item.tmp["=caretime()"] = 0.00;
+																		this_item.tmp["=caretime_m()"] = 0.00;
+																		this_item.tmp["=caretime_h()"] = 0.00;
+																		this_item.tmp["=careprice()"] = 0.00;
 																	}
 																	
-																	span_info["=caretime()"] = this_item["=caretime()"];
-																	span_info["=caretime_m()"] = this_item["=caretime_m()"];
-																	span_info["=caretime_h()"] = this_item["=caretime_h()"];
-																	span_info["=careprice()"] = this_item["=careprice()"];
+																	span_info["=caretime()"] = this_item.tmp["=caretime()"];
+																	span_info["=caretime_m()"] = this_item.tmp["=caretime_m()"];
+																	span_info["=caretime_h()"] = this_item.tmp["=caretime_h()"];
+																	span_info["=careprice()"] = this_item.tmp["=careprice()"];
 																	var old_amount = 0.0;
-																	//var this_careprice = this_item["=careprice()"];
+																	//var this_careprice = this_item.tmp["=careprice()"];
 																	if (!(cen_entry.end_dates[ed_i] in key_totals_by_end_date)) key_totals_by_end_date[cen_entry.end_dates[ed_i]] = {};
 																	if (!(this_item[groupby] in key_totals_by_end_date[cen_entry.end_dates[ed_i]])) key_totals_by_end_date[cen_entry.end_dates[ed_i]][this_item[groupby]] = fun.single_level_copy(span_info);
 																	else {
-																		//old_amount = key_totals_by_end_date[cen_entry.end_dates[ed_i]][this_item[groupby]]["=careprice()"];
+																		//old_amount = key_totals_by_end_date[cen_entry.end_dates[ed_i]][this_item[groupby]].tmp["=careprice()"];
 																		key_totals_by_end_date[cen_entry.end_dates[ed_i]][this_item[groupby]]["=caretime()"] += span_info["=caretime()"];
 																		key_totals_by_end_date[cen_entry.end_dates[ed_i]][this_item[groupby]]["=caretime_m()"] += span_info["=caretime_m()"];
 																		key_totals_by_end_date[cen_entry.end_dates[ed_i]][this_item[groupby]]["=caretime_h()"] += span_info["=caretime_h()"];
@@ -2022,7 +2070,10 @@ var hbs = exphbs.create({
 											ret += '  <td class="table-warning">';
 											var ssf = section_sheet_fields[section][ssf_i];
 											var field_val = "&nbsp; ";
-											if (ssf in unused_items[ui_i]) {
+											if (ssf in unused_items[ui_i].tmp) {
+												field_val = unused_items[ui_i].tmp[ssf];
+											}
+											else if (ssf in unused_items[ui_i]) {
 												field_val = unused_items[ui_i][ssf];
 											}
 											ret += field_val;
@@ -2266,6 +2317,7 @@ var hbs = exphbs.create({
 						url_params += "section="+section+"&";
 						url_params += "mode="+mode+"&";
 						
+						ret += '      <th>&nbsp;<!--status--></th>';
 						if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>';
 						for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 							var key = section_sheet_fields[section][ssf_i];
@@ -2361,7 +2413,7 @@ var hbs = exphbs.create({
 													if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
 														items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
 														//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
-														console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
+														//console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
 													}
 													items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
 													//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
@@ -2395,8 +2447,8 @@ var hbs = exphbs.create({
 																if ("qty" in this_item) {
 																	qty_times_seconds *= parseInt(this_item.qty);  //ok since there only is a number type (no truncation will occur)
 																	if (span_info.seconds>0) {
-																		if (qty_times_seconds<=span_info.seconds) {
-																			console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower, so reverted to non-qty value!");
+																		if (qty_times_seconds<span_info.seconds) {
+																			console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
 																			qty_times_seconds = span_info.seconds;
 																		}
 																		//else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
@@ -2406,11 +2458,11 @@ var hbs = exphbs.create({
 																	
 																	if (span_info.hasOwnProperty("seconds")) {
 																		
-																		this_item["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
+																		this_item.tmp["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
 																		if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
 																	}
 																	else {
-																		this_item["=careprice()"] = 0.00;
+																		this_item.tmp["=careprice()"] = 0.00;
 																		parsing_error += "\n<br/>";
 																		if (span_info.hasOwnProperty("error")) {
 																			if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
@@ -2420,19 +2472,19 @@ var hbs = exphbs.create({
 																else if (op == "caretime") {
 																	//span_info = get_care_time_info(this_item, section);
 																	if (span_info.hasOwnProperty("seconds")) {
-																		this_item["=caretime()"] = qty_times_seconds;
+																		this_item.tmp["=caretime()"] = qty_times_seconds;
 																	}
 																}
 																else if (op == "caretime_m") {
 																	//span_info = get_care_time_info(this_item, section);
 																	if (span_info.hasOwnProperty("seconds")) {
-																		this_item["=caretime_m()"] = qty_times_seconds/60.0;
+																		this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
 																	}
 																}
 																else if (op == "caretime_h") {
 																	//span_info = get_care_time_info(this_item, section);
 																	if (span_info.hasOwnProperty("seconds")) {
-																		this_item["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
+																		this_item.tmp["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
 																	}
 																}
 																//below are already done further up (before copying item to this_item)
@@ -2505,7 +2557,7 @@ var hbs = exphbs.create({
 							}
 							else console.log("WARNING: <section name>.autofill_requires does not exist in settings, so duplicate detection won't work.");
 							
-						
+							var debug_stack = [];
 							for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
 								var item = items[item_i];
 								d_path = m_path+"/"+item.tmp.day;
@@ -2517,6 +2569,38 @@ var hbs = exphbs.create({
 								var a_name = 'scrollto'+item_i;
 								var dup_index = -1;
 								var this_date_items = null;
+								var status_class = "glyphicon glyphicon-remove";
+								var status_style = "color:black";
+								var new_value = "false";
+								if (!fun.item_is_active(item)) {
+									status_class = "glyphicon glyphicon-remove-sign";
+									status_style = "color:gray";
+									new_value = true;
+								}
+								if (item.hasOwnProperty("split_destinations")) {
+									status_class = "glyphicon glyphicon-list";
+								}
+								else if (item.hasOwnProperty("duplicate_of_key")) {
+									status_class = "glyphicon glyphicon-tags";
+								}
+								ret += '      <td>';
+								ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
+								ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
+								ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
+								ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
+								ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
+								ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
+								ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
+								ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
+								ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>'+"\n";
+								ret += '  <input type="hidden" name="set_value" id="set_value" value="'+((fun.item_is_active(item))?'false':'true')+'"/>'+"\n";
+								ret += '  <input type="hidden" name="status_changed_by" id="status_changed_by" value="'+username+'"/>'+"\n";  // signals change-microevent-field and write_record_without_validation that this is a manual entry deactivation
+								ret += '  <button class="btn" type="submit">'+"\n";
+								ret += '<span class="'+status_class+'" style="'+status_style+'"></span>'+"\n";
+								ret += '</button>'+"\n";
+								ret += '</form>'+"\n";
+								
+								ret += '</td>';
 								if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
 								var match_count=null;
 								if (item_enable && user_has_section_permission(username, section, mode)) {
@@ -2548,13 +2632,15 @@ var hbs = exphbs.create({
 															if ((this_time.indexOf("NaN")<=-1)&&(prev_time.indexOf("NaN")<=-1)) {
 																if (fun.is_not_blank(this_date) && fun.is_not_blank(prev_date)) {
 																	if ((prev_time!==null) && (this_time!==null)) {
+																		var is_out_of_range = false;
 																		var this_is_after_school = is_after_school(section, this_date+" "+this_time);
+																		if ((!this_is_after_school) && (!is_before_school(section, this_date+" "+this_time))) is_out_of_range = true;
 																		var prev_is_after_school = is_after_school(section, prev_date+" "+prev_time);
+																		if ((!prev_is_after_school) && (!is_before_school(section, prev_date+" "+prev_time))) is_out_of_range = true;
 																		var these_fields = section_form_fields[section];
 																		if (identifying_fields!==null) these_fields = identifying_fields;
 																		var tf_len = these_fields.length;
-																		if ((this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
-																			//console.log("[ == ] this "+this_date+" "+this_time+" is"+(this_is_after_school?"":" not")+" after, prev "+prev_date+" "+prev_time+" is"+(prev_is_after_school?"":" not")+".");
+																		if ((!is_out_of_range) && (this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
 																			for (var ff_i=0; ff_i<tf_len; ff_i++) {
 																				/*
 																				if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
@@ -2601,7 +2687,16 @@ var hbs = exphbs.create({
 																			if (match_count>=tf_len) {
 																				//console.log("matched "+match_count+" of "+tf_len);//+JSON.stringify(these_fields));
 																				//dup_index = prev_i;
-																				console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui);//+" among "+JSON.stringify(these_fields));
+																				//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui);//+" among "+JSON.stringify(these_fields));
+																				//debug only:
+																				//if (items[item_i].first_name=="") {
+																				//var msg = "[ == ] "+this_date+" "+this_time+" after:"+this_is_after_school+"; prev "+prev_date+" "+prev_time+" after:"+prev_is_after_school;
+																				//if (!fun.array_contains(debug_stack, msg)) { //only show once
+																				//	debug_stack.push(msg);
+																				//	console.log(msg);
+																				//}
+																				//}
+																				
 																				dup_index = inner_i;
 																				break;
 																			}
@@ -2638,11 +2733,21 @@ var hbs = exphbs.create({
 									var column_name = section_sheet_fields[section][ssf_i];
 									//NOTE: intentionally gets desired fields only
 									var val = "";
-									if (item.hasOwnProperty(column_name)) {
-										val = item[column_name];
+									if (column_name in item.tmp) { // if (item.tmp.hasOwnProperty(column_name)) {
+										if (column_name=="=careprice()") {
+											//var is_out_of_range = false;
+											//if (   (!is_after_school(section, item.tmp.date+" "+item.tmp.time)))
+											//	&& (!is_before_school(section, item.tmp.date+" "+item.tmp.time))) is_out_of_range = true;
+											if (parseFloat(item.tmp[column_name])<=0.0) val = '<span style="color:red">' + item.tmp[column_name] + '</span>';
+											else val = item.tmp[column_name];
+										}
+										else {
+											//console.log(column_name + " is not careprice"); //debug only 
+											val = item.tmp[column_name];
+										}
 									}
-									else if (item.tmp.hasOwnProperty(column_name)) {
-										val = item.tmp[column_name];
+									else if (item.hasOwnProperty(column_name)) {
+										val = item[column_name];
 									}
 									if (selected_field==column_name) {
 										//don't show value yet if selected (see below)
@@ -2659,7 +2764,7 @@ var hbs = exphbs.create({
 										ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
 										ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
 										ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>'+"\n";
-										ret += '  <input type="text" name="set_value" id="set_value" value="'+val+'"/>'+"\n";
+										ret += '  <input type="text" size="13" name="set_value" id="set_value" value="'+val+'"/>'+"\n";
 										ret += '  <button class="btn btn-default" type="submit">Save</button>'+"\n";
 										ret += '</form>';
 									}
@@ -2707,7 +2812,9 @@ var hbs = exphbs.create({
 														ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" is missing.</div>';
 														split_enable = false;
 													}
-													if (subvalues.length==2) {
+													if ((subvalues.length==2) && (item[hdv_item_splitter_name].indexOf(",")<=-1) && (item[hdv_item_splitter_name].indexOf("&")<=-1)
+														&& (item[hdv_item_splitter_name].indexOf("+")<=-1) && (item[hdv_item_splitter_name].indexOf(" and ")<=-1)
+													) { //only treat as possibly one person if has no splitters other than space
 														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
 														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
 														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
@@ -3401,7 +3508,7 @@ var hbs = exphbs.create({
 		//},
 		show_history: function(section, objects, opts) {
 			var ret = "";
-			var force_date_enable = true;
+			var force_date_enable = false;
 			if (has_setting(section+".history_sheet_fields")) {
 				var fields = peek_setting(section+".history_sheet_fields");
 				if (fields !== null) {
@@ -3462,6 +3569,7 @@ var hbs = exphbs.create({
 						ret += "<tr>"+"\n";
 						//NOTE: if i is used instead of var i, infinite loop occurs where i is always 4!
 						var i_date = fun.get_date_or_stated_date(objects[i], "history item "+i+" of "+len); //gets stuck on history item 4 on 2017-11-16 using expertmm private test data
+						if (("tmp" in objects[i]) && ("date" in objects[i].tmp)) i_date = objects[i].tmp.date;
 						//if (i_date==null) 
 						if (force_date_enable) {
 							ret += "<td>"+i_date+"</td>\n";
@@ -4343,7 +4451,7 @@ app.post('/change-microevent-field', function(req, res){
 										
 										dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key][req.body.selected_field] = req.body.set_value;
 										dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-										dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].modified_by = req.user.username;
+										
 										autofill(section, dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], false);
 										try {
 											
@@ -4355,6 +4463,13 @@ app.post('/change-microevent-field', function(req, res){
 											}
 											if ("duplicate_date" in req.body) {
 												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_date = req.body.duplicate_date;
+											}
+											if ("status_changed_by" in req.body) {
+												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].status_changed_by = req.body.status_changed_by;
+												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].status_changed_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
+											}
+											else {
+												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].modified_by = req.user.username;
 											}
 											yaml.writeSync(item_path, dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
 											//var reason = " in change-microevent-field";

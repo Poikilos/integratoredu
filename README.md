@@ -78,6 +78,10 @@ module.exports = {
 			* If any FamilyID remains blank, enter a family ID then do Autofill All again.
 			* To edit any fields manually, click the name of the name of the column at the top of the Reports sheet, scroll down, change the value that is in the text box, then push the Save button that is inside the same cell as the text box.
 			* If Autofill worked in one month and not another, the function gathered missing data when you clicked it for the one that worked, so go back to the month that didn't work and do Autofill All again (if fields are still blank, resolve any remaining issues, otherwise manually enter family id since there must be a mispelling--this will allow that mispelling to be autofilled the next time the person signs in/out).
+		* If you believe an entry is not valid, click the "x" to the left of the entry to deactivate it. Click any gray symbol to reactivate the item, however keep in mind that the gray symbols have the following meanings:
+			* gray two-tag symbol: item was marked as a duplicate by user (Modified column shows who marked the duplicate)
+			* gray list symbol: item was split by user (Modified column shows who split the entry)
+			* gray 'x' with circle: manually deactivated by user using the "x" (NOTE: the file for the entry contains a hidden record of which user changed the state of an entry)
 		* after all issues are resolved, click a year under "Billing"
 			* type a name for a new billing cycle (whatever name you want) such as "2017 Sep and last week of Aug" and check all weeks that you would like to add to the billing cycle, then click the green plus button to create the billing cycle (this only has to be done once per billing cycle)
 			* to view bills to give to parents or for your own use:
@@ -91,6 +95,8 @@ module.exports = {
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
 
 ## Changes
+* (2017-11-20) (in home.handlebars: made date a regular div instead of a navbar so it prints, and made day selector panel not print; set force_date_enable to false in show_history helper) improved printability of history
+* (2017-11-20) improved duplicate detection further (do not count entries for care that are neither before nor after school, and mark price in red)
 * (2017-11-20) made get_care_time_info use tmp.time (which is derived from whatever source is available)
 * (2017-11-17) changed sheet friendly name for =careprice() from "Accrued" to "Accrued per 1" to annotate that qty (aka "Count") is not a part of that calculation
 * (2017-11-17) small th (table heading) to fit better, and added more friendly names for formulas (they are shorter now)
@@ -200,6 +206,7 @@ module.exports = {
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* always use item.tmp.date (which is derived during load) instead of manually deriving date, to save on code and avoid having different logic for deriving date elsewhere other than at yaml.read*
 * comparing an item to itself when not checking for NaN
 * "for (i=" where should be "for (var i=" where i is any variable name (then check for lint and make sure another variable of same name in same scope doesn't exist otherwise rename the loop variable.
 * for transaction entry loading (all instances of yaml.read* pertaining to transactions) always create and use item.tmp.date and item.tmp.date check for stated_date or stated_time too (always use get_date_or_stated_date), and if still null, derive time from 6-character+ext filename and derive date from path
@@ -209,6 +216,7 @@ module.exports = {
 * use of member that is same of a variable name (like when `var srf="first_name"; if (fields_friendly_names.srf) key_friendly_name = fields_friendly_names.srf;` is supposed to be `var srf="first_name"; if (srf in fields_friendly_names) key_friendly_name = fields_friendly_names[srf];`)
 * use of function pointer as param or value (such as in manual traceback scenario where name of function was intended to be passed along)
 * strip() should be trim() in javascript
+* fun. should be exports if in functions.js; whereas if in any other file, exports. should be fun.
 * fun.fun. should be fun. no really that could be type-o for calls to functions.js
 * remember that javascript string substring method takes slice-like params (start, endbefore [NOT length]) 
 * use of `fun.file_name_no_ext(s)` where actual code should be `fun.splitext(s)[0]` (autocomplete error)
@@ -231,6 +239,20 @@ module.exports = {
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* make "Reload Settings" work; make it a route and not a mode; make a "global" section in the admin mode panel and add Reload Settings to that
+* track extended days (modified start times) for after school programs (group expires after term), by student group and date range, such as:
+  ```
+  term_info:
+  - 2017-2018:
+    student_groups:
+    - name: art_club
+      start_date: 2017-09-01
+      end_date: 2017-09-30
+      end_time: 16:00:00
+  #end_time for program is used as the start time for care price
+  ```
+* track half days (such as, if a student is signed out of care at 3:05pm on a half day, the charge should be for 3hrs5mins, not 0hrs)
+	* track half days by value group (must be normalized during this process--see section+".autofill_equivalents" in settings), such as valuegroups.grade_level.elementary={"K5","1","2","3","4","5","6"}
 * restore duplicate detection (see 2017-11-20 15:46:25 and 15:46:32 in expertmm private test data)
 * when students matriculate, their grade in autofill should be corrected--their graduation year should be tracked somehow so that autofill works for the next school year.
 * should have button to move file to correct day
