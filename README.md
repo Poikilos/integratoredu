@@ -206,6 +206,7 @@ module.exports = {
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* see https://getbootstrap.com/docs/4.0/migration/
 * always use item.tmp.date (which is derived during load) instead of manually deriving date, to save on code and avoid having different logic for deriving date elsewhere other than at yaml.read*
 * comparing an item to itself when not checking for NaN
 * "for (i=" where should be "for (var i=" where i is any variable name (then check for lint and make sure another variable of same name in same scope doesn't exist otherwise rename the loop variable.
