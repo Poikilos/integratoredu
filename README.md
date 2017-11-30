@@ -95,6 +95,8 @@ module.exports = {
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
 
 ## Changes
+* (2017-11-30) tr and tp implemented (tracking section for admin) -- requires iedup (download from <https://github.com/expertmm/iedup>, or via iedusm if release version is available)
+* (2017-11-29) add /t route for iedup
 * (2017-11-20) (in home.handlebars: made date a regular div instead of a navbar so it prints, and made day selector panel not print; set force_date_enable to false in show_history helper) improved printability of history
 * (2017-11-20) improved duplicate detection further (do not count entries for care that are neither before nor after school, and mark price in red)
 * (2017-11-20) made get_care_time_info use tmp.time (which is derived from whatever source is available)
@@ -206,6 +208,7 @@ module.exports = {
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* selected_unit should be _selected_unit
 * see https://getbootstrap.com/docs/4.0/migration/
 * always use item.tmp.date (which is derived during load) instead of manually deriving date, to save on code and avoid having different logic for deriving date elsewhere other than at yaml.read*
 * comparing an item to itself when not checking for NaN
@@ -240,6 +243,7 @@ module.exports = {
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* (!) only show duplicates, buttons, and allow changes if user has "write" privelege to section
 * make "Reload Settings" work; make it a route and not a mode; make a "global" section in the admin mode panel and add Reload Settings to that
 * track extended days (modified start times) for after school programs (group expires after term), by student group and date range, such as:
   ```
