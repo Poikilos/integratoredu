@@ -859,11 +859,11 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 			var prefill_value = "";
 			if (prefill && (prefill.hasOwnProperty(field_name))) prefill_value = prefill[field_name];
 			if (field_lookup_values.hasOwnProperty(field_name)) {
-				ret += '<div class="form-group">'+"\n";
-				if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>'+"\n";
-				else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>'+"\n";
-				ret += '  <div class="col-sm-10">'+"\n";
-				ret += '    <div class="btn-group" data-toggle="buttons">'+"\n";
+				ret += '<div class="form-group">' + "\n";
+				if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>' + "\n";
+				else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>' + "\n";
+				ret += '  <div class="col-sm-10">' + "\n";
+				ret += '    <div class="btn-group" data-toggle="buttons">' + "\n";
 				var precheck="";
 				var precheck_class="";
 				for (var choice_i = 0, choice_len = field_lookup_values[field_name].length; choice_i < choice_len; choice_i++) {
@@ -877,21 +877,21 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 						//console.log("  field_lookup_values[field_name][choice_i]:"+field_lookup_values[field_name][choice_i])
 					}
 					var this_friendly_name = field_lookup_values[field_name][choice_i];
-					ret += '      <label class="btn btn-primary'+precheck_class+'"><input type="radio" name="'+field_name+'" value="'+field_lookup_values[field_name][choice_i]+'"'+precheck+'>'+this_friendly_name+'</label>'+"\n";
+					ret += '      <label class="btn btn-primary'+precheck_class+'"><input type="radio" name="'+field_name+'" value="'+field_lookup_values[field_name][choice_i]+'"'+precheck+'>'+this_friendly_name+'</label>' + "\n";
 				}
-				ret += '    </div>'+"\n";
-				ret += '  </div>'+"\n";
-				ret += '</div>'+"\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
+				ret += '</div>' + "\n";
 			}
 			else {
 				//console.log("prefill_value:"+prefill_value)
-				ret += '  <div class="form-group">'+"\n";
-				if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>'+"\n";
-				else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>'+"\n";
-				ret += '    <div class="col-sm-10">'+"\n";
-				ret += '      <input type="text" class="form-control" name="'+field_name+'" value="'+prefill_value+'"/>'+"\n";
-				ret += '    </div>'+"\n";
-				ret += '  </div>'+"\n";
+				ret += '  <div class="form-group">' + "\n";
+				if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>' + "\n";
+				else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>' + "\n";
+				ret += '    <div class="col-sm-10">' + "\n";
+				ret += '      <input type="text" class="form-control" name="'+field_name+'" value="'+prefill_value+'"/>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
 			}
 		}
 	}    
@@ -950,7 +950,7 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 	ret += '<div>'+years_heading+"\n";
 	var i=0;
 	for (i=0, len=years.length; i<len; i++) {
-		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">'+"\n";
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">' + "\n";
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
@@ -963,15 +963,15 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 		else {
 			ret += '<button class="btn btn-default" type="submit">'+years[i]+'</button>';
 		}
-		ret += '</form>'+"\n";
+		ret += '</form>' + "\n";
 	}
-	ret += '</div>'+"\n";
+	ret += '</div>' + "\n";
 	var months_heading = "Month:";
 	if (has_setting(section+"."+mode+".months_heading"))
 		months_heading = peek_setting(section+"."+mode+".months_heading");  // such as <h3>Reports</h3>
 	ret += '<div>'+months_heading+"\n";	
 	for (i=0, len=months.length; i<len; i++) {
-		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">'+"\n";
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">' + "\n";
 		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
 		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
@@ -984,9 +984,9 @@ function get_year_month_select_buttons(section, mode, username, years, months, s
 		else {
 			ret += '<button class="btn btn-default" type="submit">'+months[i]+'</button>';
 		}
-		ret += '</form>'+"\n";
+		ret += '</form>' + "\n";
 	}
-	ret += '</div>'+"\n";
+	ret += '</div>' + "\n";
 	return ret;
 }
 
@@ -1650,54 +1650,54 @@ var hbs = exphbs.create({
 		show_settings: function(section, username, selected_setting, opts) {
 			var ret = "";
 			if (user_has_section_permission(username, section, "settings")) {
-				//ret += '<form class="form-inline" action="' + config.proxy_prefix_then_slash + '" method="get">'+"\n";
-				//ret += '  <div class="form-group">'+"\n";
-				//ret += '    <label for="fieldHeading" class="sr-only">Email</label>'+"\n";
-				//ret += '    <input type="text" readonly class="form-control-plaintext" id="fieldHeading" value="Setting">'+"\n";
-				//ret += '  </div>'+"\n";
-				//ret += '  <div class="form-group mx-sm-3">'+"\n";
-				//ret += '    <label for="inputSettingName" class="sr-only">Name</label>'+"\n";
-				//ret += '    <input type="password" class="form-control" id="inputSettingName" placeholder="setting">'+"\n";
-				//ret += '  </div>'+"\n";
-				//ret += '  <button type="submit" class="btn btn-primary">Save</button>'+"\n";
-				//ret += '</form>'+"\n";
-				//ret += '<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + '" method="get">'+"\n";
-				//ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-				//ret += '  <input type="hidden" name="mode" id="mode" value="settings"/>'+"\n";
-				//ret += '  <input type="text"  class="form-control" size="8" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>'+"\n";
-				//ret += '  <button class="btn btn-default" type="submit">Peek</button>'+"\n";
-				//ret += '</form>'+"\n";
+				//ret += '<form class="form-inline" action="' + config.proxy_prefix_then_slash + '" method="get">' + "\n";
+				//ret += '  <div class="form-group">' + "\n";
+				//ret += '    <label for="fieldHeading" class="sr-only">Email</label>' + "\n";
+				//ret += '    <input type="text" readonly class="form-control-plaintext" id="fieldHeading" value="Setting">' + "\n";
+				//ret += '  </div>' + "\n";
+				//ret += '  <div class="form-group mx-sm-3">' + "\n";
+				//ret += '    <label for="inputSettingName" class="sr-only">Name</label>' + "\n";
+				//ret += '    <input type="password" class="form-control" id="inputSettingName" placeholder="setting">' + "\n";
+				//ret += '  </div>' + "\n";
+				//ret += '  <button type="submit" class="btn btn-primary">Save</button>' + "\n";
+				//ret += '</form>' + "\n";
+				//ret += '<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + '" method="get">' + "\n";
+				//ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+				//ret += '  <input type="hidden" name="mode" id="mode" value="settings"/>' + "\n";
+				//ret += '  <input type="text"  class="form-control" size="8" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>' + "\n";
+				//ret += '  <button class="btn btn-default" type="submit">Peek</button>' + "\n";
+				//ret += '</form>' + "\n";
 				var settings_keys = get_all_settings_names();
 				for (var i=0, len=settings_keys.length; i<len; i++) {
 					if (settings_keys[i]!=selected_setting) ret += '<a href="'+config.proxy_prefix_then_slash+"?selected_setting="+settings_keys[i]+'">'+settings_keys[i]+"</a><br/>";
 					else {
-						ret += '<table>'+"\n";
-						ret += '<tbody>'+"\n";
-						ret += '<tr>'+"\n";
+						ret += '<table>' + "\n";
+						ret += '<tbody>' + "\n";
+						ret += '<tr>' + "\n";
 						ret += '<td>'+settings_keys[i]+"&nbsp;=&nbsp;"+"\n";
-						ret += '</td>'+"\n";
-						ret += '<td>'+"\n";
-						ret += '<form id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'poke-settings" method="post">'+"\n";
+						ret += '</td>' + "\n";
+						ret += '<td>' + "\n";
+						ret += '<form id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'poke-settings" method="post">' + "\n";
 						//ret += '<div class="form-group row">';
-						ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-						ret += '  <input type="hidden" name="mode" id="mode" value="settings"/>'+"\n";
-						ret += '  <input type="hidden" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>'+"\n";
-						//ret += '  <label for="selected_setting_value" class="col-sm-2 col-form-label">'+settings_keys[i]+'&nbsp;=&nbsp;</label>'+"\n";
+						ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+						ret += '  <input type="hidden" name="mode" id="mode" value="settings"/>' + "\n";
+						ret += '  <input type="hidden" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>' + "\n";
+						//ret += '  <label for="selected_setting_value" class="col-sm-2 col-form-label">'+settings_keys[i]+'&nbsp;=&nbsp;</label>' + "\n";
 						
-						//ret += '    <div class="col-sm-10">'+"\n";
-						ret += '  <div class="input-group">'+"\n";
-						ret += '      <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+peek_setting(selected_setting)+'"/>'+"\n";
-						//ret += '    </div>'+"\n";
-						ret += '    <div class="input-group-btn">'+"\n";
-						ret += '      <button class="btn btn-default" type="submit">Save</button>'+"\n";
-						ret += '    </div>'+"\n";
-						ret += '  </div>'+"\n";
-						//ret += '</div>'+"\n";
-						ret += '</form>'+"\n";
-						ret += '</td>'+"\n";
-						ret += '</tr>'+"\n";
-						ret += '</tbody>'+"\n";
-						ret += '</table>'+"\n";
+						//ret += '    <div class="col-sm-10">' + "\n";
+						ret += '  <div class="input-group">' + "\n";
+						ret += '      <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+peek_setting(selected_setting)+'"/>' + "\n";
+						//ret += '    </div>' + "\n";
+						ret += '    <div class="input-group-btn">' + "\n";
+						ret += '      <button class="btn btn-default" type="submit">Save</button>' + "\n";
+						ret += '    </div>' + "\n";
+						ret += '  </div>' + "\n";
+						//ret += '</div>' + "\n";
+						ret += '</form>' + "\n";
+						ret += '</td>' + "\n";
+						ret += '</tr>' + "\n";
+						ret += '</tbody>' + "\n";
+						ret += '</table>' + "\n";
 					}
 				}
 			}
@@ -1774,7 +1774,7 @@ var hbs = exphbs.create({
 									var folder_date_s = moment(selected_year+"-"+m_s+"-"+d_s);
 									var this_dow = folder_date_s.day(); //where 1 is monday and 5 is friday
 									//if (this_dow==bill_dow) {
-									//ret += "bill on "+folder_date_s.format('dddd')+' '+folder_date_s.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
+									//ret += "bill on "+folder_date_s.format('dddd')+' '+folder_date_s.format("dddd MMM D, Y")+' for:<br/>' + "\n";//debug only
 									var used_days_count = 0;
 									for (var d_backstep=0; d_backstep<7; d_backstep++) {
 										var back_dow_i = this_dow-d_backstep;
@@ -1804,7 +1804,7 @@ var hbs = exphbs.create({
 										
 										//NOTE: back_d_path could be same as before, if is friday (if d_backstep is 0)
 										if (fs.existsSync(back_d_path)) {
-											//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>'+"\n";//debug only
+											//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>' + "\n";//debug only
 											var item_keys = fun.getVisibleFiles(back_d_path);
 											for (var ik_i=0,ik_len=item_keys.length; ik_i<ik_len; ik_i++) {
 												var item_key = item_keys[ik_i];
@@ -1953,25 +1953,25 @@ var hbs = exphbs.create({
 											used_days_count++;
 										}
 										else {
-											//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>'+"\n";//debug only
+											//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>' + "\n";//debug only
 										}
 									}
 									if (used_days_count>0) {
-										//ret += '      <div class="form-check">'+"\n";
-										//ret += '        <label class="form-check-label">'+"\n";
-										//ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+folder_date_s.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
-										//ret += '          '+folder_date_s.format('dddd')+' '+folder_date_s.format("MMM D, Y")+'<br/>'+"\n";
-										//ret += '        </label>'+"\n";
-										//ret += '      </div>'+"\n";
+										//ret += '      <div class="form-check">' + "\n";
+										//ret += '        <label class="form-check-label">' + "\n";
+										//ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+folder_date_s.format("YYYYMMDD")+'">' + "\n"; //returns 'on' or 'off'
+										//ret += '          '+folder_date_s.format('dddd')+' '+folder_date_s.format("MMM D, Y")+'<br/>' + "\n";
+										//ret += '        </label>' + "\n";
+										//ret += '      </div>' + "\n";
 									}
 									//}//end if bill_dow
 								}
 								else {
-									ret += '  <div class="row"><!--report group row-->'+"\n";
-									ret += '    <div class="col-sm-10">'+"\n";
+									ret += '  <div class="row"><!--report group row-->' + "\n";
+									ret += '    <div class="col-sm-10">' + "\n";
 									if (fun.is_not_blank(error)) ret += '<div class="alert alert-warning">'+error+"</div>"+"\n";
-									ret += '    </div><!--end col-sm-10-->'+"\n";
-									ret += '  </div><!--end report group row-->'+"\n";
+									ret += '    </div><!--end col-sm-10-->' + "\n";
+									ret += '  </div><!--end report group row-->' + "\n";
 								}//TODO: why was unused_items pasted here (unfinished code??)
 							}
 							ed_i = null; //out of loop, wait for next
@@ -1980,29 +1980,29 @@ var hbs = exphbs.create({
 							//ret += "</ul>\n";
 							for (var group_key in data_by_group) {
 								var group = data_by_group[group_key];
-								//ret += '<div style="page-break-before: always"> </div>'+"\n";
+								//ret += '<div style="page-break-before: always"> </div>' + "\n";
 								//ret += "You should save this report for your records, such as by printing or print to PDF (Ctrl P). Each "+groupby+" will print on a separate page.";
-								//ret += '<form class="form" id="download-billing-cycle-report" action="' + config.proxy_prefix_then_slash + 'download-billing-cycle-report">'+"\n";
-								//ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-								//ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-								//ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>'+"\n";
-								//ret += '    <input type="hidden" name="selected_month" id="selected_month" value="(none)"/>'+"\n";
-								//ret += '    <input type="hidden" name="selected_day" id="selected_day" value="(none)"/>'+"\n";
-								//ret += '    <input type="hidden" name="selected_number" id="selected_number" value="'+selected_number+'"/>'+"\n";
+								//ret += '<form class="form" id="download-billing-cycle-report" action="' + config.proxy_prefix_then_slash + 'download-billing-cycle-report">' + "\n";
+								//ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+								//ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+								//ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>' + "\n";
+								//ret += '    <input type="hidden" name="selected_month" id="selected_month" value="(none)"/>' + "\n";
+								//ret += '    <input type="hidden" name="selected_day" id="selected_day" value="(none)"/>' + "\n";
+								//ret += '    <input type="hidden" name="selected_number" id="selected_number" value="'+selected_number+'"/>' + "\n";
 								//TODO: download button and form and route for it
-								//ret += '</form>'+"\n";
+								//ret += '</form>' + "\n";
 								ret += '  <div class="row" style="page-break-before: always">';
 								ret += '    <div class="col-sm-10">';
-								ret += '<h2 align="center">'+"\n";
+								ret += '<h2 align="center">' + "\n";
 								ret += section_friendly_name + " Invoice"; //such as Extended Care Invoice (using friendly name for care section)
-								ret += '</h2><br/>'+"\n";
+								ret += '</h2><br/>' + "\n";
 								ret += '    </div>';
 								ret += '  </div>';
 								ret += '  <div class="row">';
 								ret += '    <div class="col-sm-4">';
 								ret += groupby+': '+group_key+"\n";
 								ret += '<div id="weeks-ending-on">';
-								ret += 'weeks ending on:'+"\n";
+								ret += 'weeks ending on:' + "\n";
 								ret += "<ul>\n";
 								for (ed_i=0,ed_len=cen_entry.end_dates.length; ed_i<ed_len; ed_i++) {
 									ymd = cen_entry.end_dates[ed_i].split("-");
@@ -2026,7 +2026,7 @@ var hbs = exphbs.create({
 								ret += "<br/>\n";
 								ret += "<br/>\n";
 								if ("identifiers" in group) {
-									ret += 'Recorded as:'+"\n";
+									ret += 'Recorded as:' + "\n";
 									ret += "<ul>\n";
 									for (var i_i=0,i_len=group.identifiers.length; i_i<i_len; i_i++) {
 										ret += "<li>"+fun.split_capitalized(group.identifiers[i_i], "+").join(" ")+"</li>\n";
@@ -2034,11 +2034,11 @@ var hbs = exphbs.create({
 									}
 									ret += "</ul>\n";
 								}
-								ret += '    </div>'+"\n";
-								ret += '    <div class="col-sm-6">'+"\n";
+								ret += '    </div>' + "\n";
+								ret += '    <div class="col-sm-6">' + "\n";
 								ret += '      TOTAL: '+group["=careprice()"].toFixed(2)+"\n";
-								ret += '    </div>'+"\n";
-								ret += '  </div>'+"\n";
+								ret += '    </div>' + "\n";
+								ret += '  </div>' + "\n";
 							}
 							
 							ret += '  <div class="row" style="page-break-before: always">';
@@ -2056,9 +2056,9 @@ var hbs = exphbs.create({
 									ret += '<div class="row">';
 									ret += '<div class="col-sm-10">';
 									
-									ret += '<table class="table">'+"\n";
-									ret += '  <thead>'+"\n";
-									ret += '  <tr>'+"\n";
+									ret += '<table class="table">' + "\n";
+									ret += '  <thead>' + "\n";
+									ret += '  <tr>' + "\n";
 									for (ssf_i=0,ssf_len=section_sheet_fields[section].length; ssf_i<ssf_len; ssf_i++) {
 										ret += '  <th><small>';
 										var field_title = section_sheet_fields[section][ssf_i];
@@ -2066,14 +2066,14 @@ var hbs = exphbs.create({
 											field_title = section_sheet_fields_friendly_names[section][field_title];
 										}
 										ret += field_title;
-										ret += '  </small></th>'+"\n";
+										ret += '  </small></th>' + "\n";
 									}
 									ssf_i = null;
 									ssf_len = null;
-									ret += '  </tr>'+"\n";
-									ret += '  </thead>'+"\n";
+									ret += '  </tr>' + "\n";
+									ret += '  </thead>' + "\n";
 									for (ui_i=0,ui_len=unused_items.length; ui_i<ui_len; ui_i++) {
-										ret += '  <tr>'+"\n";
+										ret += '  <tr>' + "\n";
 										for (ssf_i=0,ssf_len=section_sheet_fields[section].length; ssf_i<ssf_len; ssf_i++) {
 											ret += '  <td class="table-warning">';
 											var ssf = section_sheet_fields[section][ssf_i];
@@ -2085,15 +2085,15 @@ var hbs = exphbs.create({
 												field_val = unused_items[ui_i][ssf];
 											}
 											ret += field_val;
-											ret += '  </td>'+"\n";
+											ret += '  </td>' + "\n";
 										}
 										ssf_i = null;
 										ssf_len = null;
-										ret += '  </tr>'+"\n";
+										ret += '  </tr>' + "\n";
 									}
 									ui_i = null;
 									ui_len = null;
-									ret += '</table>'+"\n";
+									ret += '</table>' + "\n";
 									ret += '    </div>';
 									ret += '  </div>';
 								}
@@ -2121,7 +2121,7 @@ var hbs = exphbs.create({
 				//else console.log("no selected_number for "+mode+" helper.");
 			}
 			else {
-				//ret += 'You do not have permission to access '+mode+' in this section'+"\n";
+				//ret += 'You do not have permission to access '+mode+' in this section' + "\n";
 				console.log(username+' does not have permission to access '+mode+' in this section');
 			}
 			return new Handlebars.SafeString(ret);
@@ -2138,12 +2138,12 @@ var hbs = exphbs.create({
 					//ret += '<div class="panel panel-default">';
 					//ret += '<div class="panel-body">';
 					ret += "\n";
-					if (container_enable==="true") ret += '<div class="container">'+"\n";
-					ret += '  <div class="row">'+"\n";
-					ret += '    <div class="col-sm-2">'+"\n";
+					if (container_enable==="true") ret += '<div class="container">' + "\n";
+					ret += '  <div class="row">' + "\n";
+					ret += '    <div class="col-sm-2">' + "\n";
 					ret += get_year_month_select_buttons(section, mode, username, years, months, selected_year, selected_month)+"\n";
-					ret += '    </div><!--end col-sm-2-->'+"\n";
-					ret += '    <div class="col-sm-8">'+"\n";
+					ret += '    </div><!--end col-sm-2-->' + "\n";
+					ret += '    <div class="col-sm-8">' + "\n";
 					ret += '      <h3>Queries</h3>';
 					var selected_field = null;
 					var this_rate = 0.0;
@@ -2155,14 +2155,14 @@ var hbs = exphbs.create({
 							this_start_time_string = peek_setting(section+".local_start_time");
 						if (friendly_section_names.hasOwnProperty(section)) section_friendly_name = friendly_section_names[section];
 						this_rate = peek_setting(section+".extended_hours_hourly_price");
-						ret += '    <form class="form-inline" id="autofill-query" action="' + config.proxy_prefix_then_slash + 'autofill-query" method="post">'+"\n";
-						ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-						ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-						ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>'+"\n";
-						ret += '    <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>'+"\n";
-						ret += '    <button type="submit" class="btn btn-primary"/>Autofill All</button>'+"\n";
-						ret += '    </form>'+"\n";
-						ret += '    </p>'+"\n";
+						ret += '    <form class="form-inline" id="autofill-query" action="' + config.proxy_prefix_then_slash + 'autofill-query" method="post">' + "\n";
+						ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+						ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+						ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>' + "\n";
+						ret += '    <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>' + "\n";
+						ret += '    <button type="submit" class="btn btn-primary"/>Autofill All</button>' + "\n";
+						ret += '    </form>' + "\n";
+						ret += '    </p>' + "\n";
 						//region CHANGE ALL MATCHING
 						if (!selected_field) {
 							if (section_report_edit_field.hasOwnProperty(section) && section_report_edit_field[section].hasOwnProperty(mode)) {
@@ -2192,38 +2192,38 @@ var hbs = exphbs.create({
 							if (has_setting(section+".autofill_requires."+this_field)) {
 								//ret += " Change entries for person where";
 								//ret += ":";
-								ret += '<form class="form-horizontal" id="update-query" action="' + config.proxy_prefix_then_slash + 'update-query" method="post">'+"\n";
-								ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-								ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-								ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>'+"\n";
-								ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>'+"\n";
+								ret += '<form class="form-horizontal" id="update-query" action="' + config.proxy_prefix_then_slash + 'update-query" method="post">' + "\n";
+								ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+								ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+								ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>' + "\n";
+								ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>' + "\n";
 								for (var _s_i=0, _s_len=_settings[section].autofill_requires[this_field].length; _s_i<_s_len; _s_i++) {
 									var required_key = _settings[section].autofill_requires[this_field][_s_i];
 									var this_val = "";
 									var field_friendly_name = required_key;
 									if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(required_key))
 										field_friendly_name = section_sheet_fields_friendly_names[section][required_key]; //shorter than section_form_friendly_names
-									ret += '  <div class="input-group mb-2 mb-sm-0">'+"\n";
-									ret += '  <span class="input-group-addon" >'+field_friendly_name+':</span>'+"\n";
+									ret += '  <div class="input-group mb-2 mb-sm-0">' + "\n";
+									ret += '  <span class="input-group-addon" >'+field_friendly_name+':</span>' + "\n";
 									//ret += '    <div class="col-sm-10">';
-									ret += '      <input type="text" class="form-control" name="where_'+required_key+'" id="'+required_key+'" value="'+this_val+'"/>'+"\n";
+									ret += '      <input type="text" class="form-control" name="where_'+required_key+'" id="'+required_key+'" value="'+this_val+'"/>' + "\n";
 									//ret += '    </div>';
 									ret += '  </div>';
 								}
-								ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+this_field+'"/>'+"\n";
+								ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+this_field+'"/>' + "\n";
 								var this_field_friendly_name = this_field;
 								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(this_field))
 									this_field_friendly_name = section_sheet_fields_friendly_names[section][this_field];
 								
-								ret += '  <div class="input-group mb-2 mb-sm-0">'+"\n";
-								ret += '  <span class="input-group-addon" style="font-weight:bold">Change '+this_field_friendly_name+' to:</span>'+"\n";
+								ret += '  <div class="input-group mb-2 mb-sm-0">' + "\n";
+								ret += '  <span class="input-group-addon" style="font-weight:bold">Change '+this_field_friendly_name+' to:</span>' + "\n";
 								//ret += '    <div class="col-sm-10">';
-								ret += '      <input type="text" class="form-control" name="set_value" id="set_value" value=""/>'+"\n"; //'+val+'
+								ret += '      <input type="text" class="form-control" name="set_value" id="set_value" value=""/>' + "\n"; //'+val+'
 								//ret += '    </div>';
-								ret += '  </div>'+"\n";
+								ret += '  </div>' + "\n";
 									
-								ret += '  <button type="submit" class="btn btn-primary" font-weight:bold"/>Change All Matching</button>'+"\n";
-								ret += '</form>'+"\n";
+								ret += '  <button type="submit" class="btn btn-primary" font-weight:bold"/>Change All Matching</button>' + "\n";
+								ret += '</form>' + "\n";
 							}
 							else {
 							}
@@ -2233,31 +2233,31 @@ var hbs = exphbs.create({
 						//endregion CHANGE ALL MATCHING
 						
 
-						ret += '    </div><!--end 2nd col: col-sm-8-->'+"\n";
-						ret += '    <div class="col-sm-2">'+"\n";
-						ret += '    <h3>Report Settings</h3>'+"\n";
+						ret += '    </div><!--end 2nd col: col-sm-8-->' + "\n";
+						ret += '    <div class="col-sm-2">' + "\n";
+						ret += '    <h3>Report Settings</h3>' + "\n";
 						ret += "    Hourly Rate for "+section_friendly_name+": ";
-						ret += '            <form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">'+"\n";
-						ret += '              <div class="form-row align-items-center">'+"\n";
-						ret += '                <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-						ret += '                <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-						ret += '                <input type="hidden" name="selected_setting" id="selected_setting" value="extended_hours_hourly_price"/>'+"\n";
-						//ret += '               <div class="col-auto">'+"\n";
-						ret += '                <input type="text" class="form-control mb-2 mb-sm-0" size="4" name="selected_setting_value" id="selected_setting_value" value="'+this_rate+'"/>'+"\n";
-						//ret += '               </div>'+"\n";
-						//ret += '               <div class="col-auto">'+"\n";
-						ret += '                <button type="submit" class="btn btn-default">Save</button>'+"\n";
-						//ret += '               </div>'+"\n";
-						ret += '              </div>'+"\n";
-						ret += '            </form>'+"\n";
+						ret += '            <form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">' + "\n";
+						ret += '              <div class="form-row align-items-center">' + "\n";
+						ret += '                <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+						ret += '                <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+						ret += '                <input type="hidden" name="selected_setting" id="selected_setting" value="extended_hours_hourly_price"/>' + "\n";
+						//ret += '               <div class="col-auto">' + "\n";
+						ret += '                <input type="text" class="form-control mb-2 mb-sm-0" size="4" name="selected_setting_value" id="selected_setting_value" value="'+this_rate+'"/>' + "\n";
+						//ret += '               </div>' + "\n";
+						//ret += '               <div class="col-auto">' + "\n";
+						ret += '                <button type="submit" class="btn btn-default">Save</button>' + "\n";
+						//ret += '               </div>' + "\n";
+						ret += '              </div>' + "\n";
+						ret += '            </form>' + "\n";
 						
 						ret += "             Free from"+"\n";
-						ret += '            <form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">'+"\n";
-						ret += '              <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-						ret += '              <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-						ret += '                <input type="hidden" name="selected_setting" id="selected_setting" value="local_start_time"/>'+"\n";
-						ret += '              <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_start_time_string+'"/>'+"\n";
-						ret += '              <button type="submit" class="btn btn-default"/>Save</button>'+"\n";
+						ret += '            <form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">' + "\n";
+						ret += '              <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+						ret += '              <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+						ret += '                <input type="hidden" name="selected_setting" id="selected_setting" value="local_start_time"/>' + "\n";
+						ret += '              <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_start_time_string+'"/>' + "\n";
+						ret += '              <button type="submit" class="btn btn-default"/>Save</button>' + "\n";
 						ret += '            </form>';
 						
 						
@@ -2266,12 +2266,12 @@ var hbs = exphbs.create({
 						if (has_setting(section+".local_end_time"))
 							this_end_time_string = peek_setting(section+".local_end_time");
 						ret += '<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">';
-						ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-						ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-						ret += '  <input type="hidden" name="selected_setting" id="selected_setting" value="local_end_time"/>'+"\n";
-						ret += '  <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_end_time_string+'"/>'+"\n";
-						ret += '  <button class="btn btn-default" type="submit">Save</button>'+"\n";
-						ret += '</form>'+"\n";
+						ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+						ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+						ret += '  <input type="hidden" name="selected_setting" id="selected_setting" value="local_end_time"/>' + "\n";
+						ret += '  <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_end_time_string+'"/>' + "\n";
+						ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
+						ret += '</form>' + "\n";
 						
 						if (selected_field) {//section_report_edit_field.hasOwnProperty(section)) {
 							if (!section_report_edit_field.hasOwnProperty(section)) section_report_edit_field[section] = {};
@@ -2281,12 +2281,12 @@ var hbs = exphbs.create({
 							//	poke_setting(section+"."+mode+".selected_field_default", selected_field);
 							//}
 							//ret += "Selected Field:";
-							//ret += '<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="post">'+"\n";
-							//ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-							//ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-							//ret += '  <input type="text" class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section][mode]+'"/>'+"\n";
-							//ret += '  <button class="btn btn-default" type="submit">Select</button>'+"\n";
-							//ret += '</form>'+"\n";
+							//ret += '<form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-selection" method="post">' + "\n";
+							//ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+							//ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+							//ret += '  <input type="text" class="form-control" size="8" name="change_section_report_edit_field" id="change_section_report_edit_field" value="'+section_report_edit_field[section][mode]+'"/>' + "\n";
+							//ret += '  <button class="btn btn-default" type="submit">Select</button>' + "\n";
+							//ret += '</form>' + "\n";
 						}
 						else {
 						}
@@ -2294,12 +2294,12 @@ var hbs = exphbs.create({
 					else {
 						ret += '<!--no hourly rate specified for section '+section+'-->';
 					}
-					ret += '    </div><!--end last col-sm-->'+"\n";
-					ret += '  </div><!--end only row-->'+"\n";
-					if (container_enable==="true") ret += '</div><!--end ribbon container-->'+"\n";
+					ret += '    </div><!--end last col-sm-->' + "\n";
+					ret += '  </div><!--end only row-->' + "\n";
+					if (container_enable==="true") ret += '</div><!--end ribbon container-->' + "\n";
 					// END OF RIBBON
-					ret += '<hr/>'+"\n";
-					ret += '<div align="center">'+"\n";
+					ret += '<hr/>' + "\n";
+					ret += '<div align="center">' + "\n";
 					if (selected_month) {
 						ret += '<p>';
 						ret += '<h3>Transaction Reports</h3>';
@@ -2312,16 +2312,16 @@ var hbs = exphbs.create({
 						ret += '<div><em>To view details, click a month above.</em></div>';
 						ret += '</p>';
 					}
-					ret += '</div>'+"\n";
+					ret += '</div>' + "\n";
 					if (selected_month) {
 						var items_by_date = {};
 						if (section_sheet_fields.hasOwnProperty(section)) {
 							var parsing_info = "";
 							var parsing_error = "";
 							var items = [];
-							ret += '<table class="table table-bordered table-sm">'+"\n";
-							ret += '  <thead>'+"\n";
-							ret += '    <tr>'+"\n";
+							ret += '<table class="table table-bordered table-sm">' + "\n";
+							ret += '  <thead>' + "\n";
+							ret += '    <tr>' + "\n";
 							var url_params = "?";
 							url_params += "section="+section+"&";
 							url_params += "mode="+mode+"&";
@@ -2331,8 +2331,8 @@ var hbs = exphbs.create({
 							for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 								var key = section_sheet_fields[section][ssf_i];
 								var name = key;
-								if (selected_field==key) ret += '      <th class="bg-info">'+"\n";
-								else ret += '      <th>'+"\n";
+								if (selected_field==key) ret += '      <th class="bg-info">' + "\n";
+								else ret += '      <th>' + "\n";
 								ret += '<small>';
 								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
 									name = section_sheet_fields_friendly_names[section][key];
@@ -2356,9 +2356,9 @@ var hbs = exphbs.create({
 								else ret += '<a href="'+href+'">'+name+'</a>';
 								ret += '</small></th>';
 							}
-							ret += '    </tr>'+"\n";
-							ret += '  </thead>'+"\n";
-							ret += '  <tbody>'+"\n";
+							ret += '    </tr>' + "\n";
+							ret += '  </thead>' + "\n";
+							ret += '  <tbody>' + "\n";
 
 							//NOTE: don't write rows yet--this loop prepares the data
 							var d_path;
@@ -2382,7 +2382,7 @@ var hbs = exphbs.create({
 										
 										for (var item_key_i in item_keys) {
 											//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
-											//ret += '    <tr>'+"\n";
+											//ret += '    <tr>' + "\n";
 											var item_key = item_keys[item_key_i];
 											item_path = d_path + "/" + item_key;
 											//console.log("  - "+item_key);
@@ -2442,7 +2442,7 @@ var hbs = exphbs.create({
 														var span_info = null;
 														span_info = get_care_time_info(this_item, section);
 														for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-															//ret += '      <td>'+"\n";
+															//ret += '      <td>' + "\n";
 															var this_sff = section_sheet_fields[section][ssf_i];
 															//NOTE: intentionally gets desired fields only
 															
@@ -2516,7 +2516,7 @@ var hbs = exphbs.create({
 																//var val = items[this_sff];
 																//console.log("    " + this_sff + ": " + val);
 															}
-															//ret += '</td>'+"\n";
+															//ret += '</td>' + "\n";
 														}
 														items.push(this_item);
 													//}
@@ -2535,7 +2535,7 @@ var hbs = exphbs.create({
 										if (msg.length>0) {
 											//res.session.error=msg;
 											console.log(msg);
-											ret += '<div class="alert alert-danger">'+msg+'</div>'+"\n";
+											ret += '<div class="alert alert-danger">'+msg+'</div>' + "\n";
 										}
 									}
 									else console.log("Invalid path resulting in stale days array: '"+d_path+"'");
@@ -2574,7 +2574,7 @@ var hbs = exphbs.create({
 									//console.log();
 									//console.log("[CHECKING#"+item_i+"]");
 									var item_enable = (!item.hasOwnProperty("active") || (fun.is_true(item.active)));
-									ret += '    <tr>'+"\n";
+									ret += '    <tr>' + "\n";
 									var a_name = 'scrollto'+item_i;
 									var dup_index = -1;
 									var this_date_items = null;
@@ -2593,21 +2593,21 @@ var hbs = exphbs.create({
 										status_class = "glyphicon glyphicon-tags";
 									}
 									ret += '      <td>';
-									ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-									ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-									ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-									ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-									ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-									ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-									ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-									ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-									ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>'+"\n";
-									ret += '  <input type="hidden" name="set_value" id="set_value" value="'+((fun.item_is_active(item))?'false':'true')+'"/>'+"\n";
-									ret += '  <input type="hidden" name="status_changed_by" id="status_changed_by" value="'+username+'"/>'+"\n";  // signals change-microevent-field and write_record_without_validation that this is a manual entry deactivation
-									ret += '  <button class="btn" type="submit">'+"\n";
-									ret += '<span class="'+status_class+'" style="'+status_style+'"></span>'+"\n";
-									ret += '</button>'+"\n";
-									ret += '</form>'+"\n";
+									ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+									ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+									ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+									ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>' + "\n";
+									ret += '  <input type="hidden" name="set_value" id="set_value" value="'+((fun.item_is_active(item))?'false':'true')+'"/>' + "\n";
+									ret += '  <input type="hidden" name="status_changed_by" id="status_changed_by" value="'+username+'"/>' + "\n";  // signals change-microevent-field and write_record_without_validation that this is a manual entry deactivation
+									ret += '  <button class="btn" type="submit">' + "\n";
+									ret += '<span class="'+status_class+'" style="'+status_style+'"></span>' + "\n";
+									ret += '</button>' + "\n";
+									ret += '</form>' + "\n";
 									
 									ret += '</td>';
 									if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
@@ -2735,7 +2735,7 @@ var hbs = exphbs.create({
 									}
 									
 									for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-										ret += '      <td>'+"\n";
+										ret += '      <td>' + "\n";
 										
 										if (ssf_i===0) ret += '<a name="'+a_name+'"></a>';
 										if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
@@ -2764,41 +2764,41 @@ var hbs = exphbs.create({
 										else ret += val;
 										
 										if (selected_field==column_name) { //show even if does NOT have property
-											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>'+"\n";
-											ret += '  <input type="text" size="13" name="set_value" id="set_value" value="'+val+'"/>'+"\n";
-											ret += '  <button class="btn btn-default" type="submit">Save</button>'+"\n";
+											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>' + "\n";
+											ret += '  <input type="text" size="13" name="set_value" id="set_value" value="'+val+'"/>' + "\n";
+											ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
 											ret += '</form>';
 										}
 										
 										if ((dup_index>-1) && (ssf_i===0)) {
-											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>'+"\n";
-											ret += '  <input type="hidden" name="set_value" id="set_value" value="false"/>'+"\n";
-											ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+this_date_items[dup_index].key+'"/>'+"\n";
-											ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+this_date_items[dup_index].tmp.time+'"/>'+"\n";
-											ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+this_date_items[dup_index].tmp.date+'"/>'+"\n";
+											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>' + "\n";
+											ret += '  <input type="hidden" name="set_value" id="set_value" value="false"/>' + "\n";
+											ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+this_date_items[dup_index].key+'"/>' + "\n";
+											ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+this_date_items[dup_index].tmp.time+'"/>' + "\n";
+											ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+this_date_items[dup_index].tmp.date+'"/>' + "\n";
 											var dup_msg = 'Mark as Duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time;
 											if (fun.visual_debug_enable) dup_msg = 'Mark dated '+items[item_i].tmp.date+' <br/>Duplicate of '+this_date_items[dup_index].tmp.date+'<br/>(actual dup '+this_date_items[dup_index].key+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time;
 											if (item.hasOwnProperty("stated_date") || item.hasOwnProperty("stated_time")) //ret += '<div class="alert alert-info">see duplicate: '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</div>';
-												ret += '  <button class="btn btn-info" type="submit">override as duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>'+"\n";
-											else ret += '  <button class="btn btn-warning" type="submit">'+dup_msg+'</button>'+"\n";
+												ret += '  <button class="btn btn-info" type="submit">override as duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>' + "\n";
+											else ret += '  <button class="btn btn-warning" type="submit">'+dup_msg+'</button>' + "\n";
 											//Mark '+item_i+':'+items[item_i].tmp.date+' Duplicate of '+this_date_items[dup_index].tmp.date+' (actual '+dup_index+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'
-											ret += '</form>'+"\n";
+											ret += '</form>' + "\n";
 										}
 										
 										if (item_enable) {
@@ -2824,34 +2824,34 @@ var hbs = exphbs.create({
 														if ((subvalues.length==2) && (item[hdv_item_splitter_name].indexOf(",")<=-1) && (item[hdv_item_splitter_name].indexOf("&")<=-1)
 															&& (item[hdv_item_splitter_name].indexOf("+")<=-1) && (item[hdv_item_splitter_name].indexOf(" and ")<=-1)
 														) { //only treat as possibly one person if has no splitters other than space
-															ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-															ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-															ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-															ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-															ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-															ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-															ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-															ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-															ret += '  <input type="hidden" name="selected_field" id="selected_field" value="last_name"/>'+"\n"; //SET last_name
-															ret += '  <input type="hidden" name="set_value" id="set_value" value="'+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'"/>'+"\n";
-															ret += '  <button class="btn btn-warning" type="submit">Set to '+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'</button>'+"\n";
-															ret += '</form>'+"\n";
+															ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+															ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+															ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+															ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+															ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+															ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+															ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+															ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+															ret += '  <input type="hidden" name="selected_field" id="selected_field" value="last_name"/>' + "\n"; //SET last_name
+															ret += '  <input type="hidden" name="set_value" id="set_value" value="'+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'"/>' + "\n";
+															ret += '  <button class="btn btn-warning" type="submit">Set to '+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'</button>' + "\n";
+															ret += '</form>' + "\n";
 														}
 													}
 													if (split_enable) {
-														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">'+"\n";
-														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n";
-														//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>'+"\n";
-														ret += '  <input type="hidden" name="expected_count" id="expected_count" value="'+subvalues.length+'"/>'+"\n";
-														ret += '  <button class="btn btn-danger" type="submit">Split into '+subvalues.length+' entries</button>'+"\n";
-														ret += '</form>'+"\n";
+														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">' + "\n";
+														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n";
+														//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>' + "\n";
+														ret += '  <input type="hidden" name="expected_count" id="expected_count" value="'+subvalues.length+'"/>' + "\n";
+														ret += '  <button class="btn btn-danger" type="submit">Split into '+subvalues.length+' entries</button>' + "\n";
+														ret += '</form>' + "\n";
 													}
 												}
 											}
@@ -2862,18 +2862,18 @@ var hbs = exphbs.create({
 												if (!hdv_subvalues || hdv_subvalues.length==1) { //only use qty if no splitter overrides qty
 													var hdvs = fun.get_human_delimited_values(item[hdv_field_name]);
 													if (hdvs && hdvs.length>1) {
-														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="qty"/>'+"\n"; //SET qty
-														ret += '  <input type="hidden" name="set_value" id="set_value" value="'+hdvs.length+'"/>'+"\n";
-														ret += '  <button class="btn btn-warning" type="submit">Set to '+hdvs.length+'</button>'+"\n";
-														ret += '</form>'+"\n";
+														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="qty"/>' + "\n"; //SET qty
+														ret += '  <input type="hidden" name="set_value" id="set_value" value="'+hdvs.length+'"/>' + "\n";
+														ret += '  <button class="btn btn-warning" type="submit">Set to '+hdvs.length+'</button>' + "\n";
+														ret += '</form>' + "\n";
 													}
 												}
 											}
@@ -2946,18 +2946,18 @@ var hbs = exphbs.create({
 																					}
 																					if (match_count>=requirements.length-1) { //if only missing one value
 																						if (!fun.array_contains(suggested_values, suggested_val)) {
-																							ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-																							ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-																							ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>'+"\n"; //SET missing required field
-																							ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>'+"\n";
-																							ret += '  <button class="btn btn-warning" type="submit">Set to '+suggested_val+'</button>'+"\n";
-																							ret += '</form>'+"\n";
+																							ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+																							ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n"; //SET missing required field
+																							ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>' + "\n";
+																							ret += '  <button class="btn btn-warning" type="submit">Set to '+suggested_val+'</button>' + "\n";
+																							ret += '</form>' + "\n";
 																							suggested_values.push(suggested_val);
 																						}
 																					}
@@ -3000,34 +3000,34 @@ var hbs = exphbs.create({
 										}
 										
 										if (!item_enable) {
-											ret += '</span>'+"\n";
+											ret += '</span>' + "\n";
 											if ((ssf_i===0) && ("duplicate_of_time" in items[item_i])) ret+='<span class="text-muted"> see '+items[item_i].duplicate_of_time;
 										}
 										if (column_name=="=get_date_from_path()") {
 											if (items[item_i].tmp["=get_date_from_path()"] != items[item_i].tmp.date) {
 												//ret+='<div class="alert alert-danger">'+items[item_i].tmp.date+'</div>';
-												ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">'+"\n";
-												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>'+"\n";
-												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>'+"\n";
-												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>'+"\n";
-												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="ctime"/>'+"\n"; //SET ctime
-												ret += '  <input type="hidden" name="set_value" id="set_value" value="'+items[item_i].ctime.replaceAll(items[item_i].tmp.date,items[item_i].tmp["=get_date_from_path()"])+'"/>'+"\n";
-												ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+items[item_i].tmp["=get_date_from_path()"]+'</button>'+"\n";
-												ret += '</form>'+"\n";
+												ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="ctime"/>' + "\n"; //SET ctime
+												ret += '  <input type="hidden" name="set_value" id="set_value" value="'+items[item_i].ctime.replaceAll(items[item_i].tmp.date,items[item_i].tmp["=get_date_from_path()"])+'"/>' + "\n";
+												ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+items[item_i].tmp["=get_date_from_path()"]+'</button>' + "\n";
+												ret += '</form>' + "\n";
 												
 											}
 										}
 
-										ret += '</td>'+"\n";
+										ret += '</td>' + "\n";
 									}
-									ret += '    </tr>'+"\n";
+									ret += '    </tr>' + "\n";
 								}
-								ret += '  </tbody>'+"\n";
-								ret += '</table>'+"\n";
+								ret += '  </tbody>' + "\n";
+								ret += '</table>' + "\n";
 								ret += '<div class="alert alert-info">'+'finished reading '+items.length+' item(s)'+'</div>';
 								if (parsing_info.length>0) ret += '<div class="alert alert-info">'+parsing_info+'</div>';
 								if (parsing_error.length>0) ret += '<div class="alert alert-error">'+parsing_error+'</div>';
@@ -3047,13 +3047,13 @@ var hbs = exphbs.create({
 								//if (auto_select_month_enable) ret += "(select a month)<br/>";  // they probably want a month if auto select is enabled
 								//else 
 								//ret += "(to exit billing and to edit entries, select a month above)<br/><br/>"+"\n";  // they probably want a month if auto select is enabled
-								if (container_enable=="true") ret += '<div class="container">'+"\n";
+								if (container_enable=="true") ret += '<div class="container">' + "\n";
 								else {
 									ret += "</div><!--force end container-->";
 									ret += '<div class="container"><!--force end container-->';
 								}
-								ret += '<div class="row">'+"\n";
-								ret += ' <div class="col-sm-4">'+"\n";
+								ret += '<div class="row">' + "\n";
+								ret += ' <div class="col-sm-4">' + "\n";
 								ret += "   <h4>Billing Cycle Designer</h4><br/>"+"\n";  // they probably want a month if auto select is enabled
 								//var months = [];
 								//NOTE: months is already a param given to this helper
@@ -3074,34 +3074,34 @@ var hbs = exphbs.create({
 											bill_source_msg = " from settings";
 										}
 										if (bill_dow>=1 & bill_dow<=7) {
-											ret += '    <script>'+"\n";
-											ret += '    function submit_new_cycle() {'+"\n";
-											ret += '      document.getElementById("add-end-dates-to-bill").submit()'+"\n";
-											ret += '    }'+"\n";
-											ret += '    </script>'+"\n";
-											ret += '    <form class="form" id="add-end-dates-to-bill" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">'+"\n";
-											ret += '      <div class="form-group">'+"\n";
-											//ret += '        <div class="entry form-group col-sm-6">'+"\n"; //input-group mb-2 mr-sm-2 mb-sm-0
+											ret += '    <script>' + "\n";
+											ret += '    function submit_new_cycle() {' + "\n";
+											ret += '      document.getElementById("add-end-dates-to-bill").submit()' + "\n";
+											ret += '    }' + "\n";
+											ret += '    </script>' + "\n";
+											ret += '    <form class="form" id="add-end-dates-to-bill" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">' + "\n";
+											ret += '      <div class="form-group">' + "\n";
+											//ret += '        <div class="entry form-group col-sm-6">' + "\n"; //input-group mb-2 mr-sm-2 mb-sm-0
 											
 											//ret += '          <div class="input-group-addon" >New Billing Cycle Name:</div>';
-											//ret += '            <label for="new_cycle_name">New Cycle Name:</label>'+"\n";
-											//ret += '            <input type="text" class="form-control" name="new_cycle_name" id="new_cycle_name" value=""/>'+"\n";
-											//ret += '          </div>'+"\n";
-											//ret += '          <div class="form-group col-4">'+"\n"; //input-group mb-2 mr-sm-2 mb-sm-0
-											//ret += '            <button type="submit" class="btn btn-primary">Create from Selected Weeks</button>'+"\n";
+											//ret += '            <label for="new_cycle_name">New Cycle Name:</label>' + "\n";
+											//ret += '            <input type="text" class="form-control" name="new_cycle_name" id="new_cycle_name" value=""/>' + "\n";
+											//ret += '          </div>' + "\n";
+											//ret += '          <div class="form-group col-4">' + "\n"; //input-group mb-2 mr-sm-2 mb-sm-0
+											//ret += '            <button type="submit" class="btn btn-primary">Create from Selected Weeks</button>' + "\n";
 											//ret += '          </div">';
-											//ret += '        </div>'+"\n";//end col
+											//ret += '        </div>' + "\n";//end col
 											
 											ret += '          <div class="input-group">';
-											ret += '            <input type="text" class="form-control" name="new_cycle_name" placeholder="New Cycle Name">'+"\n";
-											ret += '            <span class="input-group-btn">'+"\n";
-											ret += '            <button class="btn btn-success btn-add" type="button" onclick="submit_new_cycle()"><span class="glyphicon glyphicon-plus"></span></button>'+"\n";
-											ret += '            </span>'+"\n";
-											ret += '          </div>'+"\n";
-											ret += '      </div>'+"\n";//end form-group
-											ret += '      <input type="hidden" name="selected_year" value="'+selected_year+'"/>'+"\n";
-											ret += '      <input type="hidden" name="section" value="'+section+'"/>'+"\n";
-											ret += '      <input type="hidden" name="mode" value="'+mode+'"/>'+"\n";
+											ret += '            <input type="text" class="form-control" name="new_cycle_name" placeholder="New Cycle Name">' + "\n";
+											ret += '            <span class="input-group-btn">' + "\n";
+											ret += '            <button class="btn btn-success btn-add" type="button" onclick="submit_new_cycle()"><span class="glyphicon glyphicon-plus"></span></button>' + "\n";
+											ret += '            </span>' + "\n";
+											ret += '          </div>' + "\n";
+											ret += '      </div>' + "\n";//end form-group
+											ret += '      <input type="hidden" name="selected_year" value="'+selected_year+'"/>' + "\n";
+											ret += '      <input type="hidden" name="section" value="'+section+'"/>' + "\n";
+											ret += '      <input type="hidden" name="mode" value="'+mode+'"/>' + "\n";
 											for (var m_i=12; m_i>=1; m_i--) {
 												var m_s = fun.zero_padded(m_i, 2);
 												for (var d_i=31; d_i>=1; d_i--) {
@@ -3109,7 +3109,7 @@ var hbs = exphbs.create({
 													var folder_date = moment(selected_year+"-"+m_s+"-"+d_s);
 													var this_dow = folder_date.day(); //where 1 is monday and 5 is friday
 													if (this_dow==bill_dow) {
-														//ret += "bill on "+folder_date.format('dddd')+' '+folder_date.format("dddd MMM D, Y")+' for:<br/>'+"\n";//debug only
+														//ret += "bill on "+folder_date.format('dddd')+' '+folder_date.format("dddd MMM D, Y")+' for:<br/>' + "\n";//debug only
 														var used_days_count = 0;
 														for (var d_backstep=0; d_backstep<7; d_backstep++) {
 															var back_dow_i = this_dow-d_backstep;
@@ -3138,34 +3138,34 @@ var hbs = exphbs.create({
 															var back_date = moment(back_date_s, "YYYY-MM-DD");
 															//NOTE: back_d_path could be same as before, if is friday (if d_backstep is 0)
 															if (fs.existsSync(back_d_path)) {
-																//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>'+"\n";//debug only
+																//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>' + "\n";//debug only
 																used_days_count++;
 															}
 															else {
-																//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>'+"\n";//debug only
+																//ret += '* <span style="color:gray">'+back_date.format("dddd MMM D, Y")+'</span><br/>' + "\n";//debug only
 															}
 														}
 														if (used_days_count>0) {
-															ret += '      <div class="form-check">'+"\n";
-															ret += '        <label class="form-check-label">'+"\n";
-															ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+folder_date.format("YYYYMMDD")+'">'+"\n"; //returns 'on' or 'off'
-															ret += '          '+folder_date.format('dddd')+' '+folder_date.format("MMM D, Y")+'<br/>'+"\n";
-															ret += '        </label>'+"\n";
-															ret += '      </div>'+"\n";
+															ret += '      <div class="form-check">' + "\n";
+															ret += '        <label class="form-check-label">' + "\n";
+															ret += '          <input type="checkbox" class="form-check-input" name="form_bill_for_'+folder_date.format("YYYYMMDD")+'">' + "\n"; //returns 'on' or 'off'
+															ret += '          '+folder_date.format('dddd')+' '+folder_date.format("MMM D, Y")+'<br/>' + "\n";
+															ret += '        </label>' + "\n";
+															ret += '      </div>' + "\n";
 														}
 													}//end if bill_dow
 												}//end for day
 												//NOTE: folder_date is out of scope
 											}//end for month
-											ret += '    </form>'+"\n";
+											ret += '    </form>' + "\n";
 										}
 										else ret += '  <div class="alert alert-warning">Day of Week for billing must be 1-7 where 1 is Monday, but value'+bill_source_msg+' was "'+bill_dow+'".</div>';
-										ret += ' </div><!--end col-->'+"\n";
+										ret += ' </div><!--end col-->' + "\n";
 										
-										//ret += ' <div class="col-sm-2">'+"\n";
-										//ret += ' </div><!--end col-->'+"\n";
+										//ret += ' <div class="col-sm-2">' + "\n";
+										//ret += ' </div><!--end col-->' + "\n";
 										
-										ret += ' <div class="col-sm-6 col-sm-offset-2">'+"\n";
+										ret += ' <div class="col-sm-6 col-sm-offset-2">' + "\n";
 										ret += "<h4>Billing Cycles</h4><br/>"+"\n";
 										var category = "BillingCycle";
 										//push_next_table_entry(section, category, item, req.user.username, false);
@@ -3232,7 +3232,7 @@ var hbs = exphbs.create({
 												if (cen_entry) {
 													ret += "<br/>"+"\n";
 													ret += "<br/>"+"\n";
-													ret += '<a name="results"></a>'+"\n";
+													ret += '<a name="results"></a>' + "\n";
 													ret += '(other billing cycle names appear above)';
 													if (cen_name===null) ret += "<h4>Invoices for Billing Cycle "+selected_number+"</h4><br/>"+"\n";
 													else ret += "<h4>Invoices for "+cen_name+"</h4>"+"\n";
@@ -3255,9 +3255,9 @@ var hbs = exphbs.create({
 										else ret += '(No billing cycles were created yet.)';
 									}
 									else ret += '  <div class="alert alert-warning">selected year "'+selected_year+'" is not a number, so report is not possible on this folder.</div>';
-									ret += ' </div><!--end col-->'+"\n";
-									ret += '</div><!--end row-->'+"\n";
-									if (container_enable=="true") ret += '</div><!--end billing container-->'+"\n";
+									ret += ' </div><!--end col-->' + "\n";
+									ret += '</div><!--end row-->' + "\n";
+									if (container_enable=="true") ret += '</div><!--end billing container-->' + "\n";
 								}
 								else ret += '  <div class="alert alert-warning">failed to find folder for '+section+' transactions student</div>';
 							}
@@ -3271,7 +3271,7 @@ var hbs = exphbs.create({
 				else ret += "There is no sheet defined for "+section+".";
 			}
 			else {
-				ret += 'You do not have permission to access '+mode+' in this section'+"\n";
+				ret += 'You do not have permission to access '+mode+' in this section' + "\n";
 			}
 			return new Handlebars.SafeString(ret);
 		},  //end show_reports
@@ -3296,31 +3296,31 @@ var hbs = exphbs.create({
 				//        console.log("_ (get_section_form) prefill."+index + " is in session with value "+prefill[index]);
 				//    }
 				//}
-				ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">'+"\n";
+				ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">' + "\n";
 				
-				ret += '  <input type="hidden" name="section" value="'+section+'"/>'+"\n";
+				ret += '  <input type="hidden" name="section" value="'+section+'"/>' + "\n";
 				if (!(prefill.hasOwnProperty("mode"))) {
-					ret += '  <input type="hidden" name="mode" id="mode" value="create"/>'+"\n";
+					ret += '  <input type="hidden" name="mode" id="mode" value="create"/>' + "\n";
 				}
 				else {
-					ret += '  <input type="hidden" name="mode" id="mode" value="'+prefill.mode+'"/>'+"\n";
+					ret += '  <input type="hidden" name="mode" id="mode" value="'+prefill.mode+'"/>' + "\n";
 				}
 				
 				//for (index in section_form_fields[section]) {
 				ret += get_filtered_form_fields_html(section, mode, username, false, prefill, missing_fields);
-				ret += '  <div class="form-group">'+"\n";
-				ret += '    <div class="col-sm-10" style="text-align:center">'+"\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <div class="col-sm-10" style="text-align:center">' + "\n";
 				var friendly_action_name = "Enter";
 				if (mode && (friendly_mode_action_text.hasOwnProperty(mode))) friendly_action_name=friendly_mode_action_text[mode];
-				ret += '      <button type="submit" class="btn btn-primary btn-sm">'+friendly_action_name+'</button>'+"\n";
+				ret += '      <button type="submit" class="btn btn-primary btn-sm">'+friendly_action_name+'</button>' + "\n";
 				var more_fields_html = get_filtered_form_fields_html(section, mode, username, true, prefill, missing_fields);
-				if (more_fields_html.length>0) ret += '      <a data-toggle="collapse" href="#extra-fields" class="btn btn-default btn-md" role="button">More Options</a>'+"\n";
-				ret += '    </div>'+"\n";
-				ret += '  </div>'+"\n";
+				if (more_fields_html.length>0) ret += '      <a data-toggle="collapse" href="#extra-fields" class="btn btn-default btn-md" role="button">More Options</a>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
 				if (more_fields_html.length>0) {
-					ret += '  <div name="extra-fields" class="collapse" id="extra-fields">'+"\n";
+					ret += '  <div name="extra-fields" class="collapse" id="extra-fields">' + "\n";
 					ret += more_fields_html;
-					ret += '  </div>'+"\n";
+					ret += '  </div>' + "\n";
 				}
 				ret += "\n  </form>"+"\n";
 			}
@@ -3520,6 +3520,45 @@ var hbs = exphbs.create({
 		show_status: function(section, opts) {
 			var ret="";
 			var found = false;
+			//TODO: why are labels centered?
+			ret += '<form class="form-horizontal" id="test-update" action="' + config.proxy_prefix_then_slash + 'tp" method="post">';
+			ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+			ret += '  <input type="hidden" name="mode" id="mode" value="create"/>' + "\n";
+			ret += '  <div class="form-group">' + "\n";
+			ret += '    <label class="control-label col-sm-2" >UserName:</label>' + "\n";
+			ret += '    <div class="col-sm-10">' + "\n";
+			ret += '      <input type="text" class="form-control" size="8" name="UserName" id="UserName" value=""/>' + "\n";
+			ret += '    </div>' + "\n";
+			ret += '  </div>' + "\n";
+			ret += '  <div class="form-group">' + "\n";
+			ret += '    <label class="control-label col-sm-2" >MachineName:</label>' + "\n";
+			ret += '    <div class="col-sm-10">' + "\n";
+			ret += '      <input type="text" class="form-control" size="8" name="MachineName" id="MachineName" value=""/>' + "\n";
+			ret += '    </div>' + "\n";
+			ret += '  </div>' + "\n";
+			ret += '  <div class="form-group">' + "\n";
+			ret += '    <label class="control-label col-sm-2" >HostName:</label>' + "\n";
+			ret += '    <div class="col-sm-10">' + "\n";
+			ret += '      <input type="text" class="form-control" size="8" name="HostName" id="HostName" value=""/>' + "\n";
+			ret += '    </div>' + "\n";
+			ret += '  </div>' + "\n";
+			ret += '  <div class="form-group">' + "\n";
+			ret += '    <label class="control-label col-sm-2" >MAC:</label>' + "\n";
+			ret += '    <div class="col-sm-10">' + "\n";
+			ret += '      <input type="text" class="form-control" size="8" name="MAC" id="MAC" value=""/>' + "\n";
+			ret += '    </div>' + "\n";
+			ret += '  </div>' + "\n";
+			ret += '  <div class="form-group">' + "\n";
+			ret += '    <label class="control-label col-sm-2" >Image:</label>' + "\n";
+			ret += '    <div class="col-sm-10">' + "\n";
+			ret += '      <input type="file" class="form-control" name="screenshot_file" id="screenshot_file"/>' + "\n";
+			ret += '    </div>' + "\n";
+			ret += '  </div>' + "\n";
+			ret += '  <div class="form-group">' + "\n";
+			ret += '    <button class="btn btn-default" type="submit">Test</button>' + "\n";
+			ret += '</form>' + "\n";
+			ret += '<br/>' + "\n";
+			
 			if (section) {
 				if ((dat!==null) && ("units" in dat) && (_selected_unit in dat.units)) {
 					if (section in dat.units[_selected_unit]) {
@@ -3527,6 +3566,7 @@ var hbs = exphbs.create({
 							var tracked_count = 0;
 							if (has_setting(section+".status_keys")) {
 								found = true;
+								
 								var status_keys = peek_setting(section+".status_keys");
 								ret += "<!--show_status: listing "+status_keys.length+" status_key(s) for "+section+"-->";
 								var href = config.proxy_prefix_then_slash+"save-status?section="+section;//+url_params+"change_section_report_edit_field="+override_key;
@@ -3537,7 +3577,7 @@ var hbs = exphbs.create({
 									//if (item.hasOwnProperty(primary_key)) {
 									//item.tmp.key = item[primary_key];
 									for (var id in dat.units[_selected_unit][section].status[primary_key]) {
-										ret+= '<p>'+JSON.stringify(dat.units[_selected_unit][section].status[primary_key][id])+'</p>'+"\n";
+										ret+= '<p>'+JSON.stringify(dat.units[_selected_unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
 										//req.session.success = "tracking: "+JSON.stringify(item);
 										//tracked_count++;
 									}
@@ -3564,8 +3604,8 @@ var hbs = exphbs.create({
 				if (fields !== null) {
 					var field_i;
 					var f_len=fields.length;
-					ret += '<table class="table">'+"\n";
-					ret += '<thead class="thead-default">'+"\n";
+					ret += '<table class="table">' + "\n";
+					ret += '<thead class="thead-default">' + "\n";
 					ret += "<tr>"+"\n";
 					if (force_date_enable) ret += "<th>Date</th>";
 					for (field_i=0; field_i<f_len; field_i++) {
@@ -3597,8 +3637,8 @@ var hbs = exphbs.create({
 						ret += "</th>"+"\n";
 					}
 					ret += "</tr>"+"\n";
-					ret += '</thead">'+"\n";
-					ret += '<tbody>'+"\n";
+					ret += '</thead">' + "\n";
+					ret += '<tbody>' + "\n";
 					var hdv_field_name = null;
 					if (has_setting(section+".list_implies_qty")) hdv_field_name = peek_setting(section+".list_implies_qty");
 					var hdv_item_splitter_name = null;
@@ -3688,7 +3728,7 @@ var hbs = exphbs.create({
 						}
 						ret += "</tr>"+"\n";
 					}
-					ret += '</tbody>'+"\n";
+					ret += '</tbody>' + "\n";
 					ret += "</table>"+"\n";
 				}
 				else ret = section+" section has no history fields list.";
@@ -4956,30 +4996,23 @@ app.post('/poke-settings', function(req, res) {
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
-app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see also show_status helper
-	//var sounds_path_then_slash = "sounds/";
-	var error = null;
-	var success = null;
-	var msg = "success: ok";
-	//TODO: if MAC address is listed
+function do_track(body) {
+	var results = {};
 	//if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		//if (user_has_section_permission(req.user.username, "admin", "poke-settings")) {
-		if ("section" in req.body) {
-			var section = req.body.section;
-			if ("mode" in req.body) {
-				var mode = req.body.mode;
+		if ("section" in body) {
+			var section = body.section;
+			if ("mode" in body) {
+				var mode = body.mode;
 				if (mode == "create") {
 					// always create since always anonymous
 				}
 				else {
-					error = "only create is implemented."; //continue anyway though
+					results.error = "only create is implemented."; //continue anyway though
 				}
 				if (has_setting(section+".status_keys")) {
 					var status_keys = peek_setting(section+".status_keys");
-					var item = {};
-					for (var field_name in req.body) {
-						item[field_name] = req.body[field_name];
-					}
+					
 					if (!dat) dat = {};
 					if (!("units" in dat)) dat.units = {};
 					if (!(_selected_unit in dat.units)) dat.units[_selected_unit] = {};
@@ -4988,113 +5021,99 @@ app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see 
 					var tracked_count = 0;
 					for (var k_i=0; k_i<status_keys.length; k_i++) {
 						var primary_key = status_keys[k_i];
-						item.tmp = {};
-						if (item.hasOwnProperty(primary_key)) {
-							//item.tmp.key = item[primary_key];
-							item.key_name = primary_key;
-							if (!(primary_key in dat.units[_selected_unit][section].status)) dat.units[_selected_unit][section].status[primary_key] = {}; //such as "MAC" folder inside "status" folder
-							dat.units[_selected_unit][section].status[primary_key][req.body[primary_key]] = item;
-							success = "tracking: "+JSON.stringify(item);
-							tracked_count++;
+						if (primary_key in body) {
+							var id = body[primary_key];
+							//item.tmp = {};
+							var item = null; //start as null for each key, in case their are multiple tables (each with different primary key)
+							var modify_enable = false;
+							if ( (primary_key in dat.units[_selected_unit][section].status)
+								&& (id in dat.units[_selected_unit][section].status[primary_key])
+							) {
+								item = dat.units[_selected_unit][section].status[primary_key][id]
+								modify_enable = true;
+							}
+							if (item === null) item = {};
+							
+							//TODO: if modify_enable (if record existed), mark whatever changed and store old value in audit entry
+							for (var field_name in body) {
+								item[field_name] = body[field_name];
+							}
+							
+							if (item.hasOwnProperty(primary_key)) {
+								//item.tmp.key = item[primary_key];
+								item.key_name = primary_key;
+								var local_time_zone = null;
+								//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+								//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+								if (local_time_zone !== null) item.tz = local_time_zone;
+								if (!("tz_offset_mins" in item)) item.tz_offset_mins = moment().utcOffset();
+								if (!("ctime" in item)) item.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+								else item.mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+								var local_now = moment();
+								
+								if (!(primary_key in dat.units[_selected_unit][section].status)) dat.units[_selected_unit][section].status[primary_key] = {}; //such as "MAC" folder inside "status" folder
+								if (!(id in dat.units[_selected_unit][section].status[primary_key]))
+									dat.units[_selected_unit][section].status[primary_key][id] = item;
+								//else is already up to date since item is a reference to it
+									
+								results.success = "tracking: "+JSON.stringify(item);
+								tracked_count++;
+							}
 						}
 					}
 					if (tracked_count<1) {
-						error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
+						results.error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
 					}
 				}
 				else {
-					error = "missing setting "+section+".status_keys";
+					results.error = "missing setting "+section+".status_keys";
 				}
 			}
 			else {
-				error = "missing mode param";
+				results.error = "missing mode param";
 			}
 		}
 		else {
-			error = "missing section param";
-			//error = "not authorized to modify data for '" + section + "'";
+			results.error = "missing section param";
+			//results.error = "not authorized to modify data for '" + section + "'";
 			//if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 		//	delete req.session.prefill.pin;
 		}
-	//}
-	//res.redirect(config.proxy_prefix_then_slash);
+	//}	
+	return results;
+}//end do_track
+
+app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see also show_status helper
+	var results = do_track(req.query);
 	res.type('text/plain');//res.setHeader("content-type", "text/plain");
-	if (success) msg = "success: " + success;
+	var msg = "";
+	if ("error" in results) msg = "error: "+results.error;
+	if ("success" in results) msg += "\n" + results.success;
 	else msg = "success: ok";
-	if (error) msg = "error: "+error;
-	console.log("[ track ] "+msg);
+	//console.log("[ track ] "+msg);
+	msg += "\n";
+	//msg += "settings:"+"\n"; //NOTE: iedup will resave settings each time if any are present (if below, if indented under "settings:")
+	//force iedup to use POST:
+	//msg += "  ping_host: " + req.get('host') + "/tp" + "\n"; //NOTE: this gets localhost
+	//msg += "  form_method: POST" + "\n"; 
 	res.send(msg);//res.write(msg);
 });
 
-app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see also show_status helper
-	//var sounds_path_then_slash = "sounds/";
-	//TODO: if MAC address is listed
-	var error = null;
-	var success = null;
+app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see also show_status helper
+	var results = do_track(req.body);
 	var msg = "success: ok";
-	//if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
-		//if (user_has_section_permission(req.user.username, "admin", "poke-settings")) {
-		if ("section" in req.query) {
-			var section = req.query.section;
-			if ("mode" in req.query) {
-				var mode = req.query.mode;
-				if (mode == "create") {
-					// always create since always anonymous
-				}
-				else {
-					error = "only create is implemented."; //continue anyway though
-				}
-				if (has_setting(section+".status_keys")) {
-					var status_keys = peek_setting(section+".status_keys");
-					var item = {};
-					for (var field_name in req.query) {
-						item[field_name] = req.query[field_name];
-					}
-					if (!dat) dat = {};
-					if (!("units" in dat)) dat.units = {};
-					if (!(_selected_unit in dat.units)) dat.units[_selected_unit] = {};
-					if (!(section in dat.units[_selected_unit])) dat.units[_selected_unit][section] = {};
-					if (!("status" in dat.units[_selected_unit][section])) dat.units[_selected_unit][section].status = {};
-					var tracked_count = 0;
-					for (var k_i=0; k_i<status_keys.length; k_i++) {
-						var primary_key = status_keys[k_i];
-						item.tmp = {};
-						if (item.hasOwnProperty(primary_key)) {
-							//item.tmp.key = item[primary_key];
-							item.key_name = primary_key;
-							if (!(primary_key in dat.units[_selected_unit][section].status)) dat.units[_selected_unit][section].status[primary_key] = {}; //such as "MAC" folder inside "status" folder
-							dat.units[_selected_unit][section].status[primary_key][req.query[primary_key]] = item;
-							success = "tracking: "+JSON.stringify(item);
-							tracked_count++;
-						}
-					}
-					if (tracked_count<1) {
-						error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
-					}
-				}
-				else {
-					error = "missing setting "+section+".status_keys";
-				}
-			}
-			else {
-				error = "missing mode param";
-			}
-		}
-		else {
-			error = "missing section param";
-			//error = "not authorized to modify data for '" + section + "'";
-			//if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
-		//	delete req.session.prefill.pin;
-		}
-	//}
-	//res.redirect(config.proxy_prefix_then_slash);
 	res.type('text/plain');//res.setHeader("content-type", "text/plain");
-	if (success) msg += "\n" + success;
+	if ("success" in results) msg += "\n" + results.success;
 	else msg = "success: ok";
-	if (error) msg = "error: "+error;
-	console.log("[ track ] "+msg);
+	if ("error" in results) msg = "error: "+results.error;
+	//console.log("[ track ] "+msg);
+	msg += "\n";
+	//msg += "settings:"+"\n"; //NOTE: iedup will resave settings each time if any are present (if below, if indented under "settings:")
+	//force iedup to use POST:
+	//msg += "  ping_host: " + req.get('host') + "/tp" + "\n"; //NOTE: this gets localhost
+	//msg += "  form_method: POST" + "\n"; 
 	res.send(msg);//res.write(msg);
-});
+}); //end "/tp"
 
 app.get('/change-selection', function (req, res) {
 	var sounds_path_then_slash = "sounds/";
