@@ -101,18 +101,13 @@ var basePath = "."+config.proxy_prefix_then_slash;
 
 
 var sections = ["care", "commute", "admin", "track"];
+var tracking_sections = ["track"]
 var friendly_section_names = {"care":"Extended Care","commute":"Commute","admin":"Advanced","track":"Track"};
 
 //var section_rates = {}; //how much client pays by the hour for section for time spent outside of startTime and endTime
 //section_rates["care"] = 7.50;
 
-
-var modes = ["create", "read", "modify", "settings", "reports"];
-var transient_modes = ["modify"]; //modes only used during operation of other modes
-var transient_modes_return = {};
-transient_modes_return.modify = "read";
-transient_modes_return["change-section-settings"] = "settings";
-transient_modes_return["poke-settings"] = "settings";
+var selectable_modes = ["create", "read", "settings", "reports"];
 
 var friendly_mode_names = {};
 friendly_mode_names.create = "Entry Form";
@@ -166,8 +161,8 @@ section_form_friendly_names.track.mac = "HwAddr";
 
 var section_sheet_fields = {};
 section_sheet_fields.track = ["MAC","MachineName","UserName","HostName"];
-section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "=get_origin_date()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "created_by", "modified_by"];
-section_sheet_fields.commute = ["=get_date_from_path()", "time", "name", "grade_level"];
+section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "=get_origin_date()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "created_by", "modified_by", "free_from", "free_to"];
+section_sheet_fields.commute = ["=get_date_from_path()", "time", "name", "grade_level", "reason"];
 
 var section_sheet_fields_friendly_names = {};
 section_sheet_fields_friendly_names.care = {};
@@ -176,6 +171,8 @@ section_sheet_fields_friendly_names.care["=get_origin_date()"] = "Created";
 section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
 section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
 section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued per 1";
+section_sheet_fields_friendly_names.care.free_from = "FreeFr";
+section_sheet_fields_friendly_names.care.free_to = "FreeTo";
 section_sheet_fields_friendly_names.care.stated_time = "Stated Time";
 section_sheet_fields_friendly_names.care.stated_date = "Stated Date";
 section_sheet_fields_friendly_names.care.first_name = "First";
@@ -298,7 +295,7 @@ _settings_default.care.mode_priority = ["reports","create", "read"];
 _settings_default.commute = {};
 _settings_default.commute.local_start_time = '08:10:00';
 _settings_default.commute.local_end_time = '15:05:00';
-_settings_default.commute.history_sheet_fields = ["time", "name", "grade_level"];  // "=get_date_from_path()", 
+_settings_default.commute.history_sheet_fields = ["time", "name", "grade_level", "reason"];  // "=get_date_from_path()", 
 _settings_default.commute.reports = {};
 _settings_default.commute.reports.suggest_missing_required_fields_enable = true; //may cause slowness with loading reports when required fields are blank
 _settings_default.commute.reports.auto_select_month_enable = true; //ok since in reports section
@@ -1030,7 +1027,13 @@ function get_care_time_info(this_item, section) {
 			) {
 			
 			var startTime = moment(peek_setting(section+".local_start_time"), "HH:mm:ss");
+			if (this_item.hasOwnProperty("free_from") && fun.is_not_blank(this_item.free_from)) {
+				startTime = moment(fun.good_time_string(this_item.free_from), "HH:mm:ss");
+			}
 			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");
+			if (this_item.hasOwnProperty("free_to") && fun.is_not_blank(this_item.free_to)) {
+				startTime = moment(fun.good_time_string(this_item.free_to), "HH:mm:ss");
+			}
 			
 			//see also http://momentjs.com/docs/#/manipulating/difference/
 			if (foundTimeString > _settings[section].local_end_time) {
@@ -1649,6 +1652,7 @@ var hbs = exphbs.create({
 		},
 		show_settings: function(section, username, selected_setting, opts) {
 			var ret = "";
+			
 			if (user_has_section_permission(username, section, "settings")) {
 				//ret += '<form class="form-inline" action="' + config.proxy_prefix_then_slash + '" method="get">' + "\n";
 				//ret += '  <div class="form-group">' + "\n";
@@ -1668,6 +1672,10 @@ var hbs = exphbs.create({
 				//ret += '  <button class="btn btn-default" type="submit">Peek</button>' + "\n";
 				//ret += '</form>' + "\n";
 				var settings_keys = get_all_settings_names();
+				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-settings?section="+section+'" class="btn btn-danger" role="button">' + "\n"
+				ret += 'Reload Settings from Drive';
+				ret += '</a></div>' + "\n"
+				ret += '<br/>' + "\n"
 				for (var i=0, len=settings_keys.length; i<len; i++) {
 					if (settings_keys[i]!=selected_setting) ret += '<a href="'+config.proxy_prefix_then_slash+"?selected_setting="+settings_keys[i]+'">'+settings_keys[i]+"</a><br/>";
 					else {
@@ -3519,81 +3527,83 @@ var hbs = exphbs.create({
 		//},
 		show_status: function(section, opts) {
 			var ret="";
-			var found = false;
-			//TODO: why are labels centered?
-			ret += '<form class="form-horizontal" id="test-update" action="' + config.proxy_prefix_then_slash + 'tp" method="post">';
-			ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-			ret += '  <input type="hidden" name="mode" id="mode" value="create"/>' + "\n";
-			ret += '  <div class="form-group">' + "\n";
-			ret += '    <label class="control-label col-sm-2" >UserName:</label>' + "\n";
-			ret += '    <div class="col-sm-10">' + "\n";
-			ret += '      <input type="text" class="form-control" size="8" name="UserName" id="UserName" value=""/>' + "\n";
-			ret += '    </div>' + "\n";
-			ret += '  </div>' + "\n";
-			ret += '  <div class="form-group">' + "\n";
-			ret += '    <label class="control-label col-sm-2" >MachineName:</label>' + "\n";
-			ret += '    <div class="col-sm-10">' + "\n";
-			ret += '      <input type="text" class="form-control" size="8" name="MachineName" id="MachineName" value=""/>' + "\n";
-			ret += '    </div>' + "\n";
-			ret += '  </div>' + "\n";
-			ret += '  <div class="form-group">' + "\n";
-			ret += '    <label class="control-label col-sm-2" >HostName:</label>' + "\n";
-			ret += '    <div class="col-sm-10">' + "\n";
-			ret += '      <input type="text" class="form-control" size="8" name="HostName" id="HostName" value=""/>' + "\n";
-			ret += '    </div>' + "\n";
-			ret += '  </div>' + "\n";
-			ret += '  <div class="form-group">' + "\n";
-			ret += '    <label class="control-label col-sm-2" >MAC:</label>' + "\n";
-			ret += '    <div class="col-sm-10">' + "\n";
-			ret += '      <input type="text" class="form-control" size="8" name="MAC" id="MAC" value=""/>' + "\n";
-			ret += '    </div>' + "\n";
-			ret += '  </div>' + "\n";
-			ret += '  <div class="form-group">' + "\n";
-			ret += '    <label class="control-label col-sm-2" >Image:</label>' + "\n";
-			ret += '    <div class="col-sm-10">' + "\n";
-			ret += '      <input type="file" class="form-control" name="screenshot_file" id="screenshot_file"/>' + "\n";
-			ret += '    </div>' + "\n";
-			ret += '  </div>' + "\n";
-			ret += '  <div class="form-group">' + "\n";
-			ret += '    <button class="btn btn-default" type="submit">Test</button>' + "\n";
-			ret += '</form>' + "\n";
-			ret += '<br/>' + "\n";
-			
-			if (section) {
-				if ((dat!==null) && ("units" in dat) && (_selected_unit in dat.units)) {
-					if (section in dat.units[_selected_unit]) {
-						if (("status" in dat.units[_selected_unit][section])) {
-							var tracked_count = 0;
-							if (has_setting(section+".status_keys")) {
-								found = true;
-								
-								var status_keys = peek_setting(section+".status_keys");
-								ret += "<!--show_status: listing "+status_keys.length+" status_key(s) for "+section+"-->";
-								var href = config.proxy_prefix_then_slash+"save-status?section="+section;//+url_params+"change_section_report_edit_field="+override_key;
-								ret += '<a href="'+href+'">Save</a>' + "\n";
-								for (var k_i=0; k_i<status_keys.length; k_i++) {
-									var primary_key = status_keys[k_i];
-									//item.tmp = {};
-									//if (item.hasOwnProperty(primary_key)) {
-									//item.tmp.key = item[primary_key];
-									for (var id in dat.units[_selected_unit][section].status[primary_key]) {
-										ret+= '<p>'+JSON.stringify(dat.units[_selected_unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
-										//req.session.success = "tracking: "+JSON.stringify(item);
-										//tracked_count++;
+			if (fun.array_contains(tracking_sections, section)) {
+				var found = false;
+				//TODO: why are labels centered?
+				ret += '<form class="form-horizontal" id="test-update" action="' + config.proxy_prefix_then_slash + 'tp" method="post">';
+				ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+				ret += '  <input type="hidden" name="mode" id="mode" value="create"/>' + "\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <label class="control-label col-sm-2" >UserName:</label>' + "\n";
+				ret += '    <div class="col-sm-10">' + "\n";
+				ret += '      <input type="text" class="form-control" size="8" name="UserName" id="UserName" value=""/>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <label class="control-label col-sm-2" >MachineName:</label>' + "\n";
+				ret += '    <div class="col-sm-10">' + "\n";
+				ret += '      <input type="text" class="form-control" size="8" name="MachineName" id="MachineName" value=""/>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <label class="control-label col-sm-2" >HostName:</label>' + "\n";
+				ret += '    <div class="col-sm-10">' + "\n";
+				ret += '      <input type="text" class="form-control" size="8" name="HostName" id="HostName" value=""/>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <label class="control-label col-sm-2" >MAC:</label>' + "\n";
+				ret += '    <div class="col-sm-10">' + "\n";
+				ret += '      <input type="text" class="form-control" size="8" name="MAC" id="MAC" value=""/>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <label class="control-label col-sm-2" >Image:</label>' + "\n";
+				ret += '    <div class="col-sm-10">' + "\n";
+				ret += '      <input type="file" class="form-control" name="screenshot_file" id="screenshot_file"/>' + "\n";
+				ret += '    </div>' + "\n";
+				ret += '  </div>' + "\n";
+				ret += '  <div class="form-group">' + "\n";
+				ret += '    <button class="btn btn-default" type="submit">Test</button>' + "\n";
+				ret += '</form>' + "\n";
+				ret += '<br/>' + "\n";
+				
+				if (section) {
+					if ((dat!==null) && ("units" in dat) && (_selected_unit in dat.units)) {
+						if (section in dat.units[_selected_unit]) {
+							if (("status" in dat.units[_selected_unit][section])) {
+								var tracked_count = 0;
+								if (has_setting(section+".status_keys")) {
+									found = true;
+									
+									var status_keys = peek_setting(section+".status_keys");
+									ret += "<!--show_status: listing "+status_keys.length+" status_key(s) for "+section+"-->";
+									var href = config.proxy_prefix_then_slash+"save-status?section="+section;//+url_params+"change_section_report_edit_field="+override_key;
+									ret += '<a href="'+href+'">Save</a>' + "\n";
+									for (var k_i=0; k_i<status_keys.length; k_i++) {
+										var primary_key = status_keys[k_i];
+										//item.tmp = {};
+										//if (item.hasOwnProperty(primary_key)) {
+										//item.tmp.key = item[primary_key];
+										for (var id in dat.units[_selected_unit][section].status[primary_key]) {
+											ret+= '<p>'+JSON.stringify(dat.units[_selected_unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
+											//req.session.success = "tracking: "+JSON.stringify(item);
+											//tracked_count++;
+										}
+										//}
 									}
-									//}
 								}
+								else ret += "<!--show_status: no status_keys for "+section+"-->";
 							}
-							else ret += "<!--show_status: no status_keys for "+section+"-->";
+							else ret += "<!--show_status: no status in section "+section+"-->";
 						}
-						else ret += "<!--show_status: no status in section "+section+"-->";
+						else ret += "<!--show_status: no section "+section+" in unit "+_selected_unit+"-->";
 					}
-					else ret += "<!--show_status: no section "+section+" in unit "+_selected_unit+"-->";
+					else ret += "<!--show_status: no unit "+_selected_unit+" in dat.units-->";
 				}
-				else ret += "<!--show_status: no unit "+_selected_unit+" in dat.units-->";
+				else ret += "<!--show_status: no section-->";
+				if (!found) ret += "There is no data from tracked devices yet. Try installing iedup binary on a device (or via iedusm if release version is available).";
 			}
-			else ret += "<!--show_status: no section-->";
-			if (!found) ret += "There is no data from tracked devices yet. Try installing iedup binary on a device (or via iedusm if release version is available).";
 			return new Handlebars.SafeString(ret);
 		},
 		show_history: function(section, objects, opts) {
@@ -3857,7 +3867,6 @@ app.get('/', function(req, res){
 	var selected_day = null;
 	var selected_number = null;
 	var selected_item_key = null;
-	var user_selectable_modes = [];  //similar to entry in user_modes_by_section that corresponds to section, except excludes transient modes
 	var this_sheet_field_names = [];
 	var this_sheet_field_friendly_names = [];
 	if (!(req.session.hasOwnProperty("prefill"))) req.session.prefill={};
@@ -3869,17 +3878,11 @@ app.get('/', function(req, res){
 				if ( user_has_section_permission(req.user.username, val, "create") || user_has_section_permission(req.user.username, val, "read") || user_has_section_permission(req.user.username, val, "modify") ) {
 					user_sections.push(val);
 					if (!user_modes_by_section.hasOwnProperty(val)) user_modes_by_section[val] = [];
-					if (user_has_section_permission(req.user.username, val, "create")) {
-						user_modes_by_section[val].push("create");
-					}
-					if (user_has_section_permission(req.user.username, val, "read")) {
-						user_modes_by_section[val].push("read");
-					}
-					if (user_has_section_permission(req.user.username, val, "modify")) {
-						user_modes_by_section[val].push("modify");
-					}
-					if (user_has_section_permission(req.user.username, val, "reports")) {
-						user_modes_by_section[val].push("reports");
+					for (var mode_i=0; mode_i<selectable_modes.length; mode_i++) {
+						this_mode = selectable_modes[mode_i];
+						if (user_has_section_permission(req.user.username, val, this_mode)) {
+							user_modes_by_section[val].push(this_mode);
+						}
 					}
 				}
 		// 		var section_path = storage_path + "/" + val;
@@ -3914,15 +3917,6 @@ app.get('/', function(req, res){
 				this_sheet_field_friendly_names.push(ssf);
 			}
 		}
-		if (user_modes_by_section.hasOwnProperty(section)) {
-			for (var this_mode in user_modes_by_section[section]) { //for (group in user_modes_by_section["section"]) {
-				if (!fun.array_contains(transient_modes, user_modes_by_section[section][this_mode])) {
-					user_selectable_modes.push(user_modes_by_section[section][this_mode]);
-					//console.log("+ selectable_mode : "+user_modes_by_section[section][this_mode]);
-				}
-			}
-		}
-		//else console.log("no "+ssf+" in user_modes_by_section");
 	}
 
 	if (fun.is_not_blank(req.query.mode)) {
@@ -3932,9 +3926,9 @@ app.get('/', function(req, res){
 	else if (fun.is_not_blank(req.session.mode)) {
 		mode = req.session.mode;
 	}
-	else if (user_selectable_modes && (user_selectable_modes.length>=1)) {
+	else if (user_modes_by_section.hasOwnProperty(section) && user_modes_by_section[section] && user_modes_by_section[section].length>=1) {
 		if (req.user && req.user.username && (default_mode_by_user.hasOwnProperty(req.user.username))) mode=default_mode_by_user[req.user.username];
-		else mode = user_selectable_modes[user_selectable_modes.length-1];
+		else mode = user_modes_by_section[section][user_modes_by_section[section].length-1];
 		req.session.mode = mode;
 	}
 	
@@ -4223,7 +4217,9 @@ app.get('/', function(req, res){
 		
 	}
 	if (req.session.runme) console.log("runme: "+req.session.runme);
-	res.render('home', {user: req.user, section: section, runme: req.session.runme, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_number: selected_number, section_report_edit_field: req.session.section_report_edit_field, selected_item_key: selected_item_key, sections: user_sections, modes_by_section: user_modes_by_section, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	var user_selectable_modes = null;
+	if (section && user_modes_by_section && user_modes_by_section.hasOwnProperty(section)) user_selectable_modes = user_modes_by_section[section];
+	res.render('home', {user: req.user, section: section, runme: req.session.runme, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_number: selected_number, section_report_edit_field: req.session.section_report_edit_field, selected_item_key: selected_item_key, sections: user_sections, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
 	delete req.session.runme;
 });
 
@@ -4384,7 +4380,6 @@ app.post('/autofill-query', function(req, res){
 		}
 	}
 	
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 }); //end autofill-query
 
@@ -4512,7 +4507,6 @@ app.post('/update-query', function(req, res){
 		}
 	}
 	
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 }); //end update-query
 
@@ -4607,7 +4601,6 @@ app.post('/change-microevent-field', function(req, res){
 		}
 	}
 	
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	var a_suffix = "";
 	if (fun.is_not_blank(req.body.scroll_to_named_a)) a_suffix = "#"+req.body.scroll_to_named_a;
 	else if (fun.is_not_blank(req.body.selected_key)) a_suffix = "#"+req.body.selected_key;
@@ -4676,7 +4669,6 @@ app.post('/add-end-dates-to-bill', function(req, res){
 		}
 	}
 	
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash+"?section="+req.body.section+"&mode="+req.body.mode+"&selected_year="+req.body.selected_year+"&selected_month=(none)" + ((bookmark_enable)?("#"+req.body.selected_key):"") );
 });
 
@@ -4875,7 +4867,6 @@ app.post('/split-entry', function(req, res){
 			delete req.session.prefill.pin;
 		}
 	}
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?("#"+req.body.scroll_to_named_a):""));
 });
 
@@ -4944,30 +4935,30 @@ app.get('/save-status', function(req, res){
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
-app.get('/admin', function(req, res){
+app.get('/reload-settings', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	if (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username)) {
-		if (req.body.mode=="reload-settings") {
-			if (fs.existsSync(settings_path)) {
-				_settings = yaml.readSync(settings_path, "utf8");
-				req.session.success = "Successfully reloaded "+settings_path+".";
-				console.log("[ ^. ] reloaded settings");
-			}
-			else {
-				_settings = JSON.parse(JSON.stringify(settings_default));
-				console.log("[ ^. ] reloaded settings from defaults");
-				//yaml.writeSync(settings_path, _settings, "utf8");
-				yaml.write(settings_path, _settings, "utf8", function (err) {
-					if (err) {
-						console.log("[ . ] Error while saving settings in /admin: " + err);
-					}
-					//else console.log("[ . ] saved settings");
-				});
-				req.session.notice = "WARNING: "+settings_path+" could not be read in /admin, so loaded then saved defaults there instead.";
-				//console.log("* saved settings");
-			}
+		//if (req.query.asdf=="reload-settings") {
+		if (fs.existsSync(settings_path)) {
+			_settings = yaml.readSync(settings_path, "utf8");
+			req.session.success = "Successfully reloaded "+settings_path+".";
+			console.log("[ ^. ] reloaded settings");
 		}
-		else req.session.error = "Unknown admin request "+req.body.mode;
+		else {
+			_settings = JSON.parse(JSON.stringify(settings_default));
+			console.log("[ ^. ] reloaded settings from defaults");
+			//yaml.writeSync(settings_path, _settings, "utf8");
+			yaml.write(settings_path, _settings, "utf8", function (err) {
+				if (err) {
+					console.log("[ . ] Error while saving settings in /admin: " + err);
+				}
+				//else console.log("[ . ] saved settings");
+			});
+			req.session.notice = "WARNING: "+settings_path+" could not be read in /admin, so loaded then saved defaults there instead.";
+			//console.log("* saved settings");
+		}
+		//}
+		//else req.session.error = "Unknown admin request "+req.query.mode;
 	}
 	else {
 		req.session.error = "You are not in the admin group";
@@ -4992,7 +4983,6 @@ app.post('/poke-settings', function(req, res) {
 		}
 	}
 		
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
@@ -5170,7 +5160,6 @@ app.get('/change-selection', function (req, res) {
 	}
 	else console.log("ERROR in change-selection: user not logged in");
 		
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
@@ -5209,8 +5198,6 @@ app.post('/change-section-settings', function(req, res) {
 			delete req.session.prefill.pin;
 		}
 	}
-		
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
@@ -5467,7 +5454,6 @@ app.post('/student-microevent', function(req, res){
 		req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
 		delete req.session.runme;
 	}
-	if (fun.array_contains(transient_modes, req.session.mode)) req.session.mode = transient_modes_return[req.session.mode];
 	res.redirect(config.proxy_prefix_then_slash);
 });
 

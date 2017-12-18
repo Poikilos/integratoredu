@@ -1,3 +1,20 @@
+This code selectable mode from main.handlebars is deprecated in favor of reload-settings route linked from admin ("Advanced") section
+```html
+			{{#groupContains "admin" @root.user.username}}
+			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}admin/?section={{@root.section}}&mode=reload-settings">Reload Settings</a>
+			{{!--
+			<form class="form-inline" action="{{get_proxy_prefix_then_slash}}admin" method="post">
+				<input type="hidden" name="mode" id="mode" value="reload-settings"/>
+				<button class="btn btn-default">Reload Settings</button>
+			</form>
+			--}}
+			</p>
+			</li>
+			{{/groupContains}}
+
+```
+
+
 This code is deprecated (user_selectable_modes instead which excludes transient modes and modes available for user if were in another section)
 ```xml
 			{{#each modes_by_section}}
