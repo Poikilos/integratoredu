@@ -84,8 +84,13 @@ if (!Array.prototype.includes) { //if doesn't support ECMA 2016
 	});
 }
 
+var storage_name = "data";
+var storage_path = './'+storage_name; //formerly just storage_name
+var groups_path = storage_path + "/groups.yml";
+var permissions_path = storage_path + "/permissions.yml";
+
 //We will be creating these two files shortly
-var config = require('./data/config.js'), //config file contains all tokens and other private info
+var config = require(storage_path+'/config.js'), //config file contains all tokens and other private info
 	fun = require('./functions.js'); //functions file contains our non-app-specific functions including those for our Passport and database work
 
 var app = express();
@@ -162,7 +167,7 @@ section_form_friendly_names.track.mac = "HwAddr";
 var section_sheet_fields = {};
 section_sheet_fields.track = ["MAC","MachineName","UserName","HostName"];
 section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "=get_origin_date()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "created_by", "modified_by", "free_from", "free_to"];
-section_sheet_fields.commute = ["=get_date_from_path()", "time", "name", "grade_level", "reason"];
+section_sheet_fields.commute = ["=get_date_from_path()", "time", "heading", "name", "grade_level", "reason"];
 
 var section_sheet_fields_friendly_names = {};
 section_sheet_fields_friendly_names.care = {};
@@ -171,8 +176,8 @@ section_sheet_fields_friendly_names.care["=get_origin_date()"] = "Created";
 section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
 section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
 section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued per 1";
-section_sheet_fields_friendly_names.care.free_from = "FreeFr";
-section_sheet_fields_friendly_names.care.free_to = "FreeTo";
+section_sheet_fields_friendly_names.care.free_from = "Morning Care End";
+section_sheet_fields_friendly_names.care.free_to = "After School Start";
 section_sheet_fields_friendly_names.care.stated_time = "Stated Time";
 section_sheet_fields_friendly_names.care.stated_date = "Stated Date";
 section_sheet_fields_friendly_names.care.first_name = "First";
@@ -231,8 +236,6 @@ var only_employee_modify_sections = ["commute", "care"];
 
 var autofill_cache = null;
 
-var storage_name = "data";
-var storage_path = storage_name;
 
 var autofill_cache_path = storage_path + "/units/" + _selected_unit + "/autofill_cache." + autofill_cache_format;
 var default_autofill_cache = {};
@@ -314,31 +317,79 @@ default_mode_by_user.attendance = "read";
 default_mode_by_user.accounting = "reports";
 
 
+var _groups = null; //load from groups_path
+var _default_groups = {};
+_default_groups.admin = ["admin"];
+_default_groups.care = ["admin", "accounting", "care"];
+_default_groups.accounting = ["admin", "accounting"];
+_default_groups.commute = ["admin", "attendance", "commute"];
+_default_groups.attendance = ["admin", "attendance"];
+_default_groups.readattendance = ["attreaduser"];
 
-var _groups = {};
-_groups.admin = ["admin"];
-_groups.care = ["admin", "accounting", "care"];
-_groups.accounting = ["admin", "accounting"];
-_groups.commute = ["admin", "attendance", "commute"];
-_groups.attendance = ["admin", "attendance"];
-_groups.readattendance = ["cmcdonald"];
+var _permissions = null; //load from permissions_path
+var _default_permissions = {}; // permission.<group>.<section> equals array of permissions
+_default_permissions.admin = {};
+_default_permissions.admin.admin = ["create", "read", "modify", "reports", "settings", "poke-settings", "billing"];
+_default_permissions.admin.care = ["create", "read", "modify", "reports", "customtime", "settings", "change-section-settings", "billing"];
+_default_permissions.admin.commute = ["create", "read", "modify", "reports", "billing"];
+_default_permissions.admin.track = ["create", "read", "modify", "reports"];
+_default_permissions.care = {};
+_default_permissions.care.care = ["create", "read", "customtime"];
+_default_permissions.accounting = {};
+_default_permissions.accounting.care = ["create", "read", "modify", "reports", "customtime", "change-section-settings", "billing"];
+_default_permissions.commute = {};
+_default_permissions.commute.commute = ["create"];
+_default_permissions.attendance = {};
+_default_permissions.attendance.commute = ["create", "read", "reports"];
+_default_permissions.readattendance = {};
+_default_permissions.readattendance.commute = ["read"];
 
-var _permissions = {}; // permission.<group>.<section> equals array of permissions
-_permissions.admin = {};
-_permissions.admin.admin = ["create", "read", "modify", "reports", "settings", "poke-settings", "billing"];
-_permissions.admin.care = ["create", "read", "modify", "reports", "customtime", "settings", "change-section-settings", "billing"];
-_permissions.admin.commute = ["create", "read", "modify", "reports", "billing"];
-_permissions.admin.track = ["create", "read", "modify", "reports"];
-_permissions.care = {};
-_permissions.care.care = ["create", "read", "customtime"];
-_permissions.accounting = {};
-_permissions.accounting.care = ["create", "read", "modify", "reports", "customtime", "change-section-settings", "billing"];
-_permissions.commute = {};
-_permissions.commute.commute = ["create"];
-_permissions.attendance = {};
-_permissions.attendance.commute = ["create", "read", "reports"];
-_permissions.readattendance = {};
-_permissions.readattendance.commute = ["read"];
+
+function load_permissions(reason, req) {
+	if (_permissions === null) {
+		if (fs.existsSync(permissions_path)) {
+			_permissions = yaml.readSync(permissions_path);
+			if (req!==null) req.session.success = "Successfully loaded "+permissions_path+" due to "+reason+".";
+			console.log("[ ^- ] loaded permissions");
+		}
+		else {
+			_permissions = JSON.parse(JSON.stringify(_default_permissions));
+			yaml.write(permissions_path, _permissions, "utf8", function (err) {
+				if (err) {
+					console.log("[ - ] saving "+permissions_path+"..."+err);
+				}
+				else console.log("[ - ] saving "+permissions_path+"...OK");
+			});
+			//req.session.notice = "WARNING: "+permissions_path+" could not be read in /reload-permissions-and-groups, so loaded then saved defaults there instead.";
+		}
+	}
+}
+
+function load_groups(reason, req) {
+	if (_groups === null) {
+		if (fs.existsSync(groups_path)) {
+			_groups = yaml.readSync(groups_path);
+			if (req!==null) req.session.success = "Successfully loaded "+groups_path+" due to "+reason+".";
+			console.log("[ ^+ ] loaded groups");
+		}
+		else {
+			_groups = JSON.parse(JSON.stringify(_default_groups));
+			yaml.write(groups_path, _groups, "utf8", function (err) {
+				if (err) {
+					console.log("[ + ] saving "+groups_path+"..."+err);
+				}
+				else console.log("[ + ] saving "+groups_path+"...OK");
+			});
+		}
+	}
+}
+
+app.on('listening', function () {
+	console.log("[ listening ] ...");
+    // server ready to accept connections here
+	load_permissions("service starting", null);
+	load_groups("service starting", null);
+});
 
 //returns true if modified record (never true if change_record_object_enable is false)
 function autofill(section, record, change_record_object_enable) {
@@ -1025,16 +1076,14 @@ function get_care_time_info(this_item, section) {
 		if ( has_setting(section+".local_start_time") && //&& _settings[section].hasOwnProperty("local_start_time")
 			 has_setting(section+".local_end_time") //_settings[section].hasOwnProperty("local_end_time")
 			) {
-			
 			var startTime = moment(peek_setting(section+".local_start_time"), "HH:mm:ss");
 			if (this_item.hasOwnProperty("free_from") && fun.is_not_blank(this_item.free_from)) {
 				startTime = moment(fun.good_time_string(this_item.free_from), "HH:mm:ss");
 			}
 			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");
 			if (this_item.hasOwnProperty("free_to") && fun.is_not_blank(this_item.free_to)) {
-				startTime = moment(fun.good_time_string(this_item.free_to), "HH:mm:ss");
+				endTime = moment(fun.good_time_string(this_item.free_to), "HH:mm:ss");
 			}
-			
 			//see also http://momentjs.com/docs/#/manipulating/difference/
 			if (foundTimeString > _settings[section].local_end_time) {
 				result.seconds = foundTime.diff(endTime, 'seconds');
@@ -1673,7 +1722,10 @@ var hbs = exphbs.create({
 				//ret += '</form>' + "\n";
 				var settings_keys = get_all_settings_names();
 				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-settings?section="+section+'" class="btn btn-danger" role="button">' + "\n"
-				ret += 'Reload Settings from Drive';
+				ret += 'Wipe and Reload Settings';
+				ret += '</a></div>' + "\n"
+				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-permissions-and-groups?section="+section+'" class="btn btn-danger" role="button">' + "\n"
+				ret += 'Wipe and Reload Permissions and Groups';
 				ret += '</a></div>' + "\n"
 				ret += '<br/>' + "\n"
 				for (var i=0, len=settings_keys.length; i<len; i++) {
@@ -2259,7 +2311,13 @@ var hbs = exphbs.create({
 						ret += '              </div>' + "\n";
 						ret += '            </form>' + "\n";
 						
-						ret += "             Free from"+"\n";
+						var free_from_caption = "free_from";
+						if ((section_sheet_fields_friendly_names!=null) && (section in section_sheet_fields_friendly_names) && ("free_from" in section_sheet_fields_friendly_names[section]))
+							free_from_caption = section_sheet_fields_friendly_names[section].free_from;
+						var free_to_caption = "free_to";
+						if ((section_sheet_fields_friendly_names!=null) && (section in section_sheet_fields_friendly_names) && ("free_to" in section_sheet_fields_friendly_names[section]))
+							free_to_caption = section_sheet_fields_friendly_names[section].free_to;
+						ret += "             "+free_from_caption+"\n";
 						ret += '            <form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">' + "\n";
 						ret += '              <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
 						ret += '              <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
@@ -2267,9 +2325,7 @@ var hbs = exphbs.create({
 						ret += '              <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_start_time_string+'"/>' + "\n";
 						ret += '              <button type="submit" class="btn btn-default"/>Save</button>' + "\n";
 						ret += '            </form>';
-						
-						
-						ret += " to ";
+						ret += " "+free_to_caption+" ";
 						var this_end_time_string = "";
 						if (has_setting(section+".local_end_time"))
 							this_end_time_string = peek_setting(section+".local_end_time");
@@ -4225,6 +4281,9 @@ app.get('/', function(req, res){
 
 //displays our signup page
 app.get('/login', function(req, res){
+	load_permissions("showing login", req);
+	load_groups("showing login", req);
+	
 	res.render('login');
 	delete req.session.runme;
 });
@@ -4950,18 +5009,34 @@ app.get('/reload-settings', function(req, res){
 			//yaml.writeSync(settings_path, _settings, "utf8");
 			yaml.write(settings_path, _settings, "utf8", function (err) {
 				if (err) {
-					console.log("[ . ] Error while saving settings in /admin: " + err);
+					console.log("[ . ] Error while saving settings in /reload-settings: " + err);
 				}
 				//else console.log("[ . ] saved settings");
 			});
-			req.session.notice = "WARNING: "+settings_path+" could not be read in /admin, so loaded then saved defaults there instead.";
+			req.session.notice = "WARNING: "+settings_path+" could not be read in /reload-settings, so loaded then saved defaults there instead.";
 			//console.log("* saved settings");
 		}
 		//}
 		//else req.session.error = "Unknown admin request "+req.query.mode;
 	}
 	else {
-		req.session.error = "You are not in the admin group";
+		req.session.error = "ERROR in reload-settings: You are not in the admin group";
+		if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
+		delete req.session.prefill.pin;
+	}
+	res.redirect(config.proxy_prefix_then_slash);
+	//res.write("<html><body>admin did it</body></html>")
+});
+
+app.get('/reload-permissions-and-groups', function(req, res){
+	var sounds_path_then_slash = "sounds/";
+	if ((_groups===null) || (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username))) {
+		load_groups("reload-permissions-and-groups", req);
+		load_permissions("reload-permissions-and-groups", req);
+		if (_groups===null) console.log("NOTICE: allowed reload-permissions-and-groups without credentials (not a security risk) since wasn't loaded yet.");
+	}
+	else {
+		req.session.error = "ERROR in reload-permissions-and-groups: You are not in the admin group";
 		if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 		delete req.session.prefill.pin;
 	}
