@@ -57,7 +57,8 @@ module.exports = {
 * using your router's interface, forward port 8080 to your computer.
 * if port 8080 is already used by another service, search for 8080 in app.js and change it.
 * make additional users if there is more than one person for each managing role.
-(for example there is not a user who can read but not edit commute history, but you can create one by creating a new group, putting a new username in the group, and changing that property of the permissions object in the code so that group has read permission for commute section [until groups.yml and permissions.yml are implemented, in which case do it there])
+* make custom users and groups if needed:
+	* EXAMPLE there is not a user who can read but not edit commute history, but you can create one by making a new group with that permission then adding the user to the group. This can be done by editing groups.yml and permissions.yml in data folder [generated on first run] then reloading permissions (login as admin, click Advanced, then Settings, then WIPE Permissions and Reload)
 
 ## Usage
 * The purpose of the care section is for billing parents/guardians for minors who come before school or stay after school. The billing feature is implemented for this section.
@@ -95,6 +96,7 @@ module.exports = {
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
 
 ## Changes
+* (2017-12-18) implement permissions.yml and groups.yml (reload from Advanced, Settings when logged in as user in a group with "admin" permission)
 * (2017-12-18) added free_from and free_to fields to care reports in case special event happened for a certain person on a certain day (override section+".local_start_time" and section+".local_end_time" respectively); see also get_care_time_info in app.js
 * (2017-12-18) eliminated /admin route and reload-settings mode in favor of /reload-settings route (wasn't working anyway since as a "get" route and was checking body instead of query)
 * (2017-12-18) renamed modes to selectable_modes and now that is used (as opposed to never used anywhere) in building user_selectable_modes array (based on permissions).

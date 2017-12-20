@@ -350,15 +350,15 @@ function load_permissions(reason, req) {
 		if (fs.existsSync(permissions_path)) {
 			_permissions = yaml.readSync(permissions_path);
 			if (req!==null) req.session.success = "Successfully loaded "+permissions_path+" due to "+reason+".";
-			console.log("[ ^- ] loaded permissions");
+			console.log("[ + ] loaded permissions");
 		}
 		else {
 			_permissions = JSON.parse(JSON.stringify(_default_permissions));
 			yaml.write(permissions_path, _permissions, "utf8", function (err) {
 				if (err) {
-					console.log("[ - ] saving "+permissions_path+"..."+err);
+					console.log("[ !+ ] saving "+permissions_path+"..."+err);
 				}
-				else console.log("[ - ] saving "+permissions_path+"...OK");
+				else console.log("[ !+ ] saving "+permissions_path+"...OK");
 			});
 			//req.session.notice = "WARNING: "+permissions_path+" could not be read in /reload-permissions-and-groups, so loaded then saved defaults there instead.";
 		}
@@ -370,26 +370,32 @@ function load_groups(reason, req) {
 		if (fs.existsSync(groups_path)) {
 			_groups = yaml.readSync(groups_path);
 			if (req!==null) req.session.success = "Successfully loaded "+groups_path+" due to "+reason+".";
-			console.log("[ ^+ ] loaded groups");
+			console.log("[ + ] loaded groups");
 		}
 		else {
 			_groups = JSON.parse(JSON.stringify(_default_groups));
 			yaml.write(groups_path, _groups, "utf8", function (err) {
 				if (err) {
-					console.log("[ + ] saving "+groups_path+"..."+err);
+					console.log("[ !+ ] saving "+groups_path+"..."+err);
 				}
-				else console.log("[ + ] saving "+groups_path+"...OK");
+				else console.log("[ !+ ] saving "+groups_path+"...OK");
 			});
 		}
 	}
 }
 
-app.on('listening', function () {
-	console.log("[ listening ] ...");
-    // server ready to accept connections here
-	load_permissions("service starting", null);
-	load_groups("service starting", null);
-});
+
+//in nodejs 4.2.6 (Ubuntu Xenial), `app.on('listening', ...` crashes with:
+//events.js:141
+//      throw er; // Unhandled 'error' event
+//and never fires in node 9.3.0 (even if declared before running app.listen [which is usually at end of file anyway]); tried "npm install startup" but that didn't help.
+//so code was copied to end of this script instead of being inside of an event handler
+//app.on('ready', function (server) {
+//	console.log("[ listening ] ...");
+//    // server ready to accept connections here
+//	load_permissions("service starting", null);
+//	load_groups("service starting", null);
+//});
 
 //returns true if modified record (never true if change_record_object_enable is false)
 function autofill(section, record, change_record_object_enable) {
@@ -5566,3 +5572,7 @@ app.get('/logout', function(req, res){
 var port = process.env.PORT || 8080; //select your port or let it pull from your .env file
 app.listen(port);
 console.log("listening on " + port + "!");
+console.log("[ listening ] ...");
+// server ready to accept connections here
+load_permissions("service starting", null);
+load_groups("service starting", null);
