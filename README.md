@@ -11,7 +11,7 @@ For release notes, see a release or the "etc" folder.
 * Makes a sound (on operating systems where available, such as Linux and possibly Windows and Mac OS X; not tested on Android; doesn't seem to work on older iPads)
 
 ## Upgrade Instructions
-* use etc/upgrade-data-20171008 to migrate to the intermediate structure used by all versions before Nov 9.
+* use etc/upgrade-data-20171008 to migrate to the intermediate structure before using a later version if you have written data with a version dated before Nov 9, 2017.
 
 ## Install Instructions
 ### On a GNU/Linux System (recommended)
