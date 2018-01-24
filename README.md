@@ -96,15 +96,22 @@ module.exports = {
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
 
 ## Changes
-* (2017-12-18) implement permissions.yml and groups.yml (reload from Advanced, Settings when logged in as user in a group with "admin" permission)
-* (2017-12-18) added free_from and free_to fields to care reports in case special event happened for a certain person on a certain day (override section+".local_start_time" and section+".local_end_time" respectively); see also get_care_time_info in app.js
-* (2017-12-18) eliminated /admin route and reload-settings mode in favor of /reload-settings route (wasn't working anyway since as a "get" route and was checking body instead of query)
-* (2017-12-18) renamed modes to selectable_modes and now that is used (as opposed to never used anywhere) in building user_selectable_modes array (based on permissions).
-* (2017-12-18) eliminated transient_modes and transient_modes_return (unecessary complexity since modes were added to `user_modes_by_section[section]` manually anyway)
-* (2017-12-18) eliminated rebuilding of `user_selectable_modes` (replaced by directly using user_modes_by_section[section], and user_selectable_modes handlebars variable is now derived from that)
-* (2017-12-18) removed `modes_by_section: user_modes_by_section,` from render params since isn't used and derives from a useless array user_modes_by_section that should be eliminated (user_modes_by_section is a 2D array of permissions by section)
-* (2017-11-30) tr and tp implemented (tracking section for admin) -- requires iedup (download from <https://github.com/expertmm/iedup>, or via iedusm if release version is available)
-* (2017-11-29) add /t route for iedup
+(2018-01-24)
+* (determine whether before or after using cascaded `startTime` and `endTime` instead of directly using `_settings[section].local_end_time`) fix time calculation for custom (per-entry) start and end time
+* repair good_time_string to deal with 12 correctly (change to 0 if am, leave as 12 if pm)
+* do not show parsing_info (such as "NOTE: Care time was free...") when item "active" is false (but consider active true if does not have "active" key, as usual)
+(2017-12-18)
+* removed `modes_by_section: user_modes_by_section,` from render params since isn't used and derives from a useless array user_modes_by_section that should be eliminated (user_modes_by_section is a 2D array of permissions by section)
+* eliminated rebuilding of `user_selectable_modes` (replaced by directly using user_modes_by_section[section], and user_selectable_modes handlebars variable is now derived from that)
+* eliminated transient_modes and transient_modes_return (unecessary complexity since modes were added to `user_modes_by_section[section]` manually anyway)
+* renamed modes to selectable_modes and now that is used (as opposed to never used anywhere) in building user_selectable_modes array (based on permissions).
+* eliminated /admin route and reload-settings mode in favor of /reload-settings route (wasn't working anyway since as a "get" route and was checking body instead of query)
+* added free_from and free_to fields to care reports in case special event happened for a certain person on a certain day (override section+".local_start_time" and section+".local_end_time" respectively); see also get_care_time_info in app.js
+* implement permissions.yml and groups.yml (reload from Advanced, Settings when logged in as user in a group with "admin" permission)
+(2017-11-30)
+* tr and tp implemented (tracking section for admin) -- requires iedup (download from <https://github.com/expertmm/iedup>, or via iedusm if release version is available)
+(2017-11-29)
+* add /t route for iedup
 * (2017-11-20) (in home.handlebars: made date a regular div instead of a navbar so it prints, and made day selector panel not print; set force_date_enable to false in show_history helper) improved printability of history
 * (2017-11-20) improved duplicate detection further (do not count entries for care that are neither before nor after school, and mark price in red)
 * (2017-11-20) made get_care_time_info use tmp.time (which is derived from whatever source is available)

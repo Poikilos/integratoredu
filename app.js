@@ -1082,27 +1082,44 @@ function get_care_time_info(this_item, section) {
 		if ( has_setting(section+".local_start_time") && //&& _settings[section].hasOwnProperty("local_start_time")
 			 has_setting(section+".local_end_time") //_settings[section].hasOwnProperty("local_end_time")
 			) {
-			var startTime = moment(peek_setting(section+".local_start_time"), "HH:mm:ss");
+			var startTimeString = peek_setting(section+".local_start_time");
+			var startTime = moment(startTimeString, "HH:mm:ss");
 			if (this_item.hasOwnProperty("free_from") && fun.is_not_blank(this_item.free_from)) {
-				startTime = moment(fun.good_time_string(this_item.free_from), "HH:mm:ss");
+				startTimeString = fun.good_time_string(this_item.free_from);
+				startTime = moment(startTimeString, "HH:mm:ss");
 			}
-			var endTime = moment(peek_setting(section+".local_end_time"), "HH:mm:ss");
+			var endTimeString = peek_setting(section+".local_end_time");
+			var endTime = moment(endTimeString, "HH:mm:ss");
 			if (this_item.hasOwnProperty("free_to") && fun.is_not_blank(this_item.free_to)) {
-				endTime = moment(fun.good_time_string(this_item.free_to), "HH:mm:ss");
+				endTimeString = fun.good_time_string(this_item.free_to);
+				endTime = moment(endTimeString, "HH:mm:ss");
 			}
+			foundTime = moment(foundTimeString, "HH:mm:ss");
 			//see also http://momentjs.com/docs/#/manipulating/difference/
-			if (foundTimeString > _settings[section].local_end_time) {
-				result.seconds = foundTime.diff(endTime, 'seconds');
+			if (endTime.format("HHmmss") < startTime.format("HHmmss")) {
+				result.error = "Free time range was not valid--should be start to end but is reversed: from " + startTimeString + " to " + endTimeString;
 			}
-			else if (foundTimeString < _settings[section].local_start_time) {
+			if (foundTime.format("HHmmss") > endTime.format("HHmmss")) {
+				result.seconds = foundTime.diff(endTime, 'seconds');
+				if (result.seconds <= 0) {
+					result.warning = "Time span (" + result.seconds + ") set to zero for after hours time " + foundTime.format("HHmmss") + " (input: " + foundTimeString + ")--free from " + startTime.format("HHmmss") + " to " + endTime.format("HHmmss");
+					result.seconds = 0.0;
+				}
+			}
+			else if (foundTime.format("HHmmss") < startTime.format("HHmmss")) {
 				result.seconds = startTime.diff(foundTime, 'seconds');
+				if (result.seconds <= 0) {
+					result.warning = "Time span (" + result.seconds + ") set to zero for before hours time " + foundTime.format("HHmmss") + " (input: " + foundTimeString + ")--free from " + startTime.format("HHmmss") + " to " + endTime.format("HHmmss");
+					result.seconds = 0.0;
+				}
 			}
 			else {
 				result.seconds = 0.0;
-				result.warning = "Care time was zero for time ";
+				//result.warning = "Care time was zero for time " + foundTime.format("HHmmss") + " (from string " + foundTimeString + ") vs start time " + startTime.format("HHmmss") + " (from string " + startTimeString + ") and end time " + endTime.format("HHmmss") + " (from string " + endTimeString + ")";
+				result.warning = "Time span was free for time " + foundTime.format("HHmmss") + " (input: " + foundTimeString + ")--free from " + startTime.format("HHmmss") + " to " + endTime.format("HHmmss");
 			}
 		}
-		else result.error = ("WARNING: For get_care_time_info, " + section + ".local_start_time and " + section + ".local_end_time must be set in " + settings_path + " (for building status features, and for extended hours billing feature)");
+		else result.error = ("WARNING: For get_care_time_info, " + section.format("HHmmss") + ".local_start_time and " + section + ".local_end_time must be set in " + settings_path + " (for building status features, and for extended hours billing feature)");
 	}
 	else result.seconds = 0.0;
 	return result;
@@ -2511,6 +2528,9 @@ var hbs = exphbs.create({
 														else console.log("missing this_item.date for " + original_item.tmp.tui);
 														var span_info = null;
 														span_info = get_care_time_info(this_item, section);
+														if (span_info.hasOwnProperty("error")) {
+															//TODO: ? or later when warning is shown
+														}
 														for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 															//ret += '      <td>' + "\n";
 															var this_sff = section_sheet_fields[section][ssf_i];
@@ -2538,13 +2558,20 @@ var hbs = exphbs.create({
 																		if (span_info.hasOwnProperty("seconds")) {
 																			
 																			this_item.tmp["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
-																			if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
+																			if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
+																				if (span_info.hasOwnProperty("error")) {
+																					if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																				}
+																				if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
+																			}
 																		}
 																		else {
 																			this_item.tmp["=careprice()"] = 0.00;
-																			parsing_error += "\n<br/>";
-																			if (span_info.hasOwnProperty("error")) {
-																				if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																			if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
+																				parsing_error += "\n<br/>";
+																				if (span_info.hasOwnProperty("error")) {
+																					if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																				}
 																			}
 																		}
 																	}

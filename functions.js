@@ -389,6 +389,10 @@ exports.good_time_string = function(human_written_time_string) {
 			}
 		}
 		if (hour !== null) {
+			if (hour==12) {
+				if (hour_adder==12) hour_adder=0;  // 12pm is 12 not 24
+				else hour_adder = -12;  // 12am is 0 not 12
+			}
 			hour += hour_adder;
 			var h_str = hour.toString();
 			if (h_str.length<2) h_str = "0" + h_str;
