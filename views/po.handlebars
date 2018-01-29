@@ -1,0 +1,15 @@
+{{#if user}}
+	{{read_table_entry section user.username selected_number}}
+{{else}}
+<div class="jumbotron">
+	<h1>IntegratorEdu</h1>
+	<p>Log in as known user to view and add information.</p>
+	<p>
+		<a href="{{get_proxy_prefix_then_slash}}login" class="btn btn-primary btn-lg" role="button">
+		<span class="glyphicon glyphicon-user"></span>
+		Log In
+		</a>
+	</p>
+</div>
+{{/if}}
+

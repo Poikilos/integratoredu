@@ -89,7 +89,8 @@ module.exports = {
 				* click the billing cycle that you named under "Billing Cycles" (or, if you didn't name it, click the number)
 				* print the page for your records (Ctrl P, then choose a printer, or for PDF, choose Print to PDF and save it)--this is your report, so like with any report, it should be printed or saved for your financial records. Each Invoice (per family id) will appear on a separate page.
 				* The last page will list remaining issues:
-					* manually-entered times are converted to 24-hr time. You may need to verify these, but this is not a problem unless you suspect that manual entries were abused or entered incorrectly. If the manually entered date (+12 if PM) differs from the 24-hr date, please create an issue on the developer's website: <http://www.github.com/expertmm/integratoredu> (if doesn't already appear in the "Issues" tab). 
+					* manually-entered times are converted to 24-hr time. You may need to verify these, but this is not a problem unless you suspect that manual entries were abused or entered incorrectly. If the manually entered date (+12 if PM) differs from the 24-hr date, please create an issue on the 
+					developer's website: <http://www.github.com/expertmm/integratoredu> (if doesn't already appear in the "Issues" tab). 
 		* If you find a bug:
 			* go to <http://www.github.com/expertmm/integratoredu>
 			* before entering an issue, search for the issue under "Known Issues" in the README.md and see if the problem is considered minor (is preceded by "(~)") and if so there is no need to report the issue--long-term requests will be considered at a future date.
@@ -381,6 +382,7 @@ see etc/howto.txt for more
 see LICENSE file for license
 
 ## Developer Notes
+* To add a new section would be a fork--I please submit an issue. However, if you fork, you should add a new folder in the unit where the name of the folder is the new section name, then give some group one or more type of permission to it.
 * run `chmod +x ./etc/quality && ./etc/quality` in terminal to check the code quality--it will give instructions if missing outputinspector or kate (optional) or code quality tool
 * To write a record, call write_record_without_validation after validating the form by any means necessary.
 * as of 2017-10-08 make sure folder structure remains compatible with my php app MoneyForesight (so MoneyForesight's features can be eventually merged into IntegratorEdu)

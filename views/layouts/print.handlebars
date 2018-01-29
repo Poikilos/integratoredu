@@ -1,0 +1,74 @@
+<!-- views/layouts/print.handlebars -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="IntegratorEdu Learning Community Web App">
+  <meta name="author" content="">
+
+  <title>IntegratorEdu - Learning Community Web App - Print</title>
+
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <style>
+  .alert-fixed {
+    position:fixed; 
+    top: 2em; 
+    left: 0em; 
+    width: 10%;
+    z-index:-1; 
+    border-radius:0px;
+    opacity: 0.5;
+    filter: alpha(opacity=50); /* For IE8 and earlier */
+	}
+  </style>
+  </head>
+
+  <body onload="{{runme}}">
+    {{remove_audio_message}}
+    <div class="container" style="width:80%">
+
+      <nav class="navbar navbar-default" role="navigation">
+      <div class="container-fluid">
+
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+      </div>
+      </div>{{!--end container-fluid--}}
+    </nav>
+    <!--where our other templates will insert-->
+    {{{body}}}
+    
+    {{#if error}}
+      <p class="alert alert-warning alert-fixed" style="top:9em">{{error}}</p>
+    {{/if}}
+
+    {{#if success}}
+      <p class="alert alert-success alert-fixed">{{success}}</p>
+    {{/if}}
+
+    {{#if notice}}
+      <p class="alert alert-info alert-fixed">{{notice}}</p>
+    {{/if}}
+
+    </div> <!-- /container -->
+    <br/>
+	<!--<p>Powered by <a href="http://github.com/expertmm/integratoredu">IntegratorEdu</a></p>-->
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>
