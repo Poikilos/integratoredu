@@ -95,8 +95,39 @@ module.exports = {
 			* go to <http://www.github.com/expertmm/integratoredu>
 			* before entering an issue, search for the issue under "Known Issues" in the README.md and see if the problem is considered minor (is preceded by "(~)") and if so there is no need to report the issue--long-term requests will be considered at a future date.
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
+* you can add policy shell scripts by placing them in `units/<number>/cp/files` where number is zero until units are implemented. The scripts can update each other--for example, the hourly script can contain (you must add a value for URL to the code below before using it as your /etc/cron.hourly/iedu-cs-hourly):
+```bash
+#!/bin/sh
+# actually do stuff here
+cd /tmp
+iedu_update_other_name="daily"
+cron_freq="daily"
+src_name="iedu-cs-$iedu_update_other_name"
+dest_name="/etc/cron.$cron_freq/iedu-cs-$iedu_update_other_name"
+if [ -f "$src_name" ]; then
+  rm -f "$src_name"
+fi
+if [ -f "$dest_name" ]; then
+  rm -f "$dest_name"
+fi
+wget --output-document="$src_name" "$URL/cpsr?unit=0&kernel=linux&access_level=root&hostname=`hostname`&user=$USER&machine_group=StudentMachines&script_name=$iedu_update_other_name"
+mv "$src_name" "$dest_name"
+chmod +x "$dest_name"
+# and run it NOW (only uncomment the line below for the daily script, so it will run the hourly script an extra time after hourly script is updated; not the script that updates the daily script, otherwise the daily script will run more frequently which probably is doesn't fulfill its purpose well):
+# $dest_name
+```
+  then, in your unit.yml, add matching entries in cp.scripts, such as (where 'hourly' and 'daily' are the actual names of the files in the cp/files folder mentioned above):
+```yaml
+cp:
+  scripts:
+    linux:
+      hourly: 'hourly'
+      daily: 'daily'
+```
 
 ## Changes
+(2018-01-30)
+* you can now add policy shell scripts (see "policy scripts" point in Usage)
 (2018-01-24)
 * (determine whether before or after using cascaded `startTime` and `endTime` instead of directly using `_settings[section].local_end_time`) fix time calculation for custom (per-entry) start and end time
 * repair good_time_string to deal with 12 correctly (change to 0 if am, leave as 12 if pm)

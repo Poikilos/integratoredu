@@ -53,6 +53,7 @@ String.prototype.replaceAll = function(search, replacement) {
 //}
 
 var dat; //this is the cache
+var ptcache = {}; //this is the custom plain text file path cache
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
@@ -600,6 +601,7 @@ function _poke_object(info, scope_o, scope_stack, asserted_depth, val) {
 }
 
 function poke_setting(dot_notation, val) {
+	if (_settings===null)  check_settings();
 	//var scope = [];
 	//dot_notation = section+"."+dot_notation;
 	var scope_stack = dot_notation.split(".");
@@ -667,6 +669,7 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 }
 
 function peek_setting(dot_notation) {
+	if (_settings===null)  check_settings();
 	var result = null;
 	if (dot_notation && ((typeof dot_notation)=="string")) {
 		//var dot_notation = section+"."+dot_notation;
@@ -697,6 +700,7 @@ has_setting_write_callback = function (err) {
 };
 
 function has_setting(dot_notation) {
+	if (_settings===null)  check_settings();
 	//enforce required settings by loading them from _settings_default
 	var result = false;
 	//var dot_notation = section+"."+dot_notation;
@@ -729,7 +733,13 @@ function has_setting(dot_notation) {
 					else break;
 				}
 				this_scoped = this_scoped[scope_stack[i]];
-				default_scoped = default_scoped[scope_stack[i]];
+				if (default_scoped.hasOwnProperty(scope_stack[i])) {
+					default_scoped = default_scoped[scope_stack[i]];
+				}
+				else {
+					default_scoped = null;
+					break;  // don't find setting and write it, since setting doesn't exist
+				}
 			}
 		}
 	}
@@ -3904,30 +3914,7 @@ app.get('/public/sounds/success.wav', function(req, res){
 	res.end(wav, 'binary');
 	});
 */
-
-//displays our homepage
-app.get('/', function(req, res){
-	console.log("");
-	if (req.query.hasOwnProperty("clear_selection") && (req.query.clear_selection=="true")) {
-		//see also "stale selection" logic, elsewhere
-		for (var key in req.session) {
-			if (req.session.hasOwnProperty(key)) {
-				if (key.startsWith("selected_")) {
-					delete req.session[key];
-				}
-			}
-		}
-	}
-	if (autofill_cache===null) {
-		if (fs.existsSync(autofill_cache_path)) {
-			if (autofill_cache_format=="yml") autofill_cache = yaml.readSync(autofill_cache_path, "utf8");
-			else autofill_cache = JSON.parse(fs.readFileSync(autofill_cache_path, 'utf8'));
-		}
-		else {
-			console.log("[ @ ] loaded default autofill_cache");
-			autofill_cache = JSON.parse(JSON.stringify(default_autofill_cache));
-		}
-	}
+function check_settings() {
 	if (_settings===null) {
 		if (fs.existsSync(settings_path)) _settings = yaml.readSync(settings_path, "utf8");
 		else {
@@ -3942,6 +3929,33 @@ app.get('/', function(req, res){
 		}); 
 		}
 	}
+	if (autofill_cache===null) {
+		if (fs.existsSync(autofill_cache_path)) {
+			if (autofill_cache_format=="yml") autofill_cache = yaml.readSync(autofill_cache_path, "utf8");
+			else autofill_cache = JSON.parse(fs.readFileSync(autofill_cache_path, 'utf8'));
+		}
+		else {
+			console.log("[ @ ] loaded default autofill_cache");
+			autofill_cache = JSON.parse(JSON.stringify(default_autofill_cache));
+		}
+	}
+}
+
+//displays our homepage
+app.get('/', function(req, res){
+	console.log("");
+	if (req.query.hasOwnProperty("clear_selection") && (req.query.clear_selection=="true")) {
+		//see also "stale selection" logic, elsewhere
+		for (var key in req.session) {
+			if (req.session.hasOwnProperty(key)) {
+				if (key.startsWith("selected_")) {
+					delete req.session[key];
+				}
+			}
+		}
+	}
+	check_settings();
+	
 	var user_sections = [];
 	var user_modes_by_section = {};
 	var years = [];
@@ -5030,6 +5044,7 @@ app.get('/save-status', function(req, res){
 app.get('/reload-settings', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	if (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username)) {
+		ptcache = {};
 		//if (req.query.asdf=="reload-settings") {
 		if (fs.existsSync(settings_path)) {
 			_settings = yaml.readSync(settings_path, "utf8");
@@ -5197,13 +5212,68 @@ app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see al
 	res.send(msg);//res.write(msg);
 });
 
+app.get('/cpsr', function(req, res) {  // computer policy script request
+	// linux machine should get the hourly cron job script like:
+	// wget --output-document=iedu-cs-hourly /cp?unit=0&kernel=linux&access_level=root&machine_group=StudentMachines&script_name=hourly
+	// then the file will be named iedu-cs-hourly
+	res.type('text/plain');//res.setHeader("content-type", "text/plain");
+	var msg = "#!/bin/sh";
+	var section = "cp";
+	if (req.query.hasOwnProperty("unit")) {
+		var script_name = null;
+		var script_msg = "";
+		if (req.query.hasOwnProperty("script_name")) script_name = req.query.script_name;
+		else {
+			script_name = "hourly";
+			script_msg += "; no script_name was in request"
+		}
+		var kernel = null;
+		if (req.query.hasOwnProperty("kernel")) kernel = req.query.kernel;
+		else {
+			kernel = "linux";
+			script_msg += "; no kernel was in request"
+		}
+		msg += "\n" + '# ' + script_name + ' cps for ' + kernel + ' for unit ' + req.query.unit + " should appear below" + script_msg;
+		var script_setting_s = section + ".scripts." + kernel + "." + script_name;
+		if (has_setting(script_setting_s)) {
+			var script_name = peek_setting(script_setting_s);
+			var script_path = storage_path + "/units/" + _selected_unit + "/" + section + "/files/scripts/" + script_name;
+			console.log("loading " + script_path);
+			var lines = null;
+			if (ptcache.hasOwnProperty(script_path)) {
+				lines = ptcache[script_path];
+			}
+			else {
+				// data = fs.readFileSync(script_path);
+				
+				lines = [];
+				fs.readFileSync(script_path).toString().split("\n").forEach(function(line, index, arr) {
+				  if (index === arr.length - 1 && line === "") { return; }
+				  lines.push(line);
+				});				
+				ptcache[script_path] = lines;
+			}
+			for (var l_i=0; l_i<lines.length; l_i++) {
+				msg += "\n" + lines[l_i];
+			}
+		}
+		else {
+			msg += "\n" + '# there is no cps setting ' + script_setting_s;
+		}
+	}
+	else {
+		msg += "\n" + 'echo "failed to obtain cps since no unit was specified by request"';
+	}
+	res.send(msg);
+});
+
 app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see also show_status helper
 	var results = do_track(req.body);
 	var msg = "success: ok";
 	res.type('text/plain');//res.setHeader("content-type", "text/plain");
 	if ("success" in results) msg += "\n" + results.success;
 	else msg = "success: ok";
-	if ("error" in results) msg = "error: "+results.error;
+	if ("error" in results) msg = "error: " + results.error;
 	//console.log("[ track ] "+msg);
 	msg += "\n";
 	//msg += "settings:"+"\n"; //NOTE: iedup will resave settings each time if any are present (if below, if indented under "settings:")
