@@ -5212,40 +5212,100 @@ app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see al
 	res.send(msg);//res.write(msg);
 });
 
-app.get('/cpsr', function(req, res) {  // computer policy script request
-	// linux machine should get the hourly cron job script like:
-	// wget --output-document=iedu-cs-hourly /cp?unit=0&kernel=linux&access_level=root&machine_group=StudentMachines&script_name=hourly
-	// then the file will be named iedu-cs-hourly
-	res.type('text/plain');//res.setHeader("content-type", "text/plain");
-	var msg = "#!/bin/sh";
-	var section = "cp";
+app.get('/cpflr', function(req, res) {  // computer policy file list request
+	res.type('text/plain');  // res.setHeader("content-type", "text/plain");
+	var section = "tm";
+	var msg = "# policy file list by name";
 	if (req.query.hasOwnProperty("unit")) {
-		var script_name = null;
-		var script_msg = "";
-		if (req.query.hasOwnProperty("script_name")) script_name = req.query.script_name;
-		else {
-			script_name = "hourly";
-			script_msg += "; no script_name was in request"
-		}
 		var kernel = null;
 		if (req.query.hasOwnProperty("kernel")) kernel = req.query.kernel;
 		else {
 			kernel = "linux";
 			script_msg += "; no kernel was in request"
 		}
-		msg += "\n" + '# ' + script_name + ' cps for ' + kernel + ' for unit ' + req.query.unit + " should appear below" + script_msg;
-		var script_setting_s = section + ".scripts." + kernel + "." + script_name;
-		if (has_setting(script_setting_s)) {
-			var script_name = peek_setting(script_setting_s);
-			var script_path = storage_path + "/units/" + _selected_unit + "/" + section + "/files/scripts/" + script_name;
-			console.log("loading " + script_path);
+	}
+	else {
+		msg += this_endl + 'echo "failed to obtain cps since no unit was specified by request"';
+	}
+	res.send(msg);
+});
+
+function get_cpf_plain_text(params_dict, remarks_list) {
+	var msg = "";
+	var section = "tm";
+	var _default_unit = 0;
+	var requested_unit = null;
+	if (params_dict.hasOwnProperty("unit")) {
+		// TODO: validate request so they can only get unit
+		// --such as use computer name and MAC combination for machine authentication, where MAC is obtained via
+		// MAC=`cat /sys/class/net/enp0s25/address`
+		// where enp0s25 is any interface in /sys/class/net other than lo (usually is enp0s25 for: Fedora 27, Ubuntu Xenial, and Antergos ~ 2018 Jan) 
+		// there is also MAC=`ip addr | grep link/ether | awk '{print $2}'`  (tested on Antergos)
+		// IP Address: based on the above, you can a list of all of them (starting with 127.0.0.1 like:)
+		// IP=`ip addr | grep "inet " | awk '{print $2}'`
+		// * leave out the empty space after inet to include ipv6 ("inet6" addresses)
+		//   but IP=`hostname -i` works to get primary one (but will not be one in list above if ethernet configuration is corrupt)
+		requested_unit = params_dict.unit;
+	}
+	else {
+		requested_unit = _selected_unit;
+	}
+	var script_name = null;
+	var script_msg = "";
+	var attributes = [];
+	var perms_octal = null;
+	if (params_dict.hasOwnProperty("script_name")) script_name = params_dict.script_name;
+	else {
+		script_name = "hourly";
+		script_msg += "; no script_name was in request"
+	}
+	var kernel = null;
+	if (params_dict.hasOwnProperty("kernel")) kernel = params_dict.kernel;
+	else {
+		kernel = "linux";
+		script_msg += "; no kernel was in request"
+	}
+	var script_remark = "# ";
+	var this_endl = "\n";
+	var this_attrib = "chmod +";
+	var this_perms = "chmod ";
+	if (kernel.toLowerCase() == "windows") {
+		script_remark = "REM ";
+		this_endl = "\r\n";
+		this_attrib = "attrib +";
+		this_perms = null;
+	}
+	var machine_group_s = null;
+	if (params_dict.hasOwnProperty("machine_group")) {
+		machine_group_s = params_dict.machine_group;
+	}
+	else {
+		machine_group_s = "StudentMachines";
+		//TODO: lookup by MAC if present
+	}
+	// msg += this_endl + script_remark + script_name + ' cps for ' + kernel + ' for unit ' + params_dict.unit + " should appear below" + script_msg;
+	var script_setting_s = section + ".files." + kernel + "." + script_name + "." + "source_name";
+	var script_setting_dest_s = section + ".files." + kernel + "." + script_name + "." + "dest_path";
+	var script_setting_attribs_s = section + ".files." + kernel + "." + script_name + "." + "attributes";
+	var script_setting_p_octal_s = section + ".files." + kernel + "." + script_name + "." + "permissions_octal";
+	if (has_setting(script_setting_s)) {
+		if (has_setting(script_setting_dest_s)) {
+			if (has_setting(script_setting_attribs_s)) {
+				attributes = peek_setting(script_setting_attribs_s);
+			}
+			if (has_setting(script_setting_p_octal_s)) {
+				perms_octal = peek_setting(script_setting_p_octal_s);
+			}
+			var dest_path = peek_setting(script_setting_dest_s);
+			var source_name = peek_setting(script_setting_s);
+			var script_path = storage_path + "/units/" + requested_unit + "/" + section + "/files/(system)/" + source_name;
+			// console.log("loading " + script_path);
 			var lines = null;
 			if (ptcache.hasOwnProperty(script_path)) {
 				lines = ptcache[script_path];
 			}
 			else {
 				// data = fs.readFileSync(script_path);
-				
 				lines = [];
 				fs.readFileSync(script_path).toString().split("\n").forEach(function(line, index, arr) {
 				  if (index === arr.length - 1 && line === "") { return; }
@@ -5254,16 +5314,60 @@ app.get('/cpsr', function(req, res) {  // computer policy script request
 				ptcache[script_path] = lines;
 			}
 			for (var l_i=0; l_i<lines.length; l_i++) {
-				msg += "\n" + lines[l_i];
+				if (l_i==1) {
+					msg += this_endl + script_remark + "source_name: " + source_name;
+					msg += this_endl + script_remark + "dest_path: " + dest_path;
+					if (remarks_list != null) {
+						for (var r_i=0; r_i<remarks_list.length; r_i++) {
+							msg += this_endl + script_remark + remarks_list[r_i];
+						}
+					}
+					if (attributes!==null) {
+						for (var atr_i=0; atr_i<attributes.length; atr_i++) {
+							msg += this_endl + script_remark + "post_install: " + this_attrib + attributes[atr_i] + ' "' + dest_path + '"';
+						}
+					}
+					if (perms_octal!==null) {
+						var var_name = "post_install";
+						if (this_perms===null) var_name="mismatched_os_setting";
+						msg += this_endl + script_remark + var_name + ": " + this_attrib + perms_octal + ' "' + dest_path + '"';
+					}
+				}
+				msg += this_endl + lines[l_i];
 			}
 		}
 		else {
-			msg += "\n" + '# there is no cps setting ' + script_setting_s;
+			msg += this_endl + 'echo "server has no mps setting ' + script_setting_dest_s + '"';
 		}
 	}
 	else {
-		msg += "\n" + 'echo "failed to obtain cps since no unit was specified by request"';
+		msg += this_endl + 'echo "there is no mps setting ' + script_setting_s + '"';
 	}
+	// }
+	// else {
+		// msg += this_endl + 'echo "failed to obtain mps since no unit was specified by request"';
+	// }
+	return msg;
+}
+
+app.get('/cppr', function(req, res) {  // computer policy plaintext request; gets a plaintext file by name
+	// linux machine should get the hourly cron job script like:
+	// wget --output-document=iedu-cs-hourly /cp?unit=0&kernel=linux&access_level=root&machine_group=StudentMachines&pf_name=hourly
+	// then the file will be named iedu-cs-hourly
+	res.type('text/plain');//res.setHeader("content-type", "text/plain");
+	// remarks = [];
+	var msg = get_cpf_plain_text(req.query, null);
+	res.send(msg);
+});
+
+app.get('/cpsr', function(req, res) {  // computer policy text file request
+	// linux machine should get the hourly cron job script like:
+	// wget --output-document=iedu-cs-hourly /cp?unit=0&kernel=linux&access_level=root&machine_group=StudentMachines&pf_name=hourly
+	// then the file will be named iedu-cs-hourly
+	res.type('text/plain');//res.setHeader("content-type", "text/plain");
+	remarks = [];
+	remarks.push("cpsr (script request) is deprecated. Use cppr (plain text request) instead")
+	var msg = get_cpf_plain_text(req.query, remarks);
 	res.send(msg);
 });
 

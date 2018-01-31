@@ -95,15 +95,18 @@ module.exports = {
 			* go to <http://www.github.com/expertmm/integratoredu>
 			* before entering an issue, search for the issue under "Known Issues" in the README.md and see if the problem is considered minor (is preceded by "(~)") and if so there is no need to report the issue--long-term requests will be considered at a future date.
 			* click "Issues" at the top of the webpage. If your issue is not already listed, submit a new issue (make sure "Title" field summarizes the problem well)
-* you can add policy shell scripts by placing them in `units/<number>/cp/files` where number is zero until units are implemented. The scripts can update each other--for example, the hourly script can contain (you must add a value for URL to the code below before using it as your /etc/cron.hourly/iedu-cs-hourly):
+* technology management: you can add policy shell scripts by placing them in `units/<number>/tm/files/(system)/` where number is zero until units are implemented. The scripts can update each other--for example, the hourly script can contain (you must add a value for URL to the code below before using it as your /etc/cron.hourly/iedu-mps-hourly):
 ```bash
 #!/bin/sh
+# script_name: iedu-mps-daily
+# script_dest_path: /etc/cron.daily/iedu-mps-daily
+# machine policy script
 # actually do stuff here
 cd /tmp
 iedu_update_other_name="daily"
 cron_freq="daily"
-src_name="iedu-cs-$iedu_update_other_name"
-dest_name="/etc/cron.$cron_freq/iedu-cs-$iedu_update_other_name"
+src_name="iedu-mps-$iedu_update_other_name"
+dest_name="/etc/cron.$cron_freq/iedu-mps-$iedu_update_other_name"
 if [ -f "$src_name" ]; then
   rm -f "$src_name"
 fi
@@ -116,14 +119,27 @@ chmod +x "$dest_name"
 # and run it NOW (only uncomment the line below for the daily script, so it will run the hourly script an extra time after hourly script is updated; not the script that updates the daily script, otherwise the daily script will run more frequently which probably is doesn't fulfill its purpose well):
 # $dest_name
 ```
-  then, in your unit.yml, add matching entries in cp.scripts, such as (where 'hourly' and 'daily' are the actual names of the files in the cp/files folder mentioned above):
+  then, in your unit.yml, add matching entries in cp.scripts, such as (where file_name is the actual name of the file in the tm/files/(system)/ folder mentioned above):
 ```yaml
-cp:
-  scripts:
+tm:
+  files:
     linux:
-      hourly: 'hourly'
-      daily: 'daily'
+      StudentMachines:
+        hourly:
+          source_name: 'iedu-mps-hourly'
+          dest_path: '/etc/cron.hourly/iedu-mps-hourly'
+          attributes:
+            - 'x'
+          permissions_octal: '751'
+        daily:
+          source_name: 'iedu-mps-daily'
+          dest_path: '/etc/cron.daily/iedu-mps-daily'
+          attributes:
+            - 'x'
+          permissions_octal: '751'
 ```
+  Attributes and permissions_octal are normally only required for executables on linux such as scripts and desktop files (which must be executable by everyone).
+  If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
 (2018-01-30)
