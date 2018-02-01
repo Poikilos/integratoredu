@@ -142,6 +142,17 @@ tm:
   If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
+(2018-02-01)
+* moved most settings to settings--no longer use hard coded globals:
+  * friendly_section_names
+  * selectable_modes
+  * sections (now "unit.enabled_sections")
+  * section_required_fields (now section+".required_fields")
+  * section_form_fields (now section+".form_fields")
+  * field_lookup_values (now section+".field_lookup_values")
+  * section_form_collapsed_fields (now section+".form_collapsed_field")
+  * section_form_friendly_names (now section+".form_display_names")
+* moved settings name and local_time_zone to unit.name and unit.local_time_zone
 (2018-01-30)
 * you can now add policy shell scripts (see "policy scripts" point in Usage)
 (2018-01-24)
@@ -271,6 +282,7 @@ tm:
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
+* use of `section+"` in has_settings or peek_settings params where no dot following and should be `section+".` 
 * selected_unit should be _selected_unit
 * see https://getbootstrap.com/docs/4.0/migration/
 * always use item.tmp.date (which is derived during load) instead of manually deriving date, to save on code and avoid having different logic for deriving date elsewhere other than at yaml.read*

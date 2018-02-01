@@ -103,17 +103,13 @@ app.set('trust proxy', 'loopback, linklocal, uniquelocal'); //NOTE: Allows req.i
 if (!config.proxy_prefix_then_slash) config.proxy_prefix_then_slash = "/";
 if (!config.hasOwnProperty("audio_enable")) config.audio_enable = true;
 //var basePath = "./";
-var basePath = "."+config.proxy_prefix_then_slash;
+var basePath = "." + config.proxy_prefix_then_slash;
 
 
-var sections = ["care", "commute", "admin", "track"];
 var tracking_sections = ["track"]
-var friendly_section_names = {"care":"Extended Care","commute":"Commute","admin":"Advanced","track":"Track"};
 
 //var section_rates = {}; //how much client pays by the hour for section for time spent outside of startTime and endTime
 //section_rates["care"] = 7.50;
-
-var selectable_modes = ["create", "read", "settings", "reports"];
 
 var friendly_mode_names = {};
 friendly_mode_names.create = "Entry Form";
@@ -127,43 +123,7 @@ friendly_mode_action_text.read = "Save"; //save button since read will show edit
 friendly_mode_action_text.modify = "Save";
 friendly_mode_action_text.reports = "Save";
 
-var section_required_fields = {};
-section_required_fields.care = ["first_name", "last_name", "chaperone", "grade_level"];
-section_required_fields.commute = ["name", "grade_level", "heading", "reason"];
-section_required_fields.track = ["MAC"];
-
-var section_form_fields = {};
-section_form_fields.care = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
-section_form_fields.commute = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
-section_form_fields.track = ["UserName", "MachineName", "HostName", "MAC"];
-
-var field_lookup_values = {};
-field_lookup_values.heading = ["in", "out"];
-
-var section_form_collapsed_fields = {};
-section_form_collapsed_fields.care = ["family_id", "stated_time", "stated_date"];
-section_form_collapsed_fields.commute = ["stated_time", "stated_date", "pin"];
-
-var section_form_friendly_names = {};
-section_form_friendly_names.care = {};
-section_form_friendly_names.care.first_name = "Student First Name";
-section_form_friendly_names.care.last_name = "Student Last Name";
-section_form_friendly_names.care.chaperone = "Pickup/Dropoff<br/>by&nbsp;Whom";
-section_form_friendly_names.care.grade_level = "Grade";
-section_form_friendly_names.care.stated_time = "Time (blank for auto, otherwise specify AM or PM)";
-section_form_friendly_names.care.stated_date = "Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
-section_form_friendly_names.care.family_id = "Family ID (if applicable)";
-section_form_friendly_names.care.pin = "override pin";
-section_form_friendly_names.commute = {};
-section_form_friendly_names.commute.name = "Name";
-section_form_friendly_names.commute.grade_level = "Grade";
-section_form_friendly_names.commute.heading = "Heading";
-section_form_friendly_names.commute.reason = "Reason";
-section_form_friendly_names.commute.stated_time = "Custom Time (blank for auto, otherwise specify AM or PM)";
-section_form_friendly_names.commute.stated_date = "Custom Date (blank for auto, otherwise must be in MM/DD/YYYY format)";
-section_form_friendly_names.commute.pin = "override pin";
-section_form_friendly_names.track = {};
-section_form_friendly_names.track.mac = "HwAddr";
+//TODO: move all to _settings_defaults instead (<section>.friendly_names <section>.friendly_name etc)
 
 var section_sheet_fields = {};
 section_sheet_fields.track = ["MAC","MachineName","UserName","HostName"];
@@ -171,28 +131,8 @@ section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()"
 section_sheet_fields.commute = ["=get_date_from_path()", "time", "heading", "name", "grade_level", "reason"];
 
 var section_sheet_fields_friendly_names = {};
-section_sheet_fields_friendly_names.care = {};
-section_sheet_fields_friendly_names.care["=get_date_from_path()"] = "Stored";
-section_sheet_fields_friendly_names.care["=get_origin_date()"] = "Created";
-section_sheet_fields_friendly_names.care["=caretime()"] = "Seconds";
-section_sheet_fields_friendly_names.care["=caretime_h()"] = "Hours";
-section_sheet_fields_friendly_names.care["=careprice()"] = "Accrued per 1";
-section_sheet_fields_friendly_names.care.free_from = "Morning Care End";
-section_sheet_fields_friendly_names.care.free_to = "After School Start";
-section_sheet_fields_friendly_names.care.stated_time = "Stated Time";
-section_sheet_fields_friendly_names.care.stated_date = "Stated Date";
-section_sheet_fields_friendly_names.care.first_name = "First";
-section_sheet_fields_friendly_names.care.last_name = "Last";
-section_sheet_fields_friendly_names.care.grade_level = "Grade Level";
-section_sheet_fields_friendly_names.care.created_by = "By";
-section_sheet_fields_friendly_names.care.modified_by = "Modified";
-section_sheet_fields_friendly_names.care.chaperone = "Chaperone";
-section_sheet_fields_friendly_names.care.family_id = "FamilyID";
-section_sheet_fields_friendly_names.care.time = "Time";
-section_sheet_fields_friendly_names.care.qty = "Count";
-section_sheet_fields_friendly_names.commute = {};
-section_sheet_fields_friendly_names.commute["=get_date_from_path()"] = "Date";
-section_sheet_fields_friendly_names.commute.grade_level = "Grade Level";
+section_sheet_fields_friendly_names.care = {"=get_date_from_path()":"Stored", "=get_origin_date()":"Created", "=caretime()":"Seconds", "=caretime_h()":"Hours", "=careprice()":"Accrued per 1", "free_from":"Morning Care End", "free_to":"After School Start", "stated_time":"Stated Time", "stated_date":"Stated Date", "first_name":"First", "last_name":"Last", "grade_level":"Grade Level", "created_by":"By", "modified_by":"Modified", "chaperone":"Chaperone", "family_id":"FamilyID", "time":"Time", "qty":"Count"};
+section_sheet_fields_friendly_names.commute = {"=get_date_from_path()":"Date", "grade_level":"Grade Level"};
 //section_sheet_fields_friendly_names.commute.time = "Time";
 
 
@@ -203,12 +143,8 @@ section_sheet_fields_friendly_names.commute.grade_level = "Grade Level";
 
 //used for spreadsheet view/export (such as: change time to stated_time if stated_time was specified by user)
 var section_fields_overrides = {};
-section_fields_overrides.care = {};
-section_fields_overrides.care.time = "stated_time";
-section_fields_overrides.care.date = "stated_date";
-section_fields_overrides.commute = {};
-section_fields_overrides.commute.time = "stated_time";
-section_fields_overrides.commute.date = "stated_date";
+section_fields_overrides.care = {"time":"stated_time", "date":"stated_date"};
+section_fields_overrides.commute = {"time":"stated_time", "date":"stated_date"};
 
 var fields_friendly_names = {};
 //fields_friendly_names["heading"] = "select arriving/departing";
@@ -241,28 +177,35 @@ var autofill_cache = null;
 var autofill_cache_path = storage_path + "/units/" + _selected_unit + "/autofill_cache." + autofill_cache_format;
 var default_autofill_cache = {};
 default_autofill_cache.care = {};
-default_autofill_cache.care.family_id = {};
-default_autofill_cache.care.family_id["jake+gustafson+13"] = "-1";
-default_autofill_cache.care.family_id["jake+gustafson+0"] = "-1";
-default_autofill_cache.care.qty = {};
-default_autofill_cache.care.qty["j&s+gustafson+0"] = "2";
+// default_autofill_cache.care.family_id = {"jake+gustafson+13":"-1", "jake+gustafson+0":"-1"};
+// default_autofill_cache.care.qty = {"j&s+gustafson+0":"2"};
 
 var default_total = {};
 default_total.care = "=careprice()";
 
-//var section_report_edit_field = {}; //runtime var, do not save (starts as value of _settings.section.mode.selected_field_default)
+// var section_report_edit_field = {}; //runtime var, do not save (starts as value of _settings.section.mode.selected_field_default)
 
 var _settings = null;
 var _selected_unit = 0;
 var settings_path = storage_path + "/units/" + _selected_unit + "/unit.yml";
 var _settings_default = {};
-_settings_default.name = "Campus";
-_settings_default.local_time_zone = "America/New_York";
+_settings_default.unit = {};  // settings for current unit
+_settings_default.unit.name = "Campus";
+_settings_default.unit.enabled_sections = ["care", "commute", "admin", "track", "po"];
+_settings_default.unit.selectable_modes = ["create", "read", "settings", "reports"];
+_settings_default.unit.local_time_zone = "America/New_York";
+_settings_default.admin = {};
+_settings_default.admin.display_name = "Advanced";
 _settings_default.care = {};
+_settings_default.care.display_name = "Extended Care";
+_settings_default.care.form_fields = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
+_settings_default.care.form_collapsed_fields = ["family_id", "stated_time", "stated_date"];
+_settings_default.care.form_display_names = {"first_name":"Student First Name", "last_name":"Student Last Name", "chaperone":"Pickup/Dropoff<br/>by&nbsp;Whom", "grade_level":"Grade", "stated_time":"Time (blank for auto, otherwise specify AM or PM)", "stated_date":"Date (blank for auto, otherwise must be in MM/DD/YYYY format)", "family_id":"Family ID (if applicable)", "pin":"override pin"};
+_settings_default.care.required_fields = ["first_name", "last_name", "chaperone", "grade_level"];
 _settings_default.care.default_groupby = {};
 _settings_default.care.default_groupby = "family_id";
 _settings_default.care.extended_hours_hourly_price = 7.50;
-_settings_default.care.local_start_time = '08:10:00';
+_settings_default.care.local_start_time = '07:45:00';
 _settings_default.care.local_end_time = '15:05:00';
 _settings_default.care.bill_iso_day_of_week = 5;
 _settings_default.care.reports = {};
@@ -297,6 +240,13 @@ _settings_default.care.autofill_requires.qty = ["first_name"];
 _settings_default.care.history_sheet_fields = ["time", "qty", "=mid(first_name,1,1)", "=mid(last_name,1,1)", "grade_level", "chaperone", "family_id"];
 _settings_default.care.mode_priority = ["reports","create", "read"];
 _settings_default.commute = {};
+_settings_default.commute.display_name = "Commute";
+_settings_default.commute.field_lookup_values = {};
+_settings_default.commute.field_lookup_values.heading = ["in", "out"];
+_settings_default.commute.form_fields = ["name", "grade_level", "heading", "reason", "stated_time", "stated_date", "pin"];
+_settings_default.commute.form_collapsed_fields = ["stated_time", "stated_date", "pin"];
+_settings_default.commute.form_display_names = {"name":"Name", "grade_level":"Grade", "heading":"Heading", "reason":"Reason", "stated_time":"Custom Time (blank for auto, otherwise specify AM or PM)", "stated_date":"Custom Date (blank for auto, otherwise must be in MM/DD/YYYY format)", "pin":"override pin"};
+_settings_default.commute.required_fields = ["name", "grade_level", "heading", "reason"];
 _settings_default.commute.local_start_time = '08:10:00';
 _settings_default.commute.local_end_time = '15:05:00';
 _settings_default.commute.history_sheet_fields = ["time", "name", "grade_level", "reason"];  // "=get_date_from_path()", 
@@ -305,7 +255,23 @@ _settings_default.commute.reports.suggest_missing_required_fields_enable = true;
 _settings_default.commute.reports.auto_select_month_enable = true; //ok since in reports section
 _settings_default.commute.mode_priority = ["reports","create", "read"];
 _settings_default.track = {};
+_settings_default.track.display_name = ["Track"];
+_settings_default.track.form_fields = ["UserName", "MachineName", "HostName", "MAC"];
+_settings_default.track.required_fields = ["MAC"];
+_settings_default.track.form_display_names = {"mac":"HwAddr"};
 _settings_default.track.status_keys = ["MAC"];
+_settings_default.po = {};
+_settings_default.po.form_fields = ["form_po_number","form_vendor", "form_date"];
+for (var i=0; i<18; i++) {
+	_settings_default.po.form_fields.push("form_qty_i_"+i)
+	_settings_default.po.form_fields.push("form_desc_i_"+i)
+	_settings_default.po.form_fields.push("form_unit_cost_i_"+i)
+}
+_settings_default.po.form_fields.push("form_shipping");
+_settings_default.po.form_fields.push("form_total");
+_settings_default.po.form_fields.push("form_budget_account");
+_settings_default.po.form_fields.push("form_ordered_by");
+_settings_default.po.required_fields = ["form_po_number","form_vendor", "form_date", "form_qty_i_0", "form_desc_i_0", "form_unit_cost_i_0", "form_shipping", "form_total", "form_ordered_by", "form_budget_account"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
 //var startTime = moment('08:10:00', "HH:mm:ss");
@@ -755,18 +721,23 @@ function has_setting(dot_notation) {
 function user_has_section_permission(this_username, this_section, this_permission) {
 	var result = false;
 	//console.log("user_has_section_permission of "+this_username+" for "+this_section+":");
-	for (var group_name in _groups) {
-		if (_groups.hasOwnProperty(group_name)) {
-			if (fun.array_contains(_groups[group_name], this_username)) {
-				if (_permissions[group_name].hasOwnProperty(this_section)) {
-					if (fun.array_contains(_permissions[group_name][this_section], this_permission)) {
-						result = true;
-						//console.log("+has "+this_permission+" for "+group_name);
-						break;
+	if (this_username=="admin") {
+		result = true;
+	}
+	else {
+		for (var group_name in _groups) {
+			if (_groups.hasOwnProperty(group_name)) {
+				if (fun.array_contains(_groups[group_name], this_username)) {
+					if (_permissions[group_name].hasOwnProperty(this_section)) {
+						if (fun.array_contains(_permissions[group_name][this_section], this_permission)) {
+							result = true;
+							//console.log("+has "+this_permission+" for "+group_name);
+							break;
+						}
+						//else console.log("-doesn't have "+this_permission+" for "+group_name);
 					}
-					//else console.log("-doesn't have "+this_permission+" for "+group_name);
+					//else console.log("--no permissions for section "+this_section+" found in group "+group_name);
 				}
-				//else console.log("--no permissions for section "+this_section+" found in group "+group_name);
 			}
 		}
 	}
@@ -906,59 +877,71 @@ app.use(function(req, res, next){
 //Generate and return only html form fields of a certain subset, for multi-part (for layout purposes only) but single-page forms
 function get_filtered_form_fields_html(section, mode, username, show_collapsed_only_enable, prefill, missing_fields) {
 	var ret="";
-	for (var i = 0, len = section_form_fields[section].length; i < len; i++) {
-		var friendly_name = section_form_fields[section][i];
-		var field_name = section_form_fields[section][i];
-		
-		if (!section_form_collapsed_fields.hasOwnProperty(section)) console.log("Warning: missing optional section_form_collapsed_fields for section: "+section);
-		
-		if ( !(section_form_collapsed_fields.hasOwnProperty(section)) && show_collapsed_only_enable)
-			return ret; //only show fields once if no collapsed fields are specified (return blank here since called twice once true once false)
-		if ( (!section_form_collapsed_fields.hasOwnProperty(section)) ||
-			 (!show_collapsed_only_enable && !fun.array_contains(section_form_collapsed_fields[section], field_name )) ||
-			 (show_collapsed_only_enable && fun.array_contains(section_form_collapsed_fields[section], field_name )) ) {
-			var superscript="";
-			if (missing_fields && fun.array_contains(missing_fields, field_name)) superscript='<span style="color:red"><strong>*</strong></span>';
-			if (section_form_friendly_names.hasOwnProperty(section) && section_form_friendly_names[section].hasOwnProperty(friendly_name)) friendly_name = section_form_friendly_names[section][friendly_name];
-			var prefill_value = "";
-			if (prefill && (prefill.hasOwnProperty(field_name))) prefill_value = prefill[field_name];
-			if (field_lookup_values.hasOwnProperty(field_name)) {
-				ret += '<div class="form-group">' + "\n";
-				if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>' + "\n";
-				else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>' + "\n";
-				ret += '  <div class="col-sm-10">' + "\n";
-				ret += '    <div class="btn-group" data-toggle="buttons">' + "\n";
-				var precheck="";
-				var precheck_class="";
-				for (var choice_i = 0, choice_len = field_lookup_values[field_name].length; choice_i < choice_len; choice_i++) {
-					if (prefill_value==field_lookup_values[field_name][choice_i]) {
-						precheck=' checked="checked"';// aria-pressed="true" is not required except for button
-						precheck_class=' active';
-					}
-					else {
-						precheck='';
-						//console.log("prefill_value:"+prefill_value)
-						//console.log("  field_lookup_values[field_name][choice_i]:"+field_lookup_values[field_name][choice_i])
-					}
-					var this_friendly_name = field_lookup_values[field_name][choice_i];
-					ret += '      <label class="btn btn-primary'+precheck_class+'"><input type="radio" name="'+field_name+'" value="'+field_lookup_values[field_name][choice_i]+'"'+precheck+'>'+this_friendly_name+'</label>' + "\n";
-				}
-				ret += '    </div>' + "\n";
-				ret += '  </div>' + "\n";
-				ret += '</div>' + "\n";
+	if (has_setting(section+".form_fields")) {
+		var section_form_fields = peek_setting(section+".form_fields");
+		for (var i = 0, len = section_form_fields.length; i < len; i++) {
+			var friendly_name = section_form_fields[i];
+			var field_name = section_form_fields[i];
+			
+			if (!has_setting(section+".form_collapsed_fields")) {
+				console.log("(verbose message in get_filtered_form_fields_html) missing optional "+section+".form_collapsed_fields setting");
 			}
+			var section_form_collapsed_fields = null;
+			if ( !(has_setting(section+".form_collapsed_fields")) && show_collapsed_only_enable)
+				return ret; //only show fields once if no collapsed fields are specified (return blank here since called twice once true once false)
 			else {
-				//console.log("prefill_value:"+prefill_value)
-				ret += '  <div class="form-group">' + "\n";
-				if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>' + "\n";
-				else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>' + "\n";
-				ret += '    <div class="col-sm-10">' + "\n";
-				ret += '      <input type="text" class="form-control" name="'+field_name+'" value="'+prefill_value+'"/>' + "\n";
-				ret += '    </div>' + "\n";
-				ret += '  </div>' + "\n";
+				section_form_collapsed_fields = peek_setting(section+".form_collapsed_fields");
+			}
+			if ( (!has_setting(section+".form_collapsed_fields")) ||
+				 (!show_collapsed_only_enable && !fun.array_contains(section_form_collapsed_fields, field_name )) ||
+				 (show_collapsed_only_enable && fun.array_contains(section_form_collapsed_fields, field_name )) ) {
+				var superscript="";
+				if (missing_fields && fun.array_contains(missing_fields, field_name)) superscript='<span style="color:red"><strong>*</strong></span>';
+				if (has_setting(section+".display_name."+friendly_name)) friendly_name = peek_setting(section+".display_name."+friendly_name);
+				var prefill_value = "";
+				if (prefill && (prefill.hasOwnProperty(field_name))) prefill_value = prefill[field_name];
+				if (has_setting(section+".field_lookup_values."+field_name)) {
+					var field_lookup_values = peek_setting(section+".field_lookup_values."+field_name);
+					ret += '<div class="form-group">' + "\n";
+					if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>' + "\n";
+					else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>' + "\n";
+					ret += '  <div class="col-sm-10">' + "\n";
+					ret += '    <div class="btn-group" data-toggle="buttons">' + "\n";
+					var precheck="";
+					var precheck_class="";
+					for (var choice_i = 0, choice_len = field_lookup_values.length; choice_i < choice_len; choice_i++) {
+						if (prefill_value==field_lookup_values[choice_i]) {
+							precheck=' checked="checked"';// aria-pressed="true" is not required except for button
+							precheck_class=' active';
+						}
+						else {
+							precheck='';
+							//console.log("prefill_value:"+prefill_value)
+							//console.log("  field_lookup_values[choice_i]:"+field_lookup_values[choice_i])
+						}
+						var this_friendly_name = field_lookup_values[choice_i];
+						ret += '      <label class="btn btn-primary'+precheck_class+'"><input type="radio" name="'+field_name+'" value="'+field_lookup_values[choice_i]+'"'+precheck+'>'+this_friendly_name+'</label>' + "\n";
+					}
+					ret += '    </div>' + "\n";
+					ret += '  </div>' + "\n";
+					ret += '</div>' + "\n";
+				}
+				else {
+					//console.log("prefill_value:"+prefill_value)
+					ret += '  <div class="form-group">' + "\n";
+					if (show_collapsed_only_enable) ret += '  <label class="control-label col-sm-2" style="color:darkgray">'+friendly_name+superscript+':</label>' + "\n";
+					else ret += '  <label class="control-label col-sm-2" >'+friendly_name+superscript+':</label>' + "\n";
+					ret += '    <div class="col-sm-10">' + "\n";
+					ret += '      <input type="text" class="form-control" name="'+field_name+'" value="'+prefill_value+'"/>' + "\n";
+					ret += '    </div>' + "\n";
+					ret += '  </div>' + "\n";
+				}
 			}
 		}
-	}    
+	}
+	else {
+		ret = '<div class="alert alert-warning">missing setting ' + section + '.form_fields</div>';
+	}
 	return ret;
 }
 
@@ -1060,11 +1043,11 @@ function get_care_time_info(this_item, section) {
 	var foundTime = null;
 	var foundTimeString = null;
 	var local_time_zone = null;
-	if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+	if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
 	//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 	var local_now = moment();
 	if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
-	else console.log("ERROR: missing local_time_zone setting during get_care_time_info");
+	else console.log("ERROR: missing unit.local_time_zone setting during get_care_time_info");
 	
 	// The code below the comment works since both are normally in same timezone.
 	// However, there may be issues since timezone offset (in yml) is not checked.	
@@ -1389,7 +1372,7 @@ function push_next_table_entry(section, category, item, as_username, autofill_en
 function write_record_without_validation(req_else_null, section, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
 	var results = {};
 	var indent = "      ";
-	var local_time_zone = peek_setting("local_time_zone");
+	var local_time_zone = peek_setting("unit.local_time_zone");
 	//unique values are below
 	var table_path = get_table_path_if_exists_else_null(section, "transactions", "student", true);
 	if (table_path !== null) {
@@ -1503,7 +1486,7 @@ function write_record_without_validation(req_else_null, section, date_array_else
 				if (!("tz_offset_mins" in record)) record.tz_offset_mins = moment().utcOffset();
 				if (!("tz" in record)) {
 					if (local_time_zone!==null) record.tz = local_time_zone;
-					else console.log(indent+"ERROR: missing local_time_zone during record save");
+					else console.log(indent+"ERROR: missing unit.local_time_zone during record "+write_mode);
 				}
 				record.created_by = as_username;
 				if (req_else_null) {
@@ -1519,7 +1502,7 @@ function write_record_without_validation(req_else_null, section, date_array_else
 					if (!("tz_offset_mins" in record)) record.tz_offset_mins = moment().utcOffset();
 					if (!("tz" in record)) {
 						if (local_time_zone!==null) record.tz = local_time_zone;
-						else console.log(indent+"ERROR: missing local_time_zone during record save");
+						else console.log(indent+"ERROR: missing unit.local_time_zone during record "+write_mode);
 					}
 				}
 				if (!("modified_by" in record)) record.modified_by = as_username;
@@ -1596,12 +1579,12 @@ function is_after_school(section, this_time) {
 		if (!section) console.log("ERROR: no section given to is_after_school");
 		if (has_setting(section+".local_end_time")) {
 			var local_time_zone = null;
-			if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+			if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
 			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 			var local_now = moment(this_time);
 			//console.log("Using timezone "+local_time_zone);
-			if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading\
-			else console.log("ERROR: missing local_time_zone setting during is_after_school");
+			if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); // NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading
+			else console.log("ERROR: missing unit.local_time_zone setting during is_after_school");
 			//old way (doesn't work for some reason--can't find current timezone from os) local_now.local();
 			var now_date_string = local_now.format("YYYY-MM-DD");
 			var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
@@ -1646,12 +1629,12 @@ function is_before_school(section, this_time) {
 		if (!section) console.log("ERROR: no section given to is_before_school");
 		if (has_setting(section+".local_start_time")) {
 			var local_time_zone = null;
-			if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
-			else console.log("ERROR: missing local_time_zone setting during is_before_school");
+			if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
+			else console.log("ERROR: missing unit.local_time_zone setting during is_before_school");
 			//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 			var local_now = moment(this_time);
-			if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading\
-			else console.log("ERROR: missing local_time_zone setting");
+			if (local_time_zone!==null) local_now = moment.tz(this_time, local_time_zone); //NOT moment().tz see http://momentjs.com/timezone/docs/#/data-loading
+			else console.log("ERROR: missing unit.local_time_zone setting");
 			var now_date_string = local_now.format("YYYY-MM-DD");
 			var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
 			var tmp_local_start_date = now_date_string+" "+peek_setting(section+".local_start_time");
@@ -1819,7 +1802,7 @@ var hbs = exphbs.create({
 						cen_entry = get_table_entry(section, category, selected_number);
 						var section_friendly_name = section;
 						var error="";
-						if (section in friendly_section_names) section_friendly_name = friendly_section_names[section];
+						if (has_setting(section + ".display_name")) section_friendly_name = peek_setting(section + ".display_name");
 						else section_friendly_name = section.charAt(0).toUpperCase() + section.slice(1);
 						var bill_dow = 5; //1 is monday, 5 is friday
 						var bill_source_msg = "";
@@ -2246,7 +2229,7 @@ var hbs = exphbs.create({
 						var this_start_time_string = "";
 						if (has_setting(section+".local_start_time"))
 							this_start_time_string = peek_setting(section+".local_start_time");
-						if (friendly_section_names.hasOwnProperty(section)) section_friendly_name = friendly_section_names[section];
+						if (has_setting(section+".display_name")) section_friendly_name = peek_setting(section+".display_name");
 						this_rate = peek_setting(section+".extended_hours_hourly_price");
 						ret += '    <form class="form-inline" id="autofill-query" action="' + config.proxy_prefix_then_slash + 'autofill-query" method="post">' + "\n";
 						ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
@@ -2295,7 +2278,7 @@ var hbs = exphbs.create({
 									var this_val = "";
 									var field_friendly_name = required_key;
 									if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(required_key))
-										field_friendly_name = section_sheet_fields_friendly_names[section][required_key]; //shorter than section_form_friendly_names
+										field_friendly_name = section_sheet_fields_friendly_names[section][required_key]; // uses sheet display name since shorter than section+".form_display_names"
 									ret += '  <div class="input-group mb-2 mb-sm-0">' + "\n";
 									ret += '  <span class="input-group-addon" >'+field_friendly_name+':</span>' + "\n";
 									//ret += '    <div class="col-sm-10">';
@@ -2720,10 +2703,11 @@ var hbs = exphbs.create({
 									if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
 									var match_count=null;
 									if (item_enable && user_has_section_permission(username, section, mode)) {
-										if (section in section_form_fields) {
+										
+										if (has_setting(section+".form_fields")) {
 										//console.log("[ == ] this "+this_date+" "+this_time+"..."); //this_date does not exist in this scope
 											//if (items_by_date.hasOwnProperty(items[item_i].tmp["=get_date_from_path()"])) {
-											
+											var section_form_fields = peek_setting(section+".form_fields");
 											if (items[item_i].tmp["=get_date_from_path()"] in items_by_date) {
 												this_date_items = items_by_date[items[item_i].tmp["=get_date_from_path()"]];
 												//for (var prev_i=0; prev_i<item_i; prev_i++) { //this would be even slower
@@ -2734,7 +2718,7 @@ var hbs = exphbs.create({
 														active_count++;
 														if (items[item_i].key != this_date_items[inner_i].key) {
 															match_count = 0;
-															var ff_len = section_form_fields[section].length;
+															var ff_len = section_form_fields.length;
 															//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
 															//var prev_date = fun.get_date_or_stated_date(items[prev_i], "item# "+item_i+"&"+prev_i);
 															var prev_time = this_date_items[inner_i].tmp.time;
@@ -2753,7 +2737,7 @@ var hbs = exphbs.create({
 																			if ((!this_is_after_school) && (!is_before_school(section, this_date+" "+this_time))) is_out_of_range = true;
 																			var prev_is_after_school = is_after_school(section, prev_date+" "+prev_time);
 																			if ((!prev_is_after_school) && (!is_before_school(section, prev_date+" "+prev_time))) is_out_of_range = true;
-																			var these_fields = section_form_fields[section];
+																			var these_fields = section_form_fields;
 																			if (identifying_fields!==null) these_fields = identifying_fields;
 																			var tf_len = these_fields.length;
 																			if ((!is_out_of_range) && (this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
@@ -3385,18 +3369,13 @@ var hbs = exphbs.create({
 		get_section_form: function(section, mode, username, prefill, missing_fields, opts) {
 			//aka get_form
 			//globals of note:
-			//section_required_fields.care = ["first_name", "last_name", "chaperone", "grade_level"];
-			//section_form_fields.care = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
-			//field_lookup_values.heading = ["in", "out"]
-			//section_form_collapsed_fields.care = ["family_id", "stated_time", "stated_date"];
-			//section_form_friendly_names.care.first_name = "Student First Name";
 			//prefill_data_by_user
 			if (!prefill) {
 				prefill={}; //prevent crashes related to "in" keyword
 				console.log("WARNING: prefill was false in get_section_form");
 			}
 			var ret = "No form implemented ("+section+")";
-			if (section_form_fields.hasOwnProperty(section)) {
+			if (has_setting(section+".form_fields")) {
 				//console.log("get_section_form...");
 				//for (var index in prefill) {
 				//    if (prefill.hasOwnProperty(index)) {
@@ -3412,8 +3391,8 @@ var hbs = exphbs.create({
 				else {
 					ret += '  <input type="hidden" name="mode" id="mode" value="'+prefill.mode+'"/>' + "\n";
 				}
-				
-				//for (index in section_form_fields[section]) {
+				//var section_form_fields = peek_setting(section+".form_fields");
+				//for (index in section_form_fields) {
 				ret += get_filtered_form_fields_html(section, mode, username, false, prefill, missing_fields);
 				ret += '  <div class="form-group">' + "\n";
 				ret += '    <div class="col-sm-10" style="text-align:center">' + "\n";
@@ -3515,8 +3494,8 @@ var hbs = exphbs.create({
 				return needle;
 		},
 		friendlySectionName: function(needle, opts) {
-			if (friendly_section_names.hasOwnProperty(needle))
-				return friendly_section_names[needle];
+			if (has_setting(needle+".display_name"))
+				return peek_setting(needle+".display_name");
 			else
 				return needle;
 		},
@@ -3542,11 +3521,11 @@ var hbs = exphbs.create({
 			if (!section) console.log("ERROR: no section given to is_after_school helper");
 			if (has_setting(section+".local_end_time")) {
 				var local_time_zone = null;
-				if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+				if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
 				//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 				var local_now = moment();
 				if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
-				else console.log("ERROR: missing local_time_zone setting during is_after_school helper");
+				else console.log("ERROR: missing unit.local_time_zone setting during is_after_school helper");
 				//old way (doesn't work for some reason--can't find current timezone from os) local_now.local();
 				var now_date_string = local_now.format("YYYY-MM-DD");
 				var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
@@ -3577,12 +3556,12 @@ var hbs = exphbs.create({
 			if (!section) console.log("ERROR: no section given to is_before_school helper");
 			if (has_setting(section+".local_start_time")) {
 				var local_time_zone = null;
-				if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
-				else console.log("ERROR: missing local_time_zone setting during is_before_school helper");
+				if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
+				//else console.log("ERROR: missing unit.local_time_zone setting during is_before_school helper");
 				//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 				var local_now = moment();
 				if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
-				else console.log("ERROR: missing local_time_zone setting");
+				else console.log("ERROR: null unit.local_time_zone setting during is_before_school helper");
 				var now_date_string = local_now.format("YYYY-MM-DD");
 				var currentTimeString = local_now.format("HH:mm:ss");  // moment('11:00p', "HH:mm a");
 				var tmp_local_start_date = now_date_string+" "+peek_setting(section+".local_start_time");
@@ -3974,18 +3953,38 @@ app.get('/', function(req, res){
 	var this_sheet_field_friendly_names = [];
 	if (!(req.session.hasOwnProperty("prefill"))) req.session.prefill={};
 	if (req.user && req.user.username) {
-		var preload_table_names = sections; //["care","commute"];
+		var preload_table_names = [];
+		if (!has_setting("unit.enabled_sections")) {
+			console.log("[ route / ] ERROR: missing required array unit.enabled_sections in unit " + _selected_unit + " (this should never happen)");
+		}
+		else {
+			preload_table_names = peek_setting("unit.enabled_sections");
+			if (preload_table_names.length < 1) {
+				console.log("[ route / ] ERROR: 0-length required array unit.enabled_sections in unit " + _selected_unit + " (this should never happen)");
+			}
+		}
 		for (var index in preload_table_names) {
 			if (preload_table_names.hasOwnProperty(index)) {
 				var val = preload_table_names[index];
 				if ( user_has_section_permission(req.user.username, val, "create") || user_has_section_permission(req.user.username, val, "read") || user_has_section_permission(req.user.username, val, "modify") ) {
 					user_sections.push(val);
 					if (!user_modes_by_section.hasOwnProperty(val)) user_modes_by_section[val] = [];
-					for (var mode_i=0; mode_i<selectable_modes.length; mode_i++) {
-						this_mode = selectable_modes[mode_i];
-						if (user_has_section_permission(req.user.username, val, this_mode)) {
-							user_modes_by_section[val].push(this_mode);
+					if (has_setting("unit.selectable_modes")) {
+						var selectable_modes = peek_setting("unit.selectable_modes");
+						if (selectable_modes.length > 0) {
+							for (var mode_i=0; mode_i<selectable_modes.length; mode_i++) {
+								this_mode = selectable_modes[mode_i];
+								if (user_has_section_permission(req.user.username, val, this_mode)) {
+									user_modes_by_section[val].push(this_mode);
+								}
+							}
 						}
+						else {
+							console.log("[ route / ] ERROR: 0-length required array unit.selectable_modes in unit " + _selected_unit + " (this should never happen)");
+						}
+					}
+					else {
+						console.log("[ route / ] ERROR: Missing required setting unit.selectable_modes in unit " + _selected_unit + " (this should never happen)");
 					}
 				}
 		// 		var section_path = storage_path + "/" + val;
@@ -5156,7 +5155,7 @@ function do_track(body) {
 								//item.tmp.key = item[primary_key];
 								item.key_name = primary_key;
 								var local_time_zone = null;
-								//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting("local_time_zone")) local_time_zone = peek_setting("local_time_zone");
+								//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
 								//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
 								if (local_time_zone !== null) item.tz = local_time_zone;
 								if (!("tz_offset_mins" in item)) item.tz_offset_mins = moment().utcOffset();
@@ -5284,10 +5283,10 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 		//TODO: lookup by MAC if present
 	}
 	// msg += this_endl + script_remark + script_name + ' cps for ' + kernel + ' for unit ' + params_dict.unit + " should appear below" + script_msg;
-	var script_setting_s = section + ".files." + kernel + "." + script_name + "." + "source_name";
-	var script_setting_dest_s = section + ".files." + kernel + "." + script_name + "." + "dest_path";
-	var script_setting_attribs_s = section + ".files." + kernel + "." + script_name + "." + "attributes";
-	var script_setting_p_octal_s = section + ".files." + kernel + "." + script_name + "." + "permissions_octal";
+	var script_setting_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "source_name";
+	var script_setting_dest_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "dest_path";
+	var script_setting_attribs_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "attributes";
+	var script_setting_p_octal_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "permissions_octal";
 	if (has_setting(script_setting_s)) {
 		if (has_setting(script_setting_dest_s)) {
 			if (has_setting(script_setting_attribs_s)) {
@@ -5521,10 +5520,11 @@ app.post('/student-microevent', function(req, res){
 		var section = req.body.section;
 		req.session.mode = req.body.mode;
 		
-		if (section_form_fields.hasOwnProperty(section)) {
-			for (var index in section_form_fields[section]) {
-				if (section_form_fields[section].hasOwnProperty(index)) {
-					var key = section_form_fields[section][index];
+		if (has_setting(section+".form_fields")) {
+			var section_form_fields = peek_setting(section+".form_fields");
+			for (var index in section_form_fields) {
+				if (section_form_fields.hasOwnProperty(index)) {
+					var key = section_form_fields[index];
 					if (key in req.body) {
 						if (req.body[key]) {
 							if (req.body[key].substring(0,8)!="prefill_") {
@@ -5546,10 +5546,11 @@ app.post('/student-microevent', function(req, res){
 		else {
 			custom_error = "unknown section '" + section + "'";
 		}
-		if (section_required_fields.hasOwnProperty(section)) {
-			for (var srf_i in section_required_fields[section]) {
-				if (section_required_fields[section].hasOwnProperty(srf_i)) {
-					var srf = section_required_fields[section][srf_i];
+		if (has_setting(section+".required_fields")) {
+			var section_required_fields = peek_setting(section+".required_fields");
+			for (var srf_i in section_required_fields) {
+				if (section_required_fields.hasOwnProperty(srf_i)) {
+					var srf = section_required_fields[srf_i];
 					if (req.session.prefill.hasOwnProperty(srf)) {
 						if (fun.is_blank(req.session.prefill[srf])) delete req.session.prefill[srf];
 					}
@@ -5718,7 +5719,8 @@ app.post('/student-microevent', function(req, res){
 		}
 		else {
 			for (var field_name in req.body) {
-				if ( fun.array_contains(section_form_fields[section], field_name) ) {
+				var section_form_fields = peek_setting(section+".form_fields");
+				if (fun.array_contains(section_form_fields, field_name)) {
 					req.session.prefill[field_name] = req.body[field_name];
 				}
 			}
