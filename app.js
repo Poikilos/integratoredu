@@ -886,7 +886,7 @@ function get_filtered_form_fields_html(section, mode, username, show_collapsed_o
 				 (show_collapsed_only_enable && fun.array_contains(section_form_collapsed_fields, field_name )) ) {
 				var superscript="";
 				if (missing_fields && fun.array_contains(missing_fields, field_name)) superscript='<span style="color:red"><strong>*</strong></span>';
-				if (has_setting(section+".display_name."+friendly_name)) friendly_name = peek_setting(section+".display_name."+friendly_name);
+				if (has_setting(section+".form_display_names."+friendly_name)) friendly_name = peek_setting(section+".form_display_names."+friendly_name);
 				var prefill_value = "";
 				if (prefill && (prefill.hasOwnProperty(field_name))) prefill_value = prefill[field_name];
 				if (has_setting(section+".field_lookup_values."+field_name)) {
@@ -5037,15 +5037,17 @@ app.get('/reload-settings', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	if (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username)) {
 		ptcache = {};
+		var pt_msg = "; and emptied plain text file cache";
 		//if (req.query.asdf=="reload-settings") {
 		if (fs.existsSync(settings_path)) {
 			_settings = yaml.readSync(settings_path, "utf8");
-			req.session.success = "Successfully reloaded "+settings_path+".";
+			var time_msg = moment().format("HH:mm:ss");
+			req.session.success = "Successfully reloaded "+settings_path+pt_msg+" at "+time_msg+".";
 			console.log("[ ^. ] reloaded settings");
 		}
 		else {
 			_settings = JSON.parse(JSON.stringify(settings_default));
-			console.log("[ ^. ] reloaded settings from defaults");
+			console.log("[ ^. ] reloaded settings from defaults"+pt_msg+".");
 			//yaml.writeSync(settings_path, _settings, "utf8");
 			yaml.write(settings_path, _settings, "utf8", function (err) {
 				if (err) {
@@ -5053,7 +5055,7 @@ app.get('/reload-settings', function(req, res){
 				}
 				//else console.log("[ . ] saved settings");
 			});
-			req.session.notice = "WARNING: "+settings_path+" could not be read in /reload-settings, so loaded then saved defaults there instead.";
+			req.session.notice = "WARNING: "+settings_path+" could not be read in /reload-settings, so loaded then saved defaults there instead"+pt_msg+".";
 			//console.log("* saved settings");
 		}
 		//}
@@ -5242,14 +5244,23 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	else {
 		requested_unit = _selected_unit;
 	}
-	var script_name = null;
+	var file_key = null;
 	var script_msg = "";
 	var attributes = [];
 	var perms_octal = null;
-	if (params_dict.hasOwnProperty("script_name")) script_name = params_dict.script_name;
+	if (params_dict.hasOwnProperty("file_key")) {
+		// NOTE: # NOTE: # NOTE: file_key is redefined by unit.yml, in that file_key is just the key to the object in the `"tm.files."+machine_group+"."+kernel` dictionary is redefined by unit.yml, in that file_key is just the key to the object in the `"tm.files."+machine_group+"."+kernel` dictionary is redefined by unit.yml, in that file_key is just the key to the object in the `"tm.files."+machine_group+"."+kernel` dictionary
+		file_key = params_dict.file_key;
+	}
 	else {
-		script_name = "hourly";
-		script_msg += "; no script_name was in request"
+		if (params_dict.hasOwnProperty("script_name")) {
+			file_key = params_dict.script_name;
+			script_msg += "; script_name is deprecated--use file_key instead"
+		}
+		else {
+			file_key = "hourly";
+			script_msg += "; no file_key was in request"
+		}
 	}
 	var kernel = null;
 	if (params_dict.hasOwnProperty("kernel")) kernel = params_dict.kernel;
@@ -5261,6 +5272,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	var this_endl = "\n";
 	var this_attrib = "chmod +";
 	var this_perms = "chmod ";
+	var good_flag = "update_enable: true";
 	if (kernel.toLowerCase() == "windows") {
 		script_remark = "REM ";
 		this_endl = "\r\n";
@@ -5275,70 +5287,81 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 		machine_group_s = "StudentMachines";
 		//TODO: lookup by MAC if present
 	}
-	// msg += this_endl + script_remark + script_name + ' cps for ' + kernel + ' for unit ' + params_dict.unit + " should appear below" + script_msg;
-	var script_setting_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "source_name";
-	var script_setting_dest_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "dest_path";
-	var script_setting_attribs_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "attributes";
-	var script_setting_p_octal_s = section + ".files." + machine_group_s + "." + kernel + "." + script_name + "." + "permissions_octal";
-	if (has_setting(script_setting_s)) {
-		if (has_setting(script_setting_dest_s)) {
-			if (has_setting(script_setting_attribs_s)) {
-				attributes = peek_setting(script_setting_attribs_s);
-			}
-			if (has_setting(script_setting_p_octal_s)) {
-				perms_octal = peek_setting(script_setting_p_octal_s);
-			}
-			var dest_path = peek_setting(script_setting_dest_s);
-			var source_name = peek_setting(script_setting_s);
-			var script_path = storage_path + "/units/" + requested_unit + "/" + section + "/files/(system)/" + source_name;
-			// console.log("loading " + script_path);
-			var lines = null;
-			if (ptcache.hasOwnProperty(script_path)) {
-				lines = ptcache[script_path];
+	var stated_username = null;
+	if (params_dict.hasOwnProperty("stated_username")) {
+		stated_username = params_dict.stated_username;
+		//TODO: record in tr directory
+	}
+	var local_username = null;
+	if (params_dict.hasOwnProperty("local_username")) {
+		local_username = params_dict.local_username;  // NOTE: unused
+	}
+	if (fun.is_not_blank(file_key)) {
+		// msg += this_endl + script_remark + file_key + ' cps for ' + kernel + ' for unit ' + params_dict.unit + " should appear below" + script_msg;
+		var script_setting_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "source_name";
+		var script_setting_dest_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "dest_path";
+		var script_setting_attribs_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "attributes";
+		var script_setting_p_octal_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "permissions_octal";
+		if (has_setting(script_setting_s)) {
+			if (has_setting(script_setting_dest_s)) {
+				if (has_setting(script_setting_attribs_s)) {
+					attributes = peek_setting(script_setting_attribs_s);
+				}
+				if (has_setting(script_setting_p_octal_s)) {
+					perms_octal = peek_setting(script_setting_p_octal_s);
+				}
+				var dest_path = peek_setting(script_setting_dest_s);
+				var source_name = peek_setting(script_setting_s);  // source_name never needs to be known by the user, it is the name of the file
+				var script_path = storage_path + "/units/" + requested_unit + "/" + section + "/files/(system)/" + source_name;
+				// console.log("loading " + script_path);
+				var lines = null;
+				if (ptcache.hasOwnProperty(script_path)) {
+					lines = ptcache[script_path];
+				}
+				else {
+					// data = fs.readFileSync(script_path);
+					lines = [];
+					fs.readFileSync(script_path).toString().split("\n").forEach(function(line, index, arr) {
+					  if (index === arr.length - 1 && line === "") { return; }
+					  lines.push(line);
+					});				
+					ptcache[script_path] = lines;
+				}
+				for (var l_i=0; l_i<lines.length; l_i++) {
+					if (l_i==1) {
+						msg += this_endl + script_remark + "file_key: " + file_key;
+						msg += this_endl + script_remark + "dest_path: " + dest_path;
+						if (remarks_list != null) {
+							for (var r_i=0; r_i<remarks_list.length; r_i++) {
+								msg += this_endl + script_remark + remarks_list[r_i];
+							}
+						}
+						if (attributes!==null) {
+							for (var atr_i=0; atr_i<attributes.length; atr_i++) {
+								msg += this_endl + script_remark + "post_install: " + this_attrib + attributes[atr_i] + ' "' + dest_path + '"';
+							}
+						}
+						if (perms_octal!==null) {
+							var var_name = "post_install";
+							if (this_perms===null) var_name="mismatched_os_setting";
+							msg += this_endl + script_remark + var_name + ": " + this_attrib + perms_octal + ' "' + dest_path + '"';
+						}
+					}
+					msg += this_endl + lines[l_i];
+				}
+				msg += this_endl + script_remark + good_flag;
 			}
 			else {
-				// data = fs.readFileSync(script_path);
-				lines = [];
-				fs.readFileSync(script_path).toString().split("\n").forEach(function(line, index, arr) {
-				  if (index === arr.length - 1 && line === "") { return; }
-				  lines.push(line);
-				});				
-				ptcache[script_path] = lines;
-			}
-			for (var l_i=0; l_i<lines.length; l_i++) {
-				if (l_i==1) {
-					msg += this_endl + script_remark + "source_name: " + source_name;
-					msg += this_endl + script_remark + "dest_path: " + dest_path;
-					if (remarks_list != null) {
-						for (var r_i=0; r_i<remarks_list.length; r_i++) {
-							msg += this_endl + script_remark + remarks_list[r_i];
-						}
-					}
-					if (attributes!==null) {
-						for (var atr_i=0; atr_i<attributes.length; atr_i++) {
-							msg += this_endl + script_remark + "post_install: " + this_attrib + attributes[atr_i] + ' "' + dest_path + '"';
-						}
-					}
-					if (perms_octal!==null) {
-						var var_name = "post_install";
-						if (this_perms===null) var_name="mismatched_os_setting";
-						msg += this_endl + script_remark + var_name + ": " + this_attrib + perms_octal + ' "' + dest_path + '"';
-					}
-				}
-				msg += this_endl + lines[l_i];
+				msg += this_endl + 'echo "server has no mps setting ' + script_setting_dest_s + '"';
 			}
 		}
 		else {
-			msg += this_endl + 'echo "server has no mps setting ' + script_setting_dest_s + '"';
+			msg += this_endl + 'echo "there is no mps setting ' + script_setting_s + '"';
 		}
-	}
+    }
 	else {
-		msg += this_endl + 'echo "there is no mps setting ' + script_setting_s + '"';
+		msg += this_endl + '# "failed to obtain mps since no file_key was specified by request"';
 	}
-	// }
-	// else {
-		// msg += this_endl + 'echo "failed to obtain mps since no unit was specified by request"';
-	// }
 	return msg;
 }
 

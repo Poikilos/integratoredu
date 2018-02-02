@@ -98,9 +98,11 @@ module.exports = {
 * technology management: you can add policy shell scripts by placing them in `units/<number>/tm/files/(system)/` where number is zero until units are implemented. The scripts can update each other--for example, the hourly script can contain (you must add a value for URL to the code below before using it as your /etc/cron.hourly/iedu-mps-hourly):
 ```bash
 #!/bin/sh
-# script_name: iedu-mps-daily
+# the following comments will be appended automatically by the webapp
+# file_key: daily
 # script_dest_path: /etc/cron.daily/iedu-mps-daily
-# machine policy script
+# (update_enable will be appended to bottom)
+
 # actually do stuff here
 cd /tmp
 iedu_update_other_name="daily"
@@ -113,7 +115,8 @@ fi
 if [ -f "$dest_name" ]; then
   rm -f "$dest_name"
 fi
-wget --output-document="$src_name" "$URL/cpsr?unit=0&kernel=linux&access_level=root&hostname=`hostname`&user=$USER&machine_group=StudentMachines&script_name=$iedu_update_other_name"
+wget --output-document="$src_name" "$URL/cppr?unit=0&kernel=linux&access_level=root&hostname=`hostname`&user=$USER&machine_group=StudentMachines&file_name=$iedu_update_other_name"
+# NOTE: file_name is redefined by unit.yml, in that file_name is just the key to the object in the `"tm.files."+machine_group+"."+kernel` dictionary
 mv "$src_name" "$dest_name"
 chmod +x "$dest_name"
 # and run it NOW (only uncomment the line below for the daily script, so it will run the hourly script an extra time after hourly script is updated; not the script that updates the daily script, otherwise the daily script will run more frequently which probably is doesn't fulfill its purpose well):
