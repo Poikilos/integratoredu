@@ -143,6 +143,7 @@ tm:
 
 ## Changes
 (2018-02-01)
+* fixed exception where default does not exist and setting does exist (check for key in default before recursing into default in peek_setting)
 * moved most settings to settings--no longer use hard coded globals:
   * friendly_section_names
   * selectable_modes
@@ -152,6 +153,8 @@ tm:
   * field_lookup_values (now section+".field_lookup_values")
   * section_form_collapsed_fields (now section+".form_collapsed_field")
   * section_form_friendly_names (now section+".form_display_names")
+  * section_sheet_fields (now section+".sheet_fields")
+  * section_sheet_fields_friendly_names (now section+".sheet_display_names"; see `peek_setting(section+".sheet_display_names")` )
 * moved settings name and local_time_zone to unit.name and unit.local_time_zone
 (2018-01-30)
 * you can now add policy shell scripts (see "policy scripts" point in Usage)

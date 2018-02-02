@@ -125,22 +125,6 @@ friendly_mode_action_text.reports = "Save";
 
 //TODO: move all to _settings_defaults instead (<section>.friendly_names <section>.friendly_name etc)
 
-var section_sheet_fields = {};
-section_sheet_fields.track = ["MAC","MachineName","UserName","HostName"];
-section_sheet_fields.care = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "=get_origin_date()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "created_by", "modified_by", "free_from", "free_to"];
-section_sheet_fields.commute = ["=get_date_from_path()", "time", "heading", "name", "grade_level", "reason"];
-
-var section_sheet_fields_friendly_names = {};
-section_sheet_fields_friendly_names.care = {"=get_date_from_path()":"Stored", "=get_origin_date()":"Created", "=caretime()":"Seconds", "=caretime_h()":"Hours", "=careprice()":"Accrued per 1", "free_from":"Morning Care End", "free_to":"After School Start", "stated_time":"Stated Time", "stated_date":"Stated Date", "first_name":"First", "last_name":"Last", "grade_level":"Grade Level", "created_by":"By", "modified_by":"Modified", "chaperone":"Chaperone", "family_id":"FamilyID", "time":"Time", "qty":"Count"};
-section_sheet_fields_friendly_names.commute = {"=get_date_from_path()":"Date", "grade_level":"Grade Level"};
-//section_sheet_fields_friendly_names.commute.time = "Time";
-
-
-//var section_sheet_fields_names = {};
-//section_sheet_fields_names.care = {};
-//section_sheet_fields_names.care.time = "Time";
-//section_sheet_fields_names.care["=get_date_from_path()"] = "Date";
-
 //used for spreadsheet view/export (such as: change time to stated_time if stated_time was specified by user)
 var section_fields_overrides = {};
 section_fields_overrides.care = {"time":"stated_time", "date":"stated_date"};
@@ -170,20 +154,16 @@ var only_employee_modify_sections = ["commute", "care"];
 //autofill_requires["care"] = {};
 //autofill_requires["care"]["family_id"] = ["first_name", "last_name", "grade_level"];
 //autofill_requires["care"]["qty"] = ["first_name"];
-
 var autofill_cache = null;
-
-
 var autofill_cache_path = storage_path + "/units/" + _selected_unit + "/autofill_cache." + autofill_cache_format;
 var default_autofill_cache = {};
 default_autofill_cache.care = {};
 // default_autofill_cache.care.family_id = {"jake+gustafson+13":"-1", "jake+gustafson+0":"-1"};
 // default_autofill_cache.care.qty = {"j&s+gustafson+0":"2"};
-
 var default_total = {};
 default_total.care = "=careprice()";
-
 // var section_report_edit_field = {}; //runtime var, do not save (starts as value of _settings.section.mode.selected_field_default)
+
 
 var _settings = null;
 var _selected_unit = 0;
@@ -202,6 +182,8 @@ _settings_default.care.form_fields = ["first_name", "last_name", "chaperone", "g
 _settings_default.care.form_collapsed_fields = ["family_id", "stated_time", "stated_date"];
 _settings_default.care.form_display_names = {"first_name":"Student First Name", "last_name":"Student Last Name", "chaperone":"Pickup/Dropoff<br/>by&nbsp;Whom", "grade_level":"Grade", "stated_time":"Time (blank for auto, otherwise specify AM or PM)", "stated_date":"Date (blank for auto, otherwise must be in MM/DD/YYYY format)", "family_id":"Family ID (if applicable)", "pin":"override pin"};
 _settings_default.care.required_fields = ["first_name", "last_name", "chaperone", "grade_level"];
+_settings_default.care.sheet_fields = ["family_id", "=caretime_h()", "qty", "=careprice()", "=get_date_from_path()", "=get_origin_date()", "stated_date", "time", "stated_time", "first_name", "last_name", "grade_level", "chaperone", "created_by", "modified_by", "free_from", "free_to"];
+_settings_default.care.sheet_display_names = {"=get_date_from_path()":"Stored", "=get_origin_date()":"Created", "=caretime()":"Seconds", "=caretime_h()":"Hours", "=careprice()":"Accrued per 1", "free_from":"Morning Care End", "free_to":"After School Start", "stated_time":"Stated Time", "stated_date":"Stated Date", "first_name":"First", "last_name":"Last", "grade_level":"Grade Level", "created_by":"By", "modified_by":"Modified", "chaperone":"Chaperone", "family_id":"FamilyID", "time":"Time", "qty":"Count"};
 _settings_default.care.default_groupby = {};
 _settings_default.care.default_groupby = "family_id";
 _settings_default.care.extended_hours_hourly_price = 7.50;
@@ -247,9 +229,11 @@ _settings_default.commute.form_fields = ["name", "grade_level", "heading", "reas
 _settings_default.commute.form_collapsed_fields = ["stated_time", "stated_date", "pin"];
 _settings_default.commute.form_display_names = {"name":"Name", "grade_level":"Grade", "heading":"Heading", "reason":"Reason", "stated_time":"Custom Time (blank for auto, otherwise specify AM or PM)", "stated_date":"Custom Date (blank for auto, otherwise must be in MM/DD/YYYY format)", "pin":"override pin"};
 _settings_default.commute.required_fields = ["name", "grade_level", "heading", "reason"];
+_settings_default.commute.sheet_fields = ["=get_date_from_path()", "time", "heading", "name", "grade_level", "reason"];
+_settings_default.commute.sheet_display_names = {"=get_date_from_path()":"Date", "grade_level":"Grade Level"};  // "time":"Time"
+_settings_default.commute.history_sheet_fields = ["time", "name", "grade_level", "reason"];  // "=get_date_from_path()", 
 _settings_default.commute.local_start_time = '08:10:00';
 _settings_default.commute.local_end_time = '15:05:00';
-_settings_default.commute.history_sheet_fields = ["time", "name", "grade_level", "reason"];  // "=get_date_from_path()", 
 _settings_default.commute.reports = {};
 _settings_default.commute.reports.suggest_missing_required_fields_enable = true; //may cause slowness with loading reports when required fields are blank
 _settings_default.commute.reports.auto_select_month_enable = true; //ok since in reports section
@@ -259,19 +243,24 @@ _settings_default.track.display_name = ["Track"];
 _settings_default.track.form_fields = ["UserName", "MachineName", "HostName", "MAC"];
 _settings_default.track.required_fields = ["MAC"];
 _settings_default.track.form_display_names = {"mac":"HwAddr"};
+_settings_default.track.sheet_fields = ["MAC","MachineName","UserName","HostName"];
 _settings_default.track.status_keys = ["MAC"];
+//TODO: employee leave request (aka absence request)
 _settings_default.po = {};
-_settings_default.po.form_fields = ["form_po_number","form_vendor", "form_date"];
+_settings_default.po.minimum_key_values = {"po_number":4213}; //TODO: asdf implement this
+_settings_default.po.key_field = "po_number";  //TODO: asdf implement this
+_settings_default.po.sheet_fields = ["po_number","vendor", "date", "shipping", "total", "budget_account", "ordered_by", "approved_by"];
+_settings_default.po.form_fields = ["po_number","vendor", "date"];
 for (var i=0; i<18; i++) {
-	_settings_default.po.form_fields.push("form_qty_i_"+i)
-	_settings_default.po.form_fields.push("form_desc_i_"+i)
-	_settings_default.po.form_fields.push("form_unit_cost_i_"+i)
+	_settings_default.po.form_fields.push("qty_i_"+i)
+	_settings_default.po.form_fields.push("desc_i_"+i)
+	_settings_default.po.form_fields.push("unit_cost_i_"+i)
 }
-_settings_default.po.form_fields.push("form_shipping");
-_settings_default.po.form_fields.push("form_total");
-_settings_default.po.form_fields.push("form_budget_account");
-_settings_default.po.form_fields.push("form_ordered_by");
-_settings_default.po.required_fields = ["form_po_number","form_vendor", "form_date", "form_qty_i_0", "form_desc_i_0", "form_unit_cost_i_0", "form_shipping", "form_total", "form_ordered_by", "form_budget_account"];
+_settings_default.po.form_fields.push("shipping");
+_settings_default.po.form_fields.push("total");
+_settings_default.po.form_fields.push("budget_account");
+_settings_default.po.form_fields.push("ordered_by");
+_settings_default.po.required_fields = ["po_number","vendor", "date", "qty_i_0", "desc_i_0", "unit_cost_i_0", "shipping", "total", "ordered_by", "budget_account"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
 //var startTime = moment('08:10:00', "HH:mm:ss");
@@ -2127,7 +2116,8 @@ var hbs = exphbs.create({
 							ret += '<h4>Uncategorized Items Not Billed:</h4>';
 							var ui_i;
 							var ui_len;
-							if (section in section_sheet_fields) {
+							if (has_setting(section+".sheet_fields")) {
+								var section_sheet_fields = peek_setting(section+".sheet_fields")
 								if (unused_items.length>0) {
 									ret += '<div class="row">';
 									ret += '<div class="col-sm-10">';
@@ -2135,11 +2125,11 @@ var hbs = exphbs.create({
 									ret += '<table class="table">' + "\n";
 									ret += '  <thead>' + "\n";
 									ret += '  <tr>' + "\n";
-									for (ssf_i=0,ssf_len=section_sheet_fields[section].length; ssf_i<ssf_len; ssf_i++) {
+									for (ssf_i=0,ssf_len=section_sheet_fields.length; ssf_i<ssf_len; ssf_i++) {
 										ret += '  <th><small>';
-										var field_title = section_sheet_fields[section][ssf_i];
-										if ((section in section_sheet_fields_friendly_names) && (field_title in section_sheet_fields_friendly_names[section])) {
-											field_title = section_sheet_fields_friendly_names[section][field_title];
+										var field_title = section_sheet_fields[ssf_i];
+										if (has_setting(section+".sheet_display_names."+field_title)) {
+											field_title = peek_setting(section+".sheet_display_names."+field_title);
 										}
 										ret += field_title;
 										ret += '  </small></th>' + "\n";
@@ -2150,9 +2140,9 @@ var hbs = exphbs.create({
 									ret += '  </thead>' + "\n";
 									for (ui_i=0,ui_len=unused_items.length; ui_i<ui_len; ui_i++) {
 										ret += '  <tr>' + "\n";
-										for (ssf_i=0,ssf_len=section_sheet_fields[section].length; ssf_i<ssf_len; ssf_i++) {
+										for (ssf_i=0,ssf_len=section_sheet_fields.length; ssf_i<ssf_len; ssf_i++) {
 											ret += '  <td class="table-warning">';
-											var ssf = section_sheet_fields[section][ssf_i];
+											var ssf = section_sheet_fields[ssf_i];
 											var field_val = "&nbsp; ";
 											if (ssf in unused_items[ui_i].tmp) {
 												field_val = unused_items[ui_i].tmp[ssf];
@@ -2206,9 +2196,10 @@ var hbs = exphbs.create({
 			var ret = "";
 			var mode = "reports";
 			if (user_has_section_permission(username, section, mode)) {
-				if (section in section_sheet_fields) {
+				if (has_setting(section+".sheet_fields")) {
+					var section_sheet_fields = peek_setting(section+".sheet_fields");
 					var ssf_i;
-					var ssf_len=section_sheet_fields[section].length;
+					var ssf_len=section_sheet_fields.length;
 					var y_path;
 					var table_path;
 					//ret += '<div class="panel panel-default">';
@@ -2277,8 +2268,8 @@ var hbs = exphbs.create({
 									var required_key = _settings[section].autofill_requires[this_field][_s_i];
 									var this_val = "";
 									var field_friendly_name = required_key;
-									if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(required_key))
-										field_friendly_name = section_sheet_fields_friendly_names[section][required_key]; // uses sheet display name since shorter than section+".form_display_names"
+									if (has_setting(section+".sheet_display_names."+required_key))
+										field_friendly_name = peek_setting(section+".sheet_display_names."+required_key); // uses sheet display name since shorter than section+".form_display_names"
 									ret += '  <div class="input-group mb-2 mb-sm-0">' + "\n";
 									ret += '  <span class="input-group-addon" >'+field_friendly_name+':</span>' + "\n";
 									//ret += '    <div class="col-sm-10">';
@@ -2288,8 +2279,8 @@ var hbs = exphbs.create({
 								}
 								ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+this_field+'"/>' + "\n";
 								var this_field_friendly_name = this_field;
-								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(this_field))
-									this_field_friendly_name = section_sheet_fields_friendly_names[section][this_field];
+								if (has_setting(section+".sheet_display_names."+this_field))
+									this_field_friendly_name = peek_setting(section+".sheet_display_names."+this_field);
 								
 								ret += '  <div class="input-group mb-2 mb-sm-0">' + "\n";
 								ret += '  <span class="input-group-addon" style="font-weight:bold">Change '+this_field_friendly_name+' to:</span>' + "\n";
@@ -2328,11 +2319,11 @@ var hbs = exphbs.create({
 						ret += '            </form>' + "\n";
 						
 						var free_from_caption = "free_from";
-						if ((section_sheet_fields_friendly_names!=null) && (section in section_sheet_fields_friendly_names) && ("free_from" in section_sheet_fields_friendly_names[section]))
-							free_from_caption = section_sheet_fields_friendly_names[section].free_from;
+						if (has_setting(section+".sheet_display_names.free_from"))
+							free_from_caption = peek_setting(section+".sheet_display_names.free_from");
 						var free_to_caption = "free_to";
-						if ((section_sheet_fields_friendly_names!=null) && (section in section_sheet_fields_friendly_names) && ("free_to" in section_sheet_fields_friendly_names[section]))
-							free_to_caption = section_sheet_fields_friendly_names[section].free_to;
+						if (peek_setting(section+".sheet_display_names.free_to"))
+							free_to_caption = peek_setting(section+".sheet_display_names.free_to");
 						ret += "             "+free_from_caption+"\n";
 						ret += '            <form class="form-inline" id="change-section-settings" action="' + config.proxy_prefix_then_slash + 'change-section-settings" method="post">' + "\n";
 						ret += '              <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
@@ -2395,7 +2386,8 @@ var hbs = exphbs.create({
 					ret += '</div>' + "\n";
 					if (selected_month) {
 						var items_by_date = {};
-						if (section_sheet_fields.hasOwnProperty(section)) {
+						if (has_setting(section+".sheet_fields")) {
+							var section_sheet_fields = peek_setting(section+".sheet_fields")
 							var parsing_info = "";
 							var parsing_error = "";
 							var items = [];
@@ -2409,13 +2401,13 @@ var hbs = exphbs.create({
 							ret += '      <th>&nbsp;<!--status--></th>';
 							if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>';
 							for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-								var key = section_sheet_fields[section][ssf_i];
+								var key = section_sheet_fields[ssf_i];
 								var name = key;
 								if (selected_field==key) ret += '      <th class="bg-info">' + "\n";
 								else ret += '      <th>' + "\n";
 								ret += '<small>';
-								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
-									name = section_sheet_fields_friendly_names[section][key];
+								if (has_setting(section+".sheet_display_names."+key)) {
+									name = peek_setting(section+".sheet_display_names."+key);
 								}
 								if (default_total.hasOwnProperty(section)) {
 									if (key==default_total[section]) name = "Total " + name; //such as Total Accrued
@@ -2526,7 +2518,7 @@ var hbs = exphbs.create({
 														}
 														for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 															//ret += '      <td>' + "\n";
-															var this_sff = section_sheet_fields[section][ssf_i];
+															var this_sff = section_sheet_fields[ssf_i];
 															//NOTE: intentionally gets desired fields only
 															
 															if (this_sff.substring(0,1)=="=") {
@@ -2830,7 +2822,7 @@ var hbs = exphbs.create({
 										
 										if (ssf_i===0) ret += '<a name="'+a_name+'"></a>';
 										if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
-										var column_name = section_sheet_fields[section][ssf_i];
+										var column_name = section_sheet_fields[ssf_i];
 										//NOTE: intentionally gets desired fields only
 										var val = "";
 										if (column_name in item.tmp) { // if (item.tmp.hasOwnProperty(column_name)) {
@@ -3703,20 +3695,20 @@ var hbs = exphbs.create({
 						var name = key;
 						var param_name = get_sheet_primary_param_name(key);
 						if (param_name) {
-							if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(param_name))
-								name = section_sheet_fields_friendly_names[section][param_name];
+							if (has_setting(section+".sheet_display_names."+param_name))
+								name = peek_setting(section+".sheet_display_names."+param_name);
 							else name = param_name;
 						}
 						else {
 							var function_name = get_sheet_function_name(key);
 							if (function_name) {
 								var function_key = "="+function_name;
-								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(function_key))
-									name = section_sheet_fields_friendly_names[section][function_key];
+								if (has_setting(section+".sheet_display_names."+function_key))
+									name = peek_setting(section+".sheet_display_names."+function_key);
 							}
 							else {
-								if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(key))
-									name = section_sheet_fields_friendly_names[section][key];
+								if (has_setting(section+".sheet_display_names."+key))
+									name = peek_setting(section+".sheet_display_names."+key);
 							}
 						}
 						if (name) ret += name;
@@ -4011,11 +4003,12 @@ app.get('/', function(req, res){
 	}
 
 	if (section) {
-		if (section_sheet_fields.hasOwnProperty(section)) {
-			for (var indexer in section_sheet_fields[section]) {
-				var ssf = section_sheet_fields[section][indexer];
+		if (has_setting(section+".sheet_fields")) {
+			var section_sheet_fields = peek_setting(section+".sheet_fields");
+			for (var indexer in section_sheet_fields) {
+				var ssf = section_sheet_fields[indexer];
 				this_sheet_field_names.push(ssf);
-				if (section_sheet_fields_friendly_names.hasOwnProperty(section) && section_sheet_fields_friendly_names[section].hasOwnProperty(ssf)) ssf = section_sheet_fields_friendly_names[section][ssf];
+				if (has_setting(section+".sheet_display_names."+ssf)) ssf = peek_setting(section+".sheet_display_names."+ssf);
 				this_sheet_field_friendly_names.push(ssf);
 			}
 		}
@@ -5398,10 +5391,11 @@ app.get('/change-selection', function (req, res) {
 			var val;
 			if (req.query.change_section_report_edit_field) {
 				var selected_field = null;
-				if (section_sheet_fields_friendly_names.hasOwnProperty(section)) {
-					for (var key in section_sheet_fields_friendly_names[section]) {
-						if (section_sheet_fields_friendly_names[section].hasOwnProperty(key)) {
-							val = section_sheet_fields_friendly_names[section][key];
+				if (peek_setting(section+".sheet_display_names")) {
+					var sheet_display_names = peek_setting(section+".sheet_display_names");
+					for (var key in sheet_display_names) {
+						if (has_setting(section+".sheet_display_names."+key)) {
+							val = peek_setting(section+".sheet_display_names."+key);
 							if (key.toLowerCase()==req.query.change_section_report_edit_field.toLowerCase()) {
 								selected_field = key;
 								break;
@@ -5413,9 +5407,10 @@ app.get('/change-selection', function (req, res) {
 						}
 					}
 				}
-				if (selected_field===null && section_sheet_fields.hasOwnProperty(section)) {
-					for (var i=0; i<section_sheet_fields[section].length; i++) {
-						val = section_sheet_fields[section][i];
+				if (selected_field===null && has_setting(section+".sheet_fields")) {
+					var section_sheet_fields = peek_setting(section+".sheet_fields");
+					for (var i=0; i<section_sheet_fields.length; i++) {
+						val = section_sheet_fields[i];
 						if (val.toLowerCase()==req.query.change_section_report_edit_field) {
 							selected_field = val;
 						}
