@@ -249,18 +249,22 @@ _settings_default.track.status_keys = ["MAC"];
 _settings_default.po = {};
 _settings_default.po.minimum_key_values = {"po_number":4213}; //TODO: asdf implement this
 _settings_default.po.key_field = "po_number";  //TODO: asdf implement this
-_settings_default.po.sheet_fields = ["po_number","vendor", "date", "shipping", "total", "budget_account", "ordered_by", "approved_by"];
-_settings_default.po.form_fields = ["po_number","vendor", "date"];
+_settings_default.po.prefill_methods = {"stated_date":"date()"}; //TODO: asdf implement this
+_settings_default.po.sheet_fields = ["po_number","vendor", "stated_date", "shipping", "total", "budget_account", "ordered_by", "approved_by"];
+_settings_default.po.form_fields = ["po_number","vendor", "stated_date", "vendor_phone", "vendor_addr_lines_i_0", "vendor_addr_lines_i_1", "vendor_city", "vendor_state", "vendor_zip", "vendor_country"];
 for (var i=0; i<18; i++) {
 	_settings_default.po.form_fields.push("qty_i_"+i)
+	_settings_default.po.form_fields.push("order_no_i_"+i)
 	_settings_default.po.form_fields.push("desc_i_"+i)
 	_settings_default.po.form_fields.push("unit_cost_i_"+i)
+	_settings_default.po.form_fields.push("amount_i_"+i)
 }
 _settings_default.po.form_fields.push("shipping");
 _settings_default.po.form_fields.push("total");
 _settings_default.po.form_fields.push("budget_account");
+_settings_default.po.form_fields.push("budget_account_other");
 _settings_default.po.form_fields.push("ordered_by");
-_settings_default.po.required_fields = ["po_number","vendor", "date", "qty_i_0", "desc_i_0", "unit_cost_i_0", "shipping", "total", "ordered_by", "budget_account"];
+_settings_default.po.required_fields = ["po_number","vendor", "stated_date", "qty_i_0", "desc_i_0", "unit_cost_i_0", "shipping", "total", "ordered_by"];
 //var startTimeString = startTime.format("HH:mm:ss");
 //var endTimeString = endTime.format("HH:mm:ss");
 //var startTime = moment('08:10:00', "HH:mm:ss");
@@ -2189,6 +2193,13 @@ var hbs = exphbs.create({
 			else {
 				//ret += 'You do not have permission to access '+mode+' in this section' + "\n";
 				console.log(username+' does not have permission to access '+mode+' in this section');
+			}
+			return new Handlebars.SafeString(ret);
+		},
+		long_description: function(section, field_name, opts) {
+			var ret = "";
+			if (has_setting(section+".long_descriptions."+field_name)) {
+				ret += peek_setting(section+".long_descriptions."+field_name);
 			}
 			return new Handlebars.SafeString(ret);
 		},
@@ -5258,7 +5269,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 			script_msg += "; script_name is deprecated--use file_key instead"
 		}
 		else {
-			file_key = "hourly";
+			// file_key = "hourly";
 			script_msg += "; no file_key was in request"
 		}
 	}

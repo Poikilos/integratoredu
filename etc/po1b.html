@@ -1,0 +1,365 @@
+<!-- views/layouts/main.handlebars -->
+<!DOCTYPE html><html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="IntegratorEdu Learning Community Web App">
+    <meta name="author" content="">
+    <title>IntegratorEdu - Learning Community Web App</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+  .alert-fixed {
+    position:fixed;
+    top: 2em;
+    left: 0em;
+    width: 10%;
+    z-index:-1;
+    border-radius:0px;
+    opacity: 0.5;
+    filter: alpha(opacity=50); /* For IE8 and earlier */
+    }
+  </style>
+  </head>
+  <body onload="">
+    <div class="container" style="width:80%"><!--where our other templates will insert-->
+      <!-- views/home.handlebars -->
+      <!--this whole handlebars object is already in a container-->
+      <form class="form-horizontal" id="student-microevent" action="/sign/student-microevent"
+        method="post"> <input name="section" value="po" type="hidden"> <input
+          name="mode" id="mode" value="create" type="hidden">
+        <div class="form-group"> <label class="control-label col-sm-2"></label>
+          <div style="width:100%; text-align:right">
+            <div class="form-group"><label class="control-label col-sm-2">PO# <span
+                  class="hidden-print">(please leave blank for autofill)</span></label>
+              <div class="col-sm-10"> <input class="form-control" name="po_number"
+                  value="" type="text"> </div>
+            </div>
+          </div>
+          <table style="width: 100%" border="1">
+            <tbody>
+              <tr>
+                <td rowspan="1" colspan="6">
+                  <div style="text-align:center">Purchase Order</div>
+                  <br/>
+                </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="2">
+                  <div class="form-group"> <label class="control-label col-sm-2">Vendor:</label>
+                    <div class="col-sm-10"> <input class="form-control" name="vendor"
+                        value="" type="text"> </div>
+                  </div>
+                </td>
+                <td rowspan="1" colspan="2">Phone: <input class="form-control"
+                    name="vendor_phone" value="" type="text"><br/>
+                </td>
+                <td>
+                  <div class="form-group"> <label class="control-label col-sm-2">Date:</label>
+                    <div class="col-sm-10"> <input class="form-control" name="stated_date"
+                        value="" type="text"> </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="6"><span style="color:gray">(address)&nbsp;</span><input
+                    class="form-control" name="vendor_addr_lines_i_0" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="6"><span style="color:white">(address)&nbsp;</span><input
+                    class="form-control" name="vendor_addr_lines_i_1" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="6"><span style="color:gray"><small>(city, state &nbsp;zip)&nbsp;</small></span><input class="form-control"
+                    name="vendor_city" value="" type="text">, <input class="form-control"
+                    name="vendor_state" value="" type="text"> &nbsp;<input class="form-control"
+                    name="vendor_zip" value="" type="text"> </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="6"><input class="form-control" name="vendor_country"
+                    value="US" type="text"><br/>
+                </td>
+              </tr>
+              <tr>
+                <td>Qty<br/>
+                </td>
+                <td>Order # (such as Amazon's)</td>
+                <td rowspan="1" colspan="1">Item Description<br/>
+                </td>
+                <td style="width: 193px;">Unit Cost<br/>
+                </td>
+                <td style="width: 61px;">Amount<br/>
+                  (blank=auto)<br/>
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_0" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_0" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_0" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_0" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_0" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_1" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_1" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_1" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_1" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_1" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_2" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_2" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_2" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_2" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_2" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_3" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_3" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_3" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_3" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_3" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_4" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_4" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_4" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_4" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_4" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_5" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_5" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_5" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_5" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_5" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_6" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_6" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_6" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_6" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_6" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_7" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_7" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_7" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_7" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_7" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_8" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_8" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_8" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_8" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_8" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_9" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_9" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_9" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_9" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_9" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_10" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_10" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_10" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_10" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_10" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_11" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_11" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_11" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_11" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_11" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_12" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_12" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_12" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_12" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_12" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_13" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_13" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_13" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_13" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_13" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_14" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_14" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_14" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_14" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_14" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_15" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_15" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_15" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_15" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_15" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_16" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_16" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_16" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_16" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_16" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><input class="form-control" size="4" name="qty_i_17" value="" type="text">
+                </td>
+                <td><input class="form-control" size="21" name="order_no_i_17" value="" type="text">
+                </td>
+                <td rowspan="1" colspan="1"><input class="form-control" name="desc_i_17" value="" type="text"> </td>
+                <td><input class="form-control" size="9" name="unit_cost_i_17" value="" type="text">
+                </td>
+                <td><input class="form-control" size="9" name="amount_i_17" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><br/>
+                </td>
+                <td><br/>
+                </td>
+                <td style="text-align:right" rowspan="1" colspan="1">Shipping</td>
+                <td><br/>
+                </td>
+                <td><input class="form-control" name="shipping" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td><br/>
+                </td>
+                <td><br/>
+                </td>
+                <td style="text-align:right" rowspan="1" colspan="1">Total</td>
+                <td><br/>
+                </td>
+                <td><input class="form-control" name="total" value="" type="text">
+                </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="3"> <br/>
+                  <div class="form-group"> <label class="control-label col-sm-2">Budget Account:</label>
+                    <div class="col-sm-10"> <input class="form-control" name="budget_account" value="" type="text"> </div>
+                  </div>
+                  <br/>
+                  {{long_description section "budget_account"}}<br/>
+                    <div class="form-group"> <label class="control-label col-sm-2">Other:</label>
+                    <div class="col-sm-10"> <input class="form-control" name="budget_account" value="" type="text"> </div>
+                  </div>
+                  {{long_description section "budget_account_other"}}
+
+                </td>
+                <td rowspan="1" colspan="3"><br/>
+                  <div class="form-group"> <label class="control-label col-sm-2">Ordered by:</label>
+                    <div class="col-sm-10"> <input class="form-control" name="ordered_by"
+                        value="" type="text"> </div>
+                  </div>
+                  <br/>
+                </td>
+              </tr>
+              <tr>
+                <td rowspan="1" colspan="6">Comment:<br/>
+                  <textarea rows="4" cols="50"></textarea> </td>
+              </tr>
+            </tbody>
+          </table>
+          <label class="control-label col-sm-2"><br/>
+          </label></div>
+        <div class="form-group">
+          <div class="col-sm-10" style="text-align:center"> <button type="submit"
+              class="btn btn-primary btn-sm">Enter</button> </div>
+        </div>
+      </form>
+      <br/>
+    </div>
+    <!--end row-->
+    <!--this whole handlebars object is already in a container-->
+    <!-- /container --> <br/>
+    <!--<p>Powered by <a href="http://github.com/expertmm/integratoredu">IntegratorEdu</a></p>-->
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  </body>
+</html>

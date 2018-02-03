@@ -1,0 +1,508 @@
+<!-- views/layouts/main.handlebars -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="IntegratorEdu Learning Community Web App">
+  <meta name="author" content="">
+
+  <title>IntegratorEdu - Learning Community Web App</title>
+
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <style>
+  .alert-fixed {
+    position:fixed; 
+    top: 2em; 
+    left: 0em; 
+    width: 10%;
+    z-index:-1; 
+    border-radius:0px;
+    opacity: 0.5;
+    filter: alpha(opacity=50); /* For IE8 and earlier */
+	}
+  </style>
+  </head>
+
+  <body onload="">
+    
+    <div class="container" style="width:80%">
+
+      <nav class="navbar navbar-default" role="navigation">
+      <div class="container-fluid">
+
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+      </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+			<span class="navbar-brand">IntegratorEdu</span>
+		<ul class="nav navbar-nav">
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=care&clear_selection=true">Extended Care</a>
+			</p></li>
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=commute&clear_selection=true">Commute</a>
+			</p></li>
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=admin&clear_selection=true">Advanced</a>
+			</p></li>
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=track&clear_selection=true">Track</a>
+			</p></li>
+			<li class="nav-item active"><p class="navbar-text">
+			po
+			</p></li>
+			
+			<li><p class="navbar-text">:
+			</li>
+			
+			<li class="nav-item active"><p class="navbar-text">
+			Entry Form
+			</p></li>
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=po&mode=read">History</a>
+			</p></li>
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=po&mode=settings">settings</a>
+			</p></li>
+			<li class="nav-item"><p class="navbar-text">
+			<a href="/sign/?section=po&mode=reports">Reports</a>
+			</p></li>
+			
+			<li class="nav-item"><p class="navbar-text"><a href="/sign/?section=po&mode=settings">Settings</a>
+			</p>
+			</li>			
+			
+		</ul>
+                
+		<ul class="nav navbar-nav navbar-right">
+		<li class="navbar-text">
+		admin
+		</li>
+		<li>
+		<a href="/sign/logout">Log Out</a>
+		</li>
+		</ul>
+        </div>
+      </div>
+    </nav>
+    <!--where our other templates will insert-->
+    <!-- views/home.handlebars -->
+<!--this whole handlebars object is already in a container-->
+        
+<form class="form-horizontal" id="student-microevent" action="/sign/student-microevent" method="post">
+  <input type="hidden" name="section" value="po"/>
+  <input type="hidden" name="mode" id="mode" value="create"/>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >po_number:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="po_number" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >vendor:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="vendor" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >date:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="date" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_0:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_0" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_0:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_0" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_0:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_0" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_1:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_1" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_1:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_1" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_1:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_1" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_2:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_2" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_2:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_2" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_2:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_2" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_3:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_3" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_3:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_3" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_3:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_3" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_4:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_4" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_4:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_4" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_4:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_4" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_5:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_5" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_5:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_5" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_5:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_5" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_6:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_6" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_6:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_6" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_6:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_6" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_7:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_7" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_7:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_7" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_7:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_7" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_8:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_8" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_8:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_8" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_8:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_8" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_9:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_9" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_9:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_9" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_9:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_9" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_10:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_10" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_10:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_10" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_10:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_10" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_11:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_11" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_11:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_11" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_11:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_11" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_12:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_12" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_12:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_12" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_12:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_12" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_13:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_13" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_13:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_13" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_13:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_13" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_14:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_14" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_14:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_14" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_14:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_14" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_15:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_15" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_15:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_15" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_15:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_15" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_16:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_16" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_16:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_16" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_16:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_16" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >qty_i_17:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="qty_i_17" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >desc_i_17:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="desc_i_17" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >unit_cost_i_17:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="unit_cost_i_17" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >shipping:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="shipping" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >total:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="total" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >budget_account:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="budget_account" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+  <label class="control-label col-sm-2" >ordered_by:</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="ordered_by" value=""/>
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="col-sm-10" style="text-align:center">
+      <button type="submit" class="btn btn-primary btn-sm">Enter</button>
+    </div>
+  </div>
+
+  </form>
+
+ 
+
+ 
+	
+	 
+		
+		<br/>
+		</div>
+	</div><!--end row-->
+	
+<!--this whole handlebars object is already in a container-->
+
+    
+
+
+
+    </div> <!-- /container -->
+    <br/>
+	<!--<p>Powered by <a href="http://github.com/expertmm/integratoredu">IntegratorEdu</a></p>-->
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>
