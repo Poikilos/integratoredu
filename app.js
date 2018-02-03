@@ -53,7 +53,7 @@ String.prototype.replaceAll = function(search, replacement) {
 //}
 
 var dat; //this is the cache
-var ptcache = {}; //this is the custom plain text file path cache
+var ptcache = {}; //this is the custom plain text cache by file path
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
@@ -658,6 +658,7 @@ has_setting_write_callback = function (err) {
 		else console.log("[ . ]: setting was missing so default written");// for: "+dot_notation);
 };
 
+//use dot notation aka "trail" to get deeper yaml scope starting with highest key
 function has_setting(dot_notation) {
 	if (_settings===null)  check_settings();
 	//enforce required settings by loading them from _settings_default
@@ -5217,20 +5218,57 @@ app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see al
 	res.send(msg);//res.write(msg);
 });
 
+//get list of file keys for files that should be on a given machine group
 app.get('/cpflr', function(req, res) {  // computer policy file list request
 	res.type('text/plain');  // res.setHeader("content-type", "text/plain");
 	var section = "tm";
-	var msg = "# policy file list by name";
+	var this_endl = "\n";
+	var kernel = null;
+	if (req.query.hasOwnProperty("kernel")) kernel = req.query.kernel.toLowerCase();
+	else {
+		kernel = "linux";
+		script_msg += "; no kernel was in request"
+	}
+	if (kernel == "windows") {
+		this_endl = "\r\n";
+	}
+	var good_flag = "update_enable: true";
+	var msg = "# policy file list by file_key" + this_endl;
 	if (req.query.hasOwnProperty("unit")) {
-		var kernel = null;
-		if (req.query.hasOwnProperty("kernel")) kernel = req.query.kernel;
-		else {
-			kernel = "linux";
-			script_msg += "; no kernel was in request"
+		var unit = req.query.unit;
+		var machine_group = null;
+		if (req.query.hasOwnProperty("machine_group")) {
+			machine_group = req.query.machine_group;
+			var cp_trail = section+".files."+machine_group+"."+kernel;
+			if (has_setting(cp_trail)) {
+				var cp = peek_setting(cp_trail);  // computer policy
+				for (var key in cp) {
+					if ("dest_path" in cp[key]) {
+						// client doesn't need to know the internal server source_path,
+						// but it has to exist for the server to serve it:
+						if ("source_name" in cp[key]) {
+							msg += key + ":" + this_endl;
+							msg += "  dest_path: " + cp[key].dest_path;
+							if (cp[key].hasOwnProperty("permissions_octal")) {
+								msg += "  permissions_octal: " + cp[key].permissions_octal;
+							}
+						}
+						else {
+							msg += "# missing source_path in " + cp_trail+"."+key;
+						}
+					}
+					else {
+						msg += "# missing dest_path in " + cp_trail+"."+key;
+					}
+				}
+			}
+			else {
+				msg += '# there is no matching cp setting for ' + cp_trail + this_endl;
+			}
 		}
 	}
 	else {
-		msg += this_endl + 'echo "failed to obtain cps since no unit was specified by request"';
+		msg += '# failed to obtain cps since no unit was specified by request' + this_endl;
 	}
 	res.send(msg);
 });
@@ -5269,12 +5307,12 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 			script_msg += "; script_name is deprecated--use file_key instead"
 		}
 		else {
-			// file_key = "hourly";
+			// file_key = "daily";
 			script_msg += "; no file_key was in request"
 		}
 	}
 	var kernel = null;
-	if (params_dict.hasOwnProperty("kernel")) kernel = params_dict.kernel;
+	if (params_dict.hasOwnProperty("kernel")) kernel = params_dict.kernel.toLowerCase();
 	else {
 		kernel = "linux";
 		script_msg += "; no kernel was in request"
@@ -5284,7 +5322,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	var this_attrib = "chmod +";
 	var this_perms = "chmod ";
 	var good_flag = "update_enable: true";
-	if (kernel.toLowerCase() == "windows") {
+	if (kernel == "windows") {
 		script_remark = "REM ";
 		this_endl = "\r\n";
 		this_attrib = "attrib +";
@@ -5309,20 +5347,20 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	}
 	if (fun.is_not_blank(file_key)) {
 		// msg += this_endl + script_remark + file_key + ' cps for ' + kernel + ' for unit ' + params_dict.unit + " should appear below" + script_msg;
-		var script_setting_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "source_name";
-		var script_setting_dest_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "dest_path";
-		var script_setting_attribs_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "attributes";
-		var script_setting_p_octal_s = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "permissions_octal";
-		if (has_setting(script_setting_s)) {
-			if (has_setting(script_setting_dest_s)) {
-				if (has_setting(script_setting_attribs_s)) {
-					attributes = peek_setting(script_setting_attribs_s);
+		var script_trail = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "source_name";
+		var script_dest_trail = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "dest_path";
+		var script_attribs_trail = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "attributes";
+		var script_octal_trail = section + ".files." + machine_group_s + "." + kernel + "." + file_key + "." + "permissions_octal";
+		if (has_setting(script_trail)) {
+			if (has_setting(script_dest_trail)) {
+				if (has_setting(script_attribs_trail)) {
+					attributes = peek_setting(script_attribs_trail);
 				}
-				if (has_setting(script_setting_p_octal_s)) {
-					perms_octal = peek_setting(script_setting_p_octal_s);
+				if (has_setting(script_octal_trail)) {
+					perms_octal = peek_setting(script_octal_trail);
 				}
-				var dest_path = peek_setting(script_setting_dest_s);
-				var source_name = peek_setting(script_setting_s);  // source_name never needs to be known by the user, it is the name of the file
+				var dest_path = peek_setting(script_dest_trail);
+				var source_name = peek_setting(script_trail);  // source_name never needs to be known by the user, it is the name of the file
 				var script_path = storage_path + "/units/" + requested_unit + "/" + section + "/files/(system)/" + source_name;
 				// console.log("loading " + script_path);
 				var lines = null;
@@ -5363,11 +5401,11 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 				msg += this_endl + script_remark + good_flag;
 			}
 			else {
-				msg += this_endl + 'echo "server has no mps setting ' + script_setting_dest_s + '"';
+				msg += this_endl + 'echo "server has no mps setting ' + script_dest_trail + '"';
 			}
 		}
 		else {
-			msg += this_endl + 'echo "there is no mps setting ' + script_setting_s + '"';
+			msg += this_endl + 'echo "there is no mps setting ' + script_trail + '"';
 		}
     }
 	else {
