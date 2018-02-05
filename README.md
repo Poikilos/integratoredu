@@ -146,7 +146,8 @@ tm:
 
 ## Changes
 (2018-02-01)
-* if username is admin, has all permissions to every section automatically regardless of permissions.yml and groups.yml settings* fixed exception where default does not exist and setting does exist (check for key in default before recursing into default in peek_setting)
+* if username is admin, has all permissions to every section automatically regardless of permissions.yml and groups.yml settings
+* fixed exception where default does not exist and setting does exist (check for key in default before recursing into default in peek_setting)
 * moved most settings to settings--no longer use hard coded globals:
   * friendly_section_names
   * selectable_modes
