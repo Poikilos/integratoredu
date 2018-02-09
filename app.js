@@ -1360,16 +1360,16 @@ function get_next_table_index(section, category, increment_after_getting_enable)
 
 
 //returns object which only includes out_path if file was written
-function push_next_transaction(section, category, ymd_array, item, as_username, autofill_enable) {
+function push_next_transaction(unit, section, category, ymd_array, item, as_username, autofill_enable) {
 	var this_index = get_next_transaction_index(section, category, ymd_array, true);
 	var table_path = get_table_path_if_exists_else_null(section, "transactions", category, true);
 	var results = null;
 	if (table_path !== null) {
-		results=write_record_without_validation(null, section, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
+		results=write_record_without_validation(null, unit, section, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_transaction had to try again since '"+results.error+"'");
 			this_index = get_next_transaction_index(section, category, ymd_array, true);
-			results=write_record_without_validation(null, section, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
+			results=write_record_without_validation(null, unit, section, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
 		}
 	}
 	else {
@@ -1379,23 +1379,23 @@ function push_next_transaction(section, category, ymd_array, item, as_username, 
 	return results;
 }
 
-function push_next_table_entry(section, category, item, as_username, autofill_enable) {
+function push_next_table_entry(unit, section, category, item, as_username, autofill_enable) {
 	var this_index = get_next_table_index(section, category, true);
 	var deepest_path = get_table_entry_parent_path(section, category, this_index, true);
 	var results = null;
 	if (deepest_path !== null) {
-		results = write_record_without_validation(null, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
+		results = write_record_without_validation(null, unit, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_table_entry had to try again since '"+results.error+"'");
 			this_index = get_next_table_index(section, category, true);
-			results = write_record_without_validation(null, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
+			results = write_record_without_validation(null, unit, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
 		}
 	}
 	return results;
 }
 
 //if name is null, name of .yml file is in HHmmss format, where time is now, and hyphen and sequential digit is added if two entries are created in same second.
-function write_record_without_validation(req_else_null, section, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
+function write_record_without_validation(req_else_null, unit, section, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
 	var results = {};
 	var category = "transactions";
 	var indent = "      ";
@@ -1548,9 +1548,24 @@ function write_record_without_validation(req_else_null, section, date_array_else
 			results.out_path = out_path;
 			console.log(indent+"  done.");
 			if (fsc===null) fsc = {};
-			if (!fsc.hasOwnProperty(_selected_unit)) fsc[_selected_unit] = {};
-			if (!fsc[_selected_unit].hasOwnProperty(section)) fsc[_selected_unit][section] = {};
-			if (!fsc[_selected_unit][section].hasOwnProperty(category))
+			if (!fsc.hasOwnProperty(unit))
+				fsc[unit] = {};
+			if (!fsc[unit].hasOwnProperty(section))
+				fsc[unit][section] = {};
+			if (!fsc[unit][section].hasOwnProperty(category))
+				fsc[unit][section][category] = {};
+			if (!fsc[unit][section][category].hasOwnProperty("table_name"))
+				fsc[unit][section][category][table_name] = {};
+			if (fun.is_not_blank(y_dir_name)) {
+				if (!fsc[unit][section][category][table_name]) {
+					fsc[unit][section][category][table_name][y_dir_name] = {};
+					if (fun.is_not_blank(m_dir_name)) {
+						if (!fsc[unit][section][category][table_name][y_dir_name].hasOwnProperty(m_dir_name)) {
+							fsc[unit][section][category][table_name][y_dir_name] = {};
+						}
+					}
+				}
+			}
  			//write cache
 			//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
 			/*
@@ -3646,7 +3661,7 @@ var hbs = exphbs.create({
 		//get_startup_js_code: function(opts) {
 		//	return session.runme;
 		//},
-		show_status: function(section, opts) {
+		show_status: function(unit, section, opts) {
 			var ret="";
 			if (fun.array_contains(tracking_sections, section)) {
 				var found = false;
@@ -3690,9 +3705,9 @@ var hbs = exphbs.create({
 				ret += '<br/>' + "\n";
 				
 				if (section) {
-					if ((dat!==null) && ("units" in dat) && (_selected_unit in dat.units)) {
-						if (section in dat.units[_selected_unit]) {
-							if (("status" in dat.units[_selected_unit][section])) {
+					if ((dat!==null) && ("units" in dat) && (unit in dat.units)) {
+						if (section in dat.units[unit]) {
+							if (("status" in dat.units[unit][section])) {
 								var tracked_count = 0;
 								if (has_setting(section+".status_keys")) {
 									found = true;
@@ -3706,8 +3721,8 @@ var hbs = exphbs.create({
 										//item.tmp = {};
 										//if (item.hasOwnProperty(primary_key)) {
 										//item.tmp.key = item[primary_key];
-										for (var id in dat.units[_selected_unit][section].status[primary_key]) {
-											ret+= '<p>'+JSON.stringify(dat.units[_selected_unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
+										for (var id in dat.units[unit][section].status[primary_key]) {
+											ret+= '<p>'+JSON.stringify(dat.units[unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
 											//req.session.success = "tracking: "+JSON.stringify(item);
 											//tracked_count++;
 										}
@@ -3718,9 +3733,9 @@ var hbs = exphbs.create({
 							}
 							else ret += "<!--show_status: no status in section "+section+"-->";
 						}
-						else ret += "<!--show_status: no section "+section+" in unit "+_selected_unit+"-->";
+						else ret += "<!--show_status: no section "+section+" in unit "+unit+"-->";
 					}
-					else ret += "<!--show_status: no unit "+_selected_unit+" in dat.units-->";
+					else ret += "<!--show_status: no unit "+unit+" in dat.units-->";
 				}
 				else ret += "<!--show_status: no section-->";
 				if (!found) ret += "There is no data from tracked devices yet. Try installing iedup binary on a device (or via iedusm if release version is available).";
@@ -4890,6 +4905,7 @@ app.post('/split-entry', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	var bookmark_enable = false;
 	var indent="  ";
+	//TODO: asdf define unit
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(req.user.username, section, "modify")) {
@@ -4979,7 +4995,7 @@ app.post('/split-entry', function(req, res){
 														//fields were already validated since using an existing entry
 														//fields were already autofilled above
 														//                             req_else_null, section, date_array_else_null, record, deepest_dir, as_username,     write_mode, custom_file_name_else_null, autofill_enable
-														var write_new_results = write_record_without_validation(req, section, date_array,    null,       new_item, req.user.username, "create", new_key,                    false); 
+														var write_new_results = write_record_without_validation(req, unit, section, date_array,    null,       new_item, req.user.username, "create", new_key,                    false); 
 														if (write_new_results.out_path && write_new_results.out_name) { //write_new_results.out_path is only set AFTER file is written so always check that
 															new_item.key = write_new_results.out_name;
 															dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][write_new_results.out_name] = new_item;
@@ -5019,7 +5035,7 @@ app.post('/split-entry', function(req, res){
 														original_item.active = false; //no longer use the record, it has been split
 														original_item[req.body.selected_field] = original_field_value;
 														console.log(indent + "saving old record as deactivated: " + req.body.selected_key);
-														var results = write_record_without_validation(req, section, date_array, null, original_item, req.user.username, "modify", req.body.selected_key, false);
+														var results = write_record_without_validation(req, unit, section, date_array, null, original_item, req.user.username, "modify", req.body.selected_key, false);
 														//dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = original_item;
 														if (fun.is_blank(results.error)) {
 															if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
@@ -5078,62 +5094,103 @@ app.post('/split-entry', function(req, res){
 	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?("#"+req.body.scroll_to_named_a):""));
 });
 
+function param_info(params, name, source) {
+	var results = {};
+	results.value = null;
+	if (typeof params.hasOwnProperty !== 'function') {
+		console.log("ERROR in param_info: params must be converted to object");
+	}
+	if (params.hasOwnProperty(name)) {
+		results.value = params[name];
+		if (fun.is_blank(results.value)) {
+			results.error = "value for " + name + " is blank";
+			results.value = null;
+		}
+		else {
+			if (!source.hasOwnProperty(results.value)) {
+				results.value = null;
+				results.error = name + " " + results.value + " does not exist."
+			}
+		}
+	}
+	else {
+		results.error = "no unit specified";
+	}
+	return results;
+}
+
+// Admin can save status, which is normally only in memory (at some point it should be saved in intervals and onlu if changed)
 app.get('/save-status', function(req, res){
+	// NOTE: req.body does not inherit from object therefore doesn't have
+	// hasOwnProperty
 	var sounds_path_then_slash = "sounds/";
 	if (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username)) {
-		if ("section" in req.query) {
-			var section = req.query.section;
-			if ((dat!==null) && ("units" in dat) && (_selected_unit in dat.units)) {
-				if (section in dat.units[_selected_unit]) {
-					if (("status" in dat.units[_selected_unit][section])) {
-						var tracked_count = 0;
-						if (has_setting(section+".status_keys")) {
-							var status_keys = peek_setting(section+".status_keys");
-							//"<!--show_status: listing "+status_keys.length+" status_key(s) for "+section+"-->";
-							if (!fs.existsSync(storage_path)) fs.mkdirSync(storage_path);
-							var units_path = storage_path + "/units";
-							if (!fs.existsSync(units_path)) fs.mkdirSync(units_path);
-							var unit_path = units_path + "/" + _selected_unit;
-							if (!fs.existsSync(unit_path)) fs.mkdirSync(unit_path);
-							var section_path = unit_path + "/" + section;
-							if (!fs.existsSync(section_path)) fs.mkdirSync(section_path);
-							var category_path = section_path + "/status";
-							if (!fs.existsSync(category_path)) fs.mkdirSync(category_path);
-							
-							for (var k_i=0; k_i<status_keys.length; k_i++) {
-								var primary_key = status_keys[k_i];
-								//item.tmp = {};
-								//if (item.hasOwnProperty(primary_key)) {
-								//item.tmp.key = item[primary_key];
-								var table_path = category_path + "/" + primary_key; //NAME of primary_key, such as "MAC" folder inside "status" folder
-								if (!fs.existsSync(table_path)) fs.mkdirSync(table_path);
-								for (var id in dat.units[_selected_unit][section].status[primary_key]) {
-									//req.session.success = JSON.stringify(dat.units[_selected_unit][section].status[primary_key][id]);
-									//req.session.success = "saved: "+JSON.stringify(item);
-									//tracked_count++;
-									var id_path = table_path + "/" + id;
-									if (!fs.existsSync(id_path)) fs.mkdirSync(id_path);//make it a folder so it can contain multipart data
-									var yml_path = id_path + "/" + "status.yml";
-									//TODO: Compare and keep old metadata: just mark 'active: false' on old member object(s) only.
-									//TODO: * also save changes to audit trail
-									yaml.write(yml_path, dat.units[_selected_unit][section].status[primary_key][id], "utf8", function (err) {
+		var u_info = param_info(req.query, "unit", fsc);
+		var unit = u_info.value;
+		var section = null;
+		if (u_info.hasOwnProperty("error")) req.session.error = u_info.error;
+		else {
+			var s_info = param_info(req.query, "section", fsc[unit]);
+			section = s_info.value;
+			if (s_info.hasOwnProperty("error")) req.session.error = s_info.error;
+		}
+		if ((unit!==null) && (section!=null)) {
+			if ((fsc[unit][section].hasOwnProperty("status"))) {
+				var tracked_count = 0;
+				if (has_setting(section+".status_keys")) {
+					var status_keys = peek_setting(section+".status_keys");
+					//"<!--show_status: listing "+status_keys.length+" status_key(s) for "+section+"-->";
+					if (!fs.existsSync(storage_path)) fs.mkdirSync(storage_path);
+					var units_path = storage_path + "/units";
+					if (!fs.existsSync(units_path)) fs.mkdirSync(units_path);
+					var unit_path = units_path + "/" + unit;
+					if (!fs.existsSync(unit_path)) fs.mkdirSync(unit_path);
+					var section_path = unit_path + "/" + section;
+					if (!fs.existsSync(section_path)) fs.mkdirSync(section_path);
+					var category = "status";
+					var category_path = section_path + "/" + category;
+					if (!fs.existsSync(category_path)) fs.mkdirSync(category_path);
+					
+					for (var k_i=0; k_i<status_keys.length; k_i++) {
+						var primary_key = status_keys[k_i];
+						//item.tmp = {};
+						//if (item.hasOwnProperty(primary_key)) {
+						//item.tmp.key = item[primary_key];
+						var table_name = primary_key;
+						var table_path = category_path + "/" + table_name; //table_name folder, such as "MAC" folder inside "status" folder
+						if (!fs.existsSync(table_path)) fs.mkdirSync(table_path);
+						
+						for (var id in fsc[unit][section][category][table_name]) {
+							if (fsc[unit][section][category][table_name].hasOwnProperty(id)) {
+								//tracked_count++;
+								var id_path = table_path + "/" + id;  // such as status/MAC/FFFFFFFFFFFF folder containing status.yml and possibly other info
+								if (!fs.existsSync(id_path)) fs.mkdirSync(id_path);  // make it a folder so it can contain multipart data
+								var file_name = "status.yml";
+								var yml_path = id_path + "/" + file_name;
+								//TODO: Compare and keep old metadata (mark 'active: false' on old member object(s) only?)
+								//TODO: * also save changes to audit trail
+								if (fsc[unit][section][category][table_name][id].hasOwnProperty(file_name)) {
+									yaml.write(yml_path, fsc[unit][section][category][table_name][id][file_name], "utf8", function (err) {
 										if (err) {
 											console.log("[ status ] Error during /save-status: " + err);
 										}
 										//else console.log("[ . ] saved settings");
 									});
 								}
-								//}
+								else {
+									console.log("[ status ] Error during /save-status: " + file_name + " doesn't exist in cache for "
+											    + unit + "." + section + "." + category + "." + table_name + "." + id);
+								}
 							}
 						}
-						else req.session.error = ("/save-status: no status_keys for "+section);
+						//}
 					}
-					else req.session.error = ("/save-status: no status in section "+section);
 				}
-				else req.session.error = ("/save-status: no section "+section+" in unit "+_selected_unit);
+				else req.session.error = ("/save-status: no status_keys for "+section);
 			}
-			else req.session.error = ("/save-status: no unit "+_selected_unit+" in dat.units");
+			else req.session.error = ("/save-status: no status in section "+section);
 		}
+		//else error already shown
 	}
 	else {
 		req.session.error = "You are not in the admin group";
@@ -5213,96 +5270,105 @@ app.post('/poke-settings', function(req, res) {
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
-function do_track(body) {
+function do_track(params) {
+	// NOTE: before passing post (req.body as opposed to get's req.query), convert to object, since:
+	// req.body does not inherit from object therefore doesn't have hasOwnProperty
+	if (typeof params.hasOwnProperty !== 'function') {
+		console.log("ERROR in do_track: params must be converted to object");
+	}
 	var results = {};
 	//if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		//if (user_has_section_permission(req.user.username, "admin", "poke-settings")) {
-		if ("section" in body) {
-			var section = body.section;
-			if ("mode" in body) {
-				var mode = body.mode;
-				if (mode == "create") {
-					// always create since always anonymous
-				}
-				else {
-					results.error = "only create is implemented."; //continue anyway though
-				}
-				if (has_setting(section+".status_keys")) {
-					var status_keys = peek_setting(section+".status_keys");
-					
-					if (!dat) dat = {};
-					if (!("units" in dat)) dat.units = {};
-					if (!(_selected_unit in dat.units)) dat.units[_selected_unit] = {};
-					if (!(section in dat.units[_selected_unit])) dat.units[_selected_unit][section] = {};
-					if (!("status" in dat.units[_selected_unit][section])) dat.units[_selected_unit][section].status = {};
-					var tracked_count = 0;
-					for (var k_i=0; k_i<status_keys.length; k_i++) {
-						var primary_key = status_keys[k_i];
-						if (primary_key in body) {
-							var id = body[primary_key];
-							//item.tmp = {};
-							var item = null; //start as null for each key, in case their are multiple tables (each with different primary key)
-							var modify_enable = false;
-							if ( (primary_key in dat.units[_selected_unit][section].status)
-								&& (id in dat.units[_selected_unit][section].status[primary_key])
-							) {
-								item = dat.units[_selected_unit][section].status[primary_key][id]
-								modify_enable = true;
-							}
-							if (item === null) item = {};
+	var u_info = param_info(params, "unit", fsc);
+	var unit = u_info.value;
+	var section = null;
+	if (u_info.hasOwnProperty("error")) results.error = u_info.error;
+	else {
+		var s_info = param_info(req.query, "section", fsc[unit]);
+		section = s_info.value;
+		if (s_info.hasOwnProperty("error")) results.error = s_info.error;
+	}
+	if ((unit!==null) && (section!=null)) {
+	
+		var section = params.section;
+		if ("mode" in params) {
+			var mode = params.mode;
+			if (mode == "create") {
+				// always create since always anonymous
+			}
+			else {
+				results.error = "only create is implemented."; //continue anyway though
+			}
+			if (has_setting(section+".status_keys")) {
+				var status_keys = peek_setting(section+".status_keys");
+				
+				if (!dat) dat = {};
+				if (!("units" in dat)) dat.units = {};
+				if (!(_selected_unit in dat.units)) dat.units[_selected_unit] = {};
+				if (!(section in dat.units[_selected_unit])) dat.units[_selected_unit][section] = {};
+				if (!("status" in dat.units[_selected_unit][section])) dat.units[_selected_unit][section].status = {};
+				var tracked_count = 0;
+				for (var k_i=0; k_i<status_keys.length; k_i++) {
+					var primary_key = status_keys[k_i];
+					if (primary_key in params) {
+						var id = params[primary_key];
+						//item.tmp = {};
+						var item = null; //start as null for each key, in case their are multiple tables (each with different primary key)
+						var modify_enable = false;
+						if ( (primary_key in dat.units[_selected_unit][section].status)
+							&& (id in dat.units[_selected_unit][section].status[primary_key])
+						) {
+							item = dat.units[_selected_unit][section].status[primary_key][id]
+							modify_enable = true;
+						}
+						if (item === null) item = {};
+						
+						//TODO: if modify_enable (if record existed), mark whatever changed and store old value in audit entry
+						for (var field_name in params) {
+							item[field_name] = params[field_name];
+						}
+						
+						if (item.hasOwnProperty(primary_key)) {
+							//item.tmp.key = item[primary_key];
+							item.key_name = primary_key;
+							var local_time_zone = null;
+							//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
+							//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+							if (local_time_zone !== null) item.tz = local_time_zone;
+							if (!("tz_offset_mins" in item)) item.tz_offset_mins = moment().utcOffset();
+							if (!("ctime" in item)) item.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+							else item.mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+							var local_now = moment();
 							
-							//TODO: if modify_enable (if record existed), mark whatever changed and store old value in audit entry
-							for (var field_name in body) {
-								item[field_name] = body[field_name];
-							}
-							
-							if (item.hasOwnProperty(primary_key)) {
-								//item.tmp.key = item[primary_key];
-								item.key_name = primary_key;
-								var local_time_zone = null;
-								//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting("unit.local_time_zone")) local_time_zone = peek_setting("unit.local_time_zone");
-								//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
-								if (local_time_zone !== null) item.tz = local_time_zone;
-								if (!("tz_offset_mins" in item)) item.tz_offset_mins = moment().utcOffset();
-								if (!("ctime" in item)) item.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-								else item.mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-								var local_now = moment();
+							if (!(primary_key in dat.units[_selected_unit][section].status)) dat.units[_selected_unit][section].status[primary_key] = {}; //such as "MAC" folder inside "status" folder
+							if (!(id in dat.units[_selected_unit][section].status[primary_key]))
+								dat.units[_selected_unit][section].status[primary_key][id] = item;
+							//else is already up to date since item is a reference to it
 								
-								if (!(primary_key in dat.units[_selected_unit][section].status)) dat.units[_selected_unit][section].status[primary_key] = {}; //such as "MAC" folder inside "status" folder
-								if (!(id in dat.units[_selected_unit][section].status[primary_key]))
-									dat.units[_selected_unit][section].status[primary_key][id] = item;
-								//else is already up to date since item is a reference to it
-									
-								results.success = "tracking: "+JSON.stringify(item);
-								tracked_count++;
-							}
+							results.success = "tracking: "+JSON.stringify(item);
+							tracked_count++;
 						}
 					}
-					if (tracked_count<1) {
-						results.error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
-					}
 				}
-				else {
-					results.error = "missing setting "+section+".status_keys";
+				if (tracked_count<1) {
+					results.error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
 				}
 			}
 			else {
-				results.error = "missing mode param";
+				results.error = "missing setting "+section+".status_keys";
 			}
 		}
 		else {
-			results.error = "missing section param";
-			//results.error = "not authorized to modify data for '" + section + "'";
-			//if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
-		//	delete req.session.prefill.pin;
+			results.error = "missing mode param";
 		}
+	}
 	//}	
 	return results;
 }//end do_track
 
 app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see also show_status helper
 	var results = do_track(req.query);
-	res.type('text/plain');//res.setHeader("content-type", "text/plain");
+	res.type('text/plain');  // res.setHeader("content-type", "text/plain");
 	var msg = "";
 	if ("error" in results) msg = "error: "+results.error;
 	if ("success" in results) msg += "\n" + results.success;
@@ -5534,7 +5600,11 @@ app.get('/cpsr', function(req, res) {  // computer policy text file request
 });
 
 app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see also show_status helper
-	var results = do_track(req.body);
+	var params = req.body;
+	if ((typeof params.hasOwnProperty) !== 'function') {
+		params = fun.to_object(req.body);
+	}
+	var results = do_track(fun.to_object(params));
 	var msg = "success: ok";
 	res.type('text/plain');//res.setHeader("content-type", "text/plain");
 	if ("success" in results) msg += "\n" + results.success;
@@ -5544,7 +5614,7 @@ app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see 
 	msg += "\n";
 	//msg += "settings:"+"\n"; //NOTE: iedup will resave settings each time if any are present (if below, if indented under "settings:")
 	//force iedup to use POST:
-	//msg += "  ping_host: " + req.get('host') + "/tp" + "\n"; //NOTE: this gets localhost
+	//msg += "  ping_host: " + req.get('host') + "/tp" + "\n"; //NOTE: this gets localhost for some reason (perhaps only certain network situations?)
 	//msg += "  form_method: POST" + "\n"; 
 	res.send(msg);//res.write(msg);
 }); //end "/tp"
@@ -5652,7 +5722,7 @@ app.post('/student-microevent', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	//sounds_path_then_slash = config.proxy_prefix_then_slash+"sounds/";
 	//sounds_path_then_slash = sounds_path_then_slash.substring(1); //remove leading slash
-	
+	//TODO: asdf define unit
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		//console.log("* NOTE: student-microevent by " + req.user.username);
 		//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
@@ -5833,8 +5903,8 @@ app.post('/student-microevent', function(req, res){
 					var ymd_array;
 					if (stated_date_enable) ymd_array = record.stated_date.split("-");  //ok since already validated or conformed
 					else ymd_array = moment().format("YYYY-MM-DD").split("-");
-					            //write_record_without_validation(req_else_null, section, date_array_else_null, deepest_dir_else_null, record, as_username,  write_mode,  custom_file_name_else_null, autofill_enable) {
-					var results = write_record_without_validation(req,           section, ymd_array,            null,                  record, req.user.username, "create", null,                      true); //already validated above
+					            //write_record_without_validation(req_else_null, unit, section, date_array_else_null, deepest_dir_else_null, record, as_username,  write_mode,  custom_file_name_else_null, autofill_enable) {
+					var results = write_record_without_validation(req,           unit, section, ymd_array,            null,                  record, req.user.username, "create", null,                      true); //already validated above
 					if (results.notice) req.session.notice = results.notice; //+"<!--" + out_path + "-->.";
 					if (fun.is_blank(results.error)) {
 						if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString

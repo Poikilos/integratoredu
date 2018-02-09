@@ -123,6 +123,8 @@ exports.localAuth = function (username, password) {
 
 ////// GENERAL FUNCTIONS ///////
 
+
+
 //from mtomis on <https://stackoverflow.com/questions/6831918/node-js-read-a-text-file-into-an-array-each-line-an-item-in-the-array> edited May 22 '12 at 11:42. 30 Jan 2018.
 //(func can be a function that does nothing, or a callback)
 function readLines(input, func) {
@@ -147,6 +149,15 @@ function readLines(input, func) {
       func(remaining);
     }
   });
+}
+
+exports.to_object = function(body) {
+	var results = null;
+	for (var key in body) {
+		if (results===null) results = {};
+		results[key] = body[key];
+	}
+	return results;
 }
 
 //from Titlacauan on https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs
