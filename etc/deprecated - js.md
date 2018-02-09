@@ -1,5 +1,55 @@
 # Deprecated code
 
+* Deprecated (was not being used)
+```javascript
+function get_transaction_years(unit, section, table) {  // formerly get_years
+	var section_path = storage_path + "/units/" + _selected_unit + "/" + section;
+	var category_path = section_path + "/transactions";
+	var table_path = category_path + "/" + table;
+	var year_month_string = moment().format("YYYY-MM");
+	var years;
+	if (!(dat[section]&&dat[section].years) || !listed_year_on_month || (listed_year_on_month!=year_month_string)) {
+		listed_year_on_month = year_month_string;
+		if (fs.existsSync(table_path)) {
+			if (!dat[section]) dat[section] = {};
+			years = fun.getVisibleDirectories(table_path);
+			dat[section].years = years;
+			//for (var y_i = 0; y_i < years.length; y_i++) {
+				//var this_year = years[y_i];
+				//dat[section][this_year] = {};
+			//}
+		}
+	}
+	else years = dat[section].years;
+	return years;
+}
+
+```
+
+* Deprecated (was not being used)
+```javascript
+function get_year_buttons_from_cache(unit, section, table, username) {
+	var ret = "";
+	var years = get_transaction_years(_selected_unit, section, table);
+	for (var i=0, len=years.length; i<len; i++) {
+		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
+		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
+		ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
+		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
+		ret += '<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />';
+		if (years[i]==selected_year) {
+			ret += '<button class="btn" type="submit">'+years[i]+'</button>';
+		}
+		else {
+			ret += '<button class="btn btn-default" type="submit">'+years[i]+'</button>';
+		}
+		ret += '</form>';
+	}
+	return ret;
+}
+```
+
 * Deprecated (use variables by same name instead)
 
 	```javascript

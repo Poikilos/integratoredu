@@ -113,7 +113,7 @@
 	{{/if_eq}} {{!--end if mode is read--}}
 
 	{{#if_eq mode "reports"}}
-	{{show_reports "false" section user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
+	{{show_reports "false" unit section category table_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
 	{{show_billing_cycle_preview section user.username selected_number}}
 	{{/if_eq}} {{!--end if mode is reports--}}
 	
