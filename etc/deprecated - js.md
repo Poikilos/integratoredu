@@ -1,5 +1,6 @@
 # Deprecated code
 
+
 * Deprecated (was not being used)
 ```javascript
 function get_transaction_years(unit, section, table) {  // formerly get_years

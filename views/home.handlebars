@@ -2,12 +2,12 @@
 <!--this whole handlebars object is already in a container-->
 {{#if user}}
 	{{#if section}}
-        {{#createGroupContains section user.username}}
-        {{#if_is_any_form_mode mode}}
-        {{get_section_form section mode user.username prefill missing_fields}}
+        {{#createGroupContains unit section user.username}}
+        {{#if_is_any_form_mode unit mode}}
+        {{get_section_form unit section mode user.username prefill missing_fields}}
         {{/if_is_any_form_mode}}
         {{/createGroupContains}}
-		{{#readGroupContains section user.username}}
+		{{#readGroupContains unit section user.username}}
 		{{#isOnlyEmployeeReadSection section}}
 		<div style="size:.8em; color:darkgray">Permission to view {{section}} history should only be given to employees.
 		</div>
@@ -32,6 +32,7 @@
 			<div>Year: 
 			{{#each years}}
 			<form action="{{get_proxy_prefix_then_slash}}" method="get">
+			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
@@ -49,6 +50,7 @@
 			<div>Month:
 			{{#each months}}
 			<form action="{{get_proxy_prefix_then_slash}}" method="get">
+			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
@@ -65,6 +67,7 @@
 			<div>Day:
 			{{#each days}}
 			<form action="{{get_proxy_prefix_then_slash}}" method="get">
+			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
@@ -82,7 +85,7 @@
 		</div><!--end col-sm-->
 		<div class="col-sm-10" align="center">
 			<br/>
-			<div>{{show_status unit section}}</div> {{!--no date needs to be selected for tracking data, since status tables are by primary key such as MAC address--}}
+			<div>{{show_status unit section "student"}}</div> {{!--no date needs to be selected for tracking data, since status tables are by primary key such as MAC address--}}
 			<div style="font-weight:bold">
 			<span> {{selected_year}}</span>
 			<span> {{selected_month}}</span>
@@ -102,7 +105,7 @@
 				{{/if_eq}}
 			{{/if}}
 			</div>
-			{{show_history section objects}}
+			{{show_history unit section objects}}
 			
 		</div><!--end col-sm-->
 	</div><!--end row-->
@@ -114,11 +117,11 @@
 
 	{{#if_eq mode "reports"}}
 	{{show_reports "false" unit section category table_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
-	{{show_billing_cycle_preview section user.username selected_number}}
+	{{show_billing_cycle_preview unit section user.username selected_number}}
 	{{/if_eq}} {{!--end if mode is reports--}}
 	
 	{{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
-	{{show_settings section user.username selected_setting}}
+	{{show_settings unit section user.username selected_setting}}
 	{{/if_eq}} {{!--end if mode is settings--}}
 		
 		<br/>

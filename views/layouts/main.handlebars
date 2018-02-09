@@ -52,16 +52,16 @@
 			{{#if_eq this @root.section}}
 			<li class="nav-item active"><p class="navbar-text">
 			{{friendlySectionName this}}
-			{{#is_after_school @root.section}}
+			{{#is_after_school @root.unit @root.section}}
 			- After
 			{{/is_after_school}}
-			{{#is_before_school @root.section}}
+			{{#is_before_school @root.unit @root.section}}
 			- Before
 			{{/is_before_school}}
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			<a href="{{get_proxy_prefix_then_slash}}?section={{this}}&clear_selection=true">{{friendlySectionName this}}</a>
+			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
@@ -76,7 +76,7 @@
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			<a href="{{get_proxy_prefix_then_slash}}?section={{@root.section}}&mode={{this}}">{{friendlyModeName this}}</a>
+			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{@root.section}}&mode={{this}}">{{friendlyModeName @root.unit this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
@@ -85,7 +85,7 @@
 			{{#if_eq @root.mode "settings"}}
 			<li class="nav-item"><p class="navbar-text">Settings
 			{{else}}
-			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}?section={{@root.section}}&mode=settings">Settings</a>
+			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{@root.section}}&mode=settings">Settings</a>
 			{{/if_eq}}
 			</p>
 			</li>			

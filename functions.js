@@ -123,6 +123,30 @@ exports.localAuth = function (username, password) {
 
 ////// GENERAL FUNCTIONS ///////
 
+exports.param_info = function(params, name, source) {
+	var results = {};
+	results.value = null;
+	if (typeof params.hasOwnProperty !== 'function') {
+		console.log("ERROR in param_info: params must be converted to object");
+	}
+	if (params.hasOwnProperty(name)) {
+		results.value = params[name];
+		if (fun.is_blank(results.value)) {
+			results.error = "value for " + name + " is blank";
+			results.value = null;
+		}
+		else {
+			if (!source.hasOwnProperty(results.value)) {
+				results.value = null;
+				results.error = name + " " + results.value + " does not exist."
+			}
+		}
+	}
+	else {
+		results.error = "no unit specified";
+	}
+	return results;
+}
 
 
 //from mtomis on <https://stackoverflow.com/questions/6831918/node-js-read-a-text-file-into-an-array-each-line-an-item-in-the-array> edited May 22 '12 at 11:42. 30 Jan 2018.

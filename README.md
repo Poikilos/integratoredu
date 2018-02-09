@@ -145,6 +145,38 @@ tm:
   If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
+(2018-02-09)
+* eliminated: requested_unit, _default_unit
+* force use of unit
+  * peek_setting (done except unit-specific caching)
+  * poke_setting (done except unit-specific caching)
+  * has_setting (done except unit-specific caching)
+  * autofill (done except checks)
+  * get_filtered_form_fields_html (done except checking)
+  * get_care_time_info (done)
+  * get_table_path_if_exists_else_null (done)
+  * get_next_transaction_index (done)
+  * get_next_table_index (done)
+  * get_table_entry_parent_path (done)
+  * get_table_entry_paths (done)
+  * get_table_entry_numbers (done)
+  * get_table_entry (done)
+  * push_next_transaction (done)
+  * is_after_school (done, but peek_settings needs unit-specific cache)
+  * is_before_school (done, but peek_settings needs unit-specific cache)
+  * get_cpf_plain_text (done)
+  * /change-section-settings (fixed except checks)
+  * see all instances of `name="section"` (including in HANDLEBARS; must have maching unit field; change name AND id to unit)
+  * helpers are easy since handlebars files can get unit (and category and table_name) from the render call since `/` route and its render call is already fixed
+  * handlebars helpers: show_history (updated), show_status (updated), show_reports (updated), show_billing_cycle_preview (updated), show_settings (updated), get_section_form (updated), friendlySectionName, friendlyModeName, long_description
+    * get_year_month_select_buttons (updated) used by show_reports helper
+    * /add-end-dates-to-bill url emitted by show_reports helper
+    * /split-entry url emitted by show_reports helper
+    * /student-microevent url emitted by get_section_form
+  * user_has_section_permission (fixed but doesn't use unit param yet)
+    * used by helpers: createGroupContains, readGroupContains, modifyGroupContains, reportsGroupContains
+    * used by routes: /autofill-query, /update-query, /change-microevent-field, /add-end-dates-to-bill, /split-entry, /poke-settings, /change-selection, /student-microevent
+    * used by functions: user_has_pinless_time (and helper of the same name)
 (2018-02-01)
 * if username is admin, has all permissions to every section automatically regardless of permissions.yml and groups.yml settings
 * fixed exception where default does not exist and setting does exist (check for key in default before recursing into default in peek_setting)
@@ -325,6 +357,13 @@ tm:
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* (!) cache per-unit settings (see _selected_unit)
+* (!) cache per-unit autofill (see _selected_unit)
+* (!) eliminate change-selection
+* (!) *_setting functions need to actually use unit variable
+* actually use the unit variable in:
+  * helpers: createGroupContains, readGroupContains, modifyGroupContains, friendlySectionName, friendlyModeName, if_is_any_form_mode
+  * functions: user_has_section_permission, get_filtered_form_fields_html peek_setting poke_setting has_setting
 * (!) only show duplicates, buttons, and allow changes if user has "write" privelege to section
 * make "Reload Settings" work; make it a route and not a mode; make a "global" section in the admin mode panel and add Reload Settings to that
 * track extended days (modified start times) for after school programs (group expires after term), by student group and date range, such as:
@@ -402,6 +441,7 @@ html tag) data is written sometimes (but not anymore?)
 * (~ partially resolved by having section name have display name [friendly_section_names]) display_name should be saved in database, so that the invisibly enforced lowercase restriction doesn't make everyone's username appear as lowercase
 * (~) serve files from database (browser shows missing image symbol, and show image in new tab says "http://192.168.1.5/sign/users/profilepics/admin.jpg" where http://192.168.1.5/sign is a working reverse http proxy redirect that points to node running on 8080)
 * (~) sheet functions do not support overrides
+* (~) friendly_mode_names are hard-coded
 
 
 ## Planned Features
