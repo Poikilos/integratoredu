@@ -103,7 +103,8 @@ module.exports = {
 # script_dest_path: /etc/cron.daily/iedu-mps-daily
 # (update_enable will be appended to bottom)
 
-# actually do stuff here
+# do whatever scripting you need to do here
+
 cd /tmp
 iedu_update_other_name="daily"
 cron_freq="daily"

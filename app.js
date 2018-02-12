@@ -437,10 +437,21 @@ function autofill(unit, section, record, change_record_object_enable) {
 	var results = {};
 	results.filled_fields = [];
 	//TODO: asdf use unit
-	if (section) {
+	if (fun.is_blank(unit)) {
+		unit = null;
+		results.error = "ERROR in autofill: unit not specified";
+		console.log("[ !@ ] "+results.error);
+	}
+	if (fun.is_blank(section)) {
+		results.error = "ERROR in autofill: section not specified";
+		console.log("[ !@ ] "+results.error);
+	}
+	if ((unit!==null) && (section!==null)) {
+		//NOTE: OK if not in fsc--since being written
 		if (has_setting(unit, section+".autofill_requires")) {
 			//if (default_groupby.hasOwnProperty(section)) {
 			for (var requirer in _settings[section].autofill_requires) {
+				//each requirer requires a list of fields, as seen in list iteration below within this key loop
 				var present_count = 0;
 				var combined_primary_key = null;
 				for (var sar_i=0; sar_i<_settings[section].autofill_requires[requirer].length; sar_i++) {
@@ -532,10 +543,6 @@ function autofill(unit, section, record, change_record_object_enable) {
 		else {
 			results.error = "[ !@ ] cannot autofill since section does not have autofill requirements";
 		}
-	}
-	else {
-		results.error = "[ !@ ] cannot autofill since no section mentioned";
-		console.log(results.error);
 	}
 	return results;
 }//end autofill
@@ -1177,13 +1184,42 @@ function get_sheet_primary_param_name(formula) {
 	return result;
 }
 
+function get_day_info(table_cache, ymd_array) {
+	var results = {};
+	results.enable = false;
+	if (ymd_array.length === 3) {
+		if (is_not_blank(ymd_array[0])) {
+			var year = ymd_array[0];
+			if (table_cache.hasOwnProperty(year)) {
+				if (is_not_blank(ymd_array[1])) {
+					var month = ymd_array[1];
+					if (table_cache[year].hasOwnProperty(month)) {
+						if (is_not_blank(ymd_array[2])) {
+							var day = ymd_array[2];
+							if (table_cache[year][month].hasOwnProperty(day)) {
+								results.enable = true;
+							}
+							else results.error = year + "-" + month + "-" + day + ' has no records.';
+						}
+						else results.error = 'day was not specified.';
+					}
+					else results.error = year + "-" + month + ' has no records.';
+				}
+				else results.error = 'month was not specified.';
+			}
+			else results.error = 'year ' + year + ' has no records.';
+		}
+		else results.error = 'year was not specified.';
+	}
+	return results;
+}
+
 function get_table_info(unit, section, category, table_name) {
 	var results = {};
 	results.enable = false;
-	var table_enable = false;
 	if (is_not_blank(unit)) {
 		if (fsc.hasOwnProperty(unit)) {
-			if (is_not_blank(section) {
+			if (is_not_blank(section)) {
 				if (fsc[unit].hasOwnProperty(section)) {
 					if (is_not_blank(category)) {
 						if (fsc[unit][section].hasOwnProperty(category)) {
@@ -1596,11 +1632,19 @@ function write_record_without_validation(req_else_null, unit, section, date_arra
 			if (!fsc[unit][section][category].hasOwnProperty("table_name"))
 				fsc[unit][section][category][table_name] = {};
 			if (fun.is_not_blank(y_dir_name)) {
-				if (!fsc[unit][section][category][table_name]) {
+				if (!fsc[unit][section][category][table_name].hasOwnProperty(y_dir_name)) {
 					fsc[unit][section][category][table_name][y_dir_name] = {};
-					if (fun.is_not_blank(m_dir_name)) {
-						if (!fsc[unit][section][category][table_name][y_dir_name].hasOwnProperty(m_dir_name)) {
-							fsc[unit][section][category][table_name][y_dir_name] = {};
+				}
+				if (fun.is_not_blank(m_dir_name)) {
+					if (!fsc[unit][section][category][table_name][y_dir_name].hasOwnProperty(m_dir_name)) {
+						fsc[unit][section][category][table_name][y_dir_name][m_dir_name] = {};
+					}
+					if (fun.is_not_blank(d_dir_name)) {
+						if (!fsc[unit][section][category][table_name][y_dir_name][m_dir_name].hasOwnProperty(d_dir_name)) {
+							fsc[unit][section][category][table_name][y_dir_name][m_dir_name][d_dir_name] = {};
+						}
+						if (fs.statSync(results.out_path).isFile()) {
+							fsc[unit][section][category][table_name][y_dir_name][m_dir_name][d_dir_name][results.out_name] = record;
 						}
 					}
 				}
@@ -1897,20 +1941,20 @@ var hbs = exphbs.create({
 							if (has_setting(unit, section+".autofill_requires."+groupby)) {
 								primary_key_components = peek_setting(unit, section+".autofill_requires."+groupby);
 							}
-							var ymd;
+							var ymd_array;
 							var sff_i;
 							var sff_len;
 							var ed_i;
 							var ed_len;
 							for (ed_i=0,ed_len=cen_entry.end_dates.length; ed_i<ed_len; ed_i++) {
-								ymd = cen_entry.end_dates[ed_i].split("-");
+								ymd_array = cen_entry.end_dates[ed_i].split("-");
 								error = "";
-								if (ymd.length!=3) error = "ERROR: date should have 3 numbers separated by hyphens like YYYY-MM-DD but is "+cen_entry.end_dates[ed_i]+" in entry "+cen_entry.key+" in "+section+" "+mode+" table "+category;
+								if (ymd_array.length!=3) error = "ERROR: date should have 3 numbers separated by hyphens like YYYY-MM-DD but is "+cen_entry.end_dates[ed_i]+" in entry "+cen_entry.key+" in "+section+" "+mode+" table "+category;
 								if (fun.is_blank(error)) {
 									//ret += "<li>"+cen_entry.end_dates[ed_i]+"</li>\n";
-									var selected_year = ymd[0];
-									var selected_month = ymd[1];
-									var selected_day = ymd[2];
+									var selected_year = ymd_array[0];
+									var selected_month = ymd_array[1];
+									var selected_day = ymd_array[2];
 									var y_i = parseInt(selected_year);
 									var m_i = parseInt(selected_month);
 									var d_i = parseInt(selected_day);
@@ -2122,7 +2166,7 @@ var hbs = exphbs.create({
 							}
 							ed_i = null; //out of loop, wait for next
 							ed_len = null; //out of loop, wait for next
-							ymd = null; //out of loop, wait for next
+							ymd_array = null; //out of loop, wait for next
 							//ret += "</ul>\n";
 							for (var group_key in data_by_group) {
 								var group = data_by_group[group_key];
@@ -2151,9 +2195,9 @@ var hbs = exphbs.create({
 								ret += 'weeks ending on:' + "\n";
 								ret += "<ul>\n";
 								for (ed_i=0,ed_len=cen_entry.end_dates.length; ed_i<ed_len; ed_i++) {
-									ymd = cen_entry.end_dates[ed_i].split("-");
+									ymd_array = cen_entry.end_dates[ed_i].split("-");
 									error = "";
-									if (ymd.length!=3) error = "ERROR: date should have 3 numbers separated by hyphens like YYYY-MM-DD but is "+cen_entry.end_dates[ed_i]+" in entry "+cen_entry.key+" in "+section+" "+mode+" table "+category;
+									if (ymd_array.length!=3) error = "ERROR: date should have 3 numbers separated by hyphens like YYYY-MM-DD but is "+cen_entry.end_dates[ed_i]+" in entry "+cen_entry.key+" in "+section+" "+mode+" table "+category;
 									if (fun.is_blank(error)) {
 										ret += "<li>"+cen_entry.end_dates[ed_i];
 										if ((cen_entry.end_dates[ed_i] in key_totals_by_end_date) && (group_key in key_totals_by_end_date[cen_entry.end_dates[ed_i]])) {
@@ -2283,8 +2327,20 @@ var hbs = exphbs.create({
 		show_reports: function(container_enable, unit, section, category, table_name, username, years, months, days, selected_year, selected_month, selected_day, selected_number, section_report_edit_field, opts) {
 			var ret = "";
 			var mode = "reports";
+			var year = null;
+			var month = null;
+			var day = null;
+			if (is_not_blank(selected_year)) {
+				year = fun.zero_padded(selected_year, 4);
+			}
+			if (is_not_blank(selected_month)) {
+				month = fun.zero_padded(selected_month, 2);
+			}
+			if (is_not_blank(selected_day)) {
+				day = fun.zero_padded(selected_day, 2);
+			}
 			var table_info = get_table_info(unit, section, category, table_name);
-			
+			///TODO: eliminate years, months, days
 			if (table_info.enable) {
 				if (user_has_section_permission(unit, username, section, mode)) {
 					if (has_setting(unit, section+".sheet_fields")) {
@@ -2494,7 +2550,7 @@ var hbs = exphbs.create({
 								url_params += "mode="+mode+"&";
 								
 								ret += '      <th>&nbsp;<!--status--></th>';
-								if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>';
+								if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>' + "\n";
 								for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 									var key = section_sheet_fields[ssf_i];
 									var name = key;
@@ -2526,179 +2582,175 @@ var hbs = exphbs.create({
 								ret += '    </tr>' + "\n";
 								ret += '  </thead>' + "\n";
 								ret += '  <tbody>' + "\n";
-
+								
 								//NOTE: don't render rows yet--this loop prepares the data
 								var d_path;
 								var item_path;
 								//TODO: asdf load from fsc[unit][section][category][table_name] instead
 								//table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, false);
 								//unit, section, category, table_name are all helper params passed from handlebars template
-								fsc[unit][section][category][table_name]
-								if (table_name !== null) {
+								if (fsc[unit][section][category].hasOwnProperty("table_name")) {
 									y_path = table_path + "/" + selected_year;
 									var m_path = y_path + "/" + selected_month;
 									for (var day_i=0; day_i<days.length; day_i++) {
 										var this_day = fun.zero_padded(days[day_i],2);
 										d_path = m_path + "/" + this_day;
-										if (fs.existsSync(d_path)) {
-											item_keys = fun.getVisibleFiles(d_path);
-											if (!dat[section][selected_year][selected_month][this_day]) dat[section][selected_year][selected_month][this_day]={};
-											dat[section][selected_year][selected_month][this_day].item_keys = item_keys;
+										var di = get_day_info(fsc[unit][section][category][table_name], [year,month,this_day]);
+										if (di.enable) {  // if (fs.existsSync(d_path)) {
+											//jk item_keys = fun.getVisibleFiles(d_path);
+											//jk if (!dat[section][selected_year][selected_month][this_day]) dat[section][selected_year][selected_month][this_day]={};
+											//jk dat[section][selected_year][selected_month][this_day].item_keys = item_keys;
+											var items = fsc[unit][section][category][table_name][year][month][this_day];
 											//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
 											//console.log("(ITEM KEYS.length:"+item_keys.length+")");
 											//console.log("## ITEMS:"+items);
 											var msg = "";
-											//for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
-											
-											for (var item_key_i in item_keys) {
-												//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
-												//ret += '    <tr>' + "\n";
-												var item_key = item_keys[item_key_i];
-												item_path = d_path + "/" + item_key;
-												//console.log("  - "+item_key);
-												//dat[section][selected_year][selected_month][this_day][item_key] = {};
-												if (fs.statSync(item_path).isFile()) {
-													if (item_path.endsWith(".yml")) {
+											//TODO: deprecate item_key_i, item_keys
+											//for (var item_key_i in item_keys) {
+											for (var item_key in items) {
+												if (items.hasOwnProperty(item_key)) {
+													//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
+													//ret += '    <tr>' + "\n";
+													//var item_key = item_keys[item_key_i];
+													//item_path = d_path + "/" + item_key;
+													if (item_key.endsWith(".yml")) {
 														//try {
-															dat[section][selected_year][selected_month][this_day][item_key] = yaml.readSync(item_path, "utf8");
-															var original_item = dat[section][selected_year][selected_month][this_day][item_key];
-															original_item.key = item_key;
-															if (!original_item.hasOwnProperty("tmp"))
-																original_item.tmp = {};
-															original_item.tmp["=get_day_from_path()"] = this_day;
-															original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
-															//original_item.tmp["=get_origin_date()"] = null;
-															if (original_item.hasOwnProperty("date"))
-																original_item.tmp["=get_origin_date()"] = original_item["date"];
-															else if (original_item.hasOwnProperty("ctime"))
-																original_item.tmp["=get_origin_date()"] = original_item.ctime.substring(0,10);
-															else {
-																var this_item_path = d_path+"/"+item_key;
-																var stats = fs.statSync(this_item_path);
-																var ctime = null;
-																if (stats.hasOwnProperty("ctime")) original_item.tmp["=get_origin_date()"] = stats['ctime'];
-																//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
-																//else if (stats.hasOwnProperty("mtime")) original_item.tmp["=get_origin_date()"] = stats['mtime'];
-																//ctime = new Date(util.inspect(stats.mtime));
-																//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
-																if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
+														//dat[section][year][month][this_day][item_key] = yaml.readSync(item_path, "utf8");
+														//var original_item = dat[section][month][month][this_day][item_key];
+														var original_item = items[item_key];
+														original_item.key = item_key;
+														if (!original_item.hasOwnProperty("tmp"))
+															original_item.tmp = {};
+														original_item.tmp["=get_day_from_path()"] = this_day;
+														original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
+														//original_item.tmp["=get_origin_date()"] = null;
+														if (original_item.hasOwnProperty("date"))
+															original_item.tmp["=get_origin_date()"] = original_item["date"];
+														else if (original_item.hasOwnProperty("ctime"))
+															original_item.tmp["=get_origin_date()"] = original_item.ctime.substring(0,10);
+														else {
+															var this_item_path = d_path+"/"+item_key;
+															var stats = fs.statSync(this_item_path);
+															var ctime = null;
+															if (stats.hasOwnProperty("ctime")) original_item.tmp["=get_origin_date()"] = stats['ctime'];
+															//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
+															//else if (stats.hasOwnProperty("mtime")) original_item.tmp["=get_origin_date()"] = stats['mtime'];
+															//ctime = new Date(util.inspect(stats.mtime));
+															//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
+															if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
+														}
+														original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
+														if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
+														original_item.tmp.time = fun.get_time_or_stated_time(original_item);
+														if (original_item.tmp.time===null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+														//tui: table-unique identifier
+														original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
+														if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
+															items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
+															//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
+															//console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
+														}
+														items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
+														//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
+														//var this_item = original_item;
+														var this_item = JSON.parse(JSON.stringify(original_item));
+														var ymd_array = null;
+														if (this_item.tmp.date) {
+															ymd_array = this_item.tmp.date.split("-");
+															if ((ymd_array!==null) && (ymd_array.length==3)) {
+																this_item.tmp.year = year; // padded version
+																this_item.tmp.month = month; // padded version
+																this_item.tmp.day = this_day; // padded version from loop
 															}
-															original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
-															if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
-															original_item.tmp.time = fun.get_time_or_stated_time(original_item);
-															if (original_item.tmp.time===null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
-															//tui: table-unique identifier
-															original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
-															if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
-																items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
-																//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
-																//console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
-															}
-															items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
-															//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
-															//var this_item = original_item;
-															var this_item = JSON.parse(JSON.stringify(original_item));
-															var ymd = null;
-															if (this_item.tmp.date) {
-																ymd = this_item.tmp.date.split("-");
-																if ((ymd!==null) && (ymd.length==3)) {
-																	this_item.tmp.year = selected_year;
-																	this_item.tmp.month = selected_month;
-																	this_item.tmp.day = this_day;
-																}
-																else console.log("bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
-															}
-															else console.log("missing this_item.date for " + original_item.tmp.tui);
-															var span_info = null;
-															span_info = get_care_time_info(this_item, unit, section);
-															if (span_info.hasOwnProperty("error")) {
-																//TODO: ? or later when warning is shown
-															}
-															for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-																//ret += '      <td>' + "\n";
-																var this_sff = section_sheet_fields[ssf_i];
-																//NOTE: intentionally gets desired fields only
-																
-																if (this_sff.substring(0,1)=="=") {
-																	var ender_i = this_sff.indexOf("(");
-																	if (ender_i>-1) {
-																		var op = this_sff.substring(1,ender_i).trim();
-																		
-																		if ((typeof span_info.seconds)=="string") span_info.seconds = parseInt(span_info.seconds);
-																		var qty_times_seconds = span_info.seconds;
-																		if ("qty" in this_item) {
-																			qty_times_seconds *= parseInt(this_item.qty);  //ok since there only is a number type (no truncation will occur)
-																			if (span_info.seconds>0) {
-																				if (qty_times_seconds<span_info.seconds) {
-																					console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
-																					qty_times_seconds = span_info.seconds;
-																				}
-																				//else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
+															else console.log("ERROR in show_reports: bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
+														}
+														else console.log("ERROR in show_reports: missing this_item.date for " + original_item.tmp.tui);
+														var span_info = null;
+														span_info = get_care_time_info(this_item, unit, section);
+														if (span_info.hasOwnProperty("error")) {
+															//TODO: ? or later when warning is shown
+														}
+														// process only section sheet fields, since only they can be processed accurately:
+														for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
+															//ret += '      <td>' + "\n";
+															var this_sff = section_sheet_fields[ssf_i];
+															//NOTE: intentionally gets desired fields only
+															if (this_sff.substring(0,1)=="=") {
+																var ender_i = this_sff.indexOf("(");
+																if (ender_i>-1) {
+																	var op = this_sff.substring(1,ender_i).trim();
+																	if ((typeof span_info.seconds)=="string") span_info.seconds = parseInt(span_info.seconds);
+																	var qty_times_seconds = span_info.seconds;
+																	if ("qty" in this_item) {
+																		qty_times_seconds *= parseInt(this_item.qty);  //ok since there only is a number type (no truncation will occur)
+																		if (span_info.seconds>0) {
+																			if (qty_times_seconds<span_info.seconds) {
+																				console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
+																				qty_times_seconds = span_info.seconds;
 																			}
+																			//else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
 																		}
-																		if (op == "careprice") {
-																			
-																			if (span_info.hasOwnProperty("seconds")) {
-																				
-																				this_item.tmp["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
-																				if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
-																					if (span_info.hasOwnProperty("error")) {
-																						if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
-																					}
-																					if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
-																				}
-																			}
-																			else {
-																				this_item.tmp["=careprice()"] = 0.00;
-																				if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
-																					parsing_error += "\n<br/>";
-																					if (span_info.hasOwnProperty("error")) {
-																						if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
-																					}
-																				}
-																			}
-																		}
-																		else if (op == "caretime") {
-																			//span_info = get_care_time_info(this_item, unit, section);
-																			if (span_info.hasOwnProperty("seconds")) {
-																				this_item.tmp["=caretime()"] = qty_times_seconds;
-																			}
-																		}
-																		else if (op == "caretime_m") {
-																			//span_info = get_care_time_info(this_item, unit, section);
-																			if (span_info.hasOwnProperty("seconds")) {
-																				this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
-																			}
-																		}
-																		else if (op == "caretime_h") {
-																			//span_info = get_care_time_info(this_item, unit, section);
-																			if (span_info.hasOwnProperty("seconds")) {
-																				this_item.tmp["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
-																			}
-																		}
-																		//below are already done further up (before copying item to this_item)
-																		//else if (op == "get_date_from_path") {
-																		//	this_item.tmp["=get_date_from_path()"] = this_item.tmp["=get_date_from_path()"];  // also the following is always accurate in this context: selected_year+"-"+selected_month+"-"+this_day;
-																		//}
-																		//else if (op == "get_day_from_path") {
-																		//	this_item.tmp["=get_day_from_path()"] = this_item.tmp["=get_day_from_path()"];
-																		//}
 																	}
-																	else {
-																		console.log("undefined function :" + this_sff);
+																	if (op == "careprice") {
+																		if (span_info.hasOwnProperty("seconds")) {
+																			this_item.tmp["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
+																			if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
+																				if (span_info.hasOwnProperty("error")) {
+																					if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																				}
+																				if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
+																			}
+																		}
+																		else {
+																			this_item.tmp["=careprice()"] = 0.00;
+																			if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
+																				parsing_error += "\n<br/>";
+																				if (span_info.hasOwnProperty("error")) {
+																					if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																				}
+																			}
+																		}
 																	}
+																	else if (op == "caretime") {
+																		//span_info = get_care_time_info(this_item, unit, section);
+																		if (span_info.hasOwnProperty("seconds")) {
+																			this_item.tmp["=caretime()"] = qty_times_seconds;
+																		}
+																	}
+																	else if (op == "caretime_m") {
+																		//span_info = get_care_time_info(this_item, unit, section);
+																		if (span_info.hasOwnProperty("seconds")) {
+																			this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
+																		}
+																	}
+																	else if (op == "caretime_h") {
+																		//span_info = get_care_time_info(this_item, unit, section);
+																		if (span_info.hasOwnProperty("seconds")) {
+																			this_item.tmp["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
+																		}
+																	}
+																	//below are already done further up (before copying item to this_item)
+																	//else if (op == "get_date_from_path") {
+																	//	this_item.tmp["=get_date_from_path()"] = this_item.tmp["=get_date_from_path()"];  // also the following is always accurate in this context: selected_year+"-"+selected_month+"-"+this_day;
+																	//}
+																	//else if (op == "get_day_from_path") {
+																	//	this_item.tmp["=get_day_from_path()"] = this_item.tmp["=get_day_from_path()"];
+																	//}
 																}
-																else if (this_item.hasOwnProperty(this_sff)) {
-																//not needed since preprocessing first
-																//if (this_item.hasOwnProperty(this_sff)) {
-																	//var val = this_item[this_sff];
-																	//ret += val;
-																	//var val = items[this_sff];
-																	//console.log("    " + this_sff + ": " + val);
+																else {
+																	console.log("undefined function :" + this_sff);
 																}
-																//ret += '</td>' + "\n";
 															}
-															items.push(this_item);
+															else if (this_item.hasOwnProperty(this_sff)) {
+															//not needed since preprocessing first
+															//if (this_item.hasOwnProperty(this_sff)) {
+																//var val = this_item[this_sff];
+																//ret += val;
+																//var val = items[this_sff];
+																//console.log("    " + this_sff + ": " + val);
+															}
+															//ret += '</td>' + "\n";
+														}
 														//}
 														//catch (err) {
 														//	msg += "\n<br/>Could not finish reading "+item_path+": "+err;
@@ -2706,10 +2758,7 @@ var hbs = exphbs.create({
 													}
 													else console.log("Skipped "+item_path+": not a data file");
 												}
-												else {
-													msg += " ...missing file "+item_path+" ";
-												}
-												//ret += "</tr";
+												//else not hasOwnProperty
 											}//end for item keys
 											
 											if (msg.length>0) {
@@ -2718,7 +2767,8 @@ var hbs = exphbs.create({
 												ret += '<div class="alert alert-danger">'+msg+'</div>' + "\n";
 											}
 										}
-										else console.log("Invalid path resulting in stale days array: '"+d_path+"'");
+										else console.log("Invalid path resulting in cache miss: '"+d_path+"' ("+di.error+")");
+										//else console.log("Invalid path resulting in stale days array: '"+d_path+"'");
 									}//end for days
 									d_path = null;  // out of loop
 									item_path = null;  // out of loop
