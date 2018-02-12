@@ -539,7 +539,7 @@ install system deps:
 #on Ubuntu:
 sudo apt-get install nodejs
 sudo apt-get install mongodb
-#(note: mondodb package includes both client and server on Antergos)
+#(note: mongodb package includes both client and server on Antergos)
 sudo apt-get install mongodb-server
 sudo apt-get install npm
 #on Ubuntu etc:
@@ -564,12 +564,17 @@ sudo ufw allow 8080
 #BELOW IS ONLY NEEDED IF you want to also have apache installed:
 sudo a2enmod proxy
 sudo a2enmod proxy_http
+sudo apt install nano
+# YOU MUST EDIT THEN UNCOMMENT ServerName and ServerAlias fields in the following file then Ctrl X then Yes to save:
+nano ./share/etc/apache2/sites-available/sign.conf
 sudo cp ./share/etc/apache2/sites-available/sign.conf /etc/apache2/sites-available/
+sudo a2ensite sign
+sudo a2dissite 000-default
 sudo service apache2 restart
 
 ```
 
-Then initial setup of this repo required (never required to be typed again since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5 such as on Ubuntu Xenial]):
+Then initial setup of this repo required (the steps below never are required to be typed by anyone but developer since these packages are in the dependencies list in app.js [in this version of npm they are added to the list automatically after npm install, where as --save must be specified in versions earlier than 5 such as on Ubuntu Xenial]):
 
 DON't ACTUALLY do any of the stuff below--just do ```npm install``` instead (see above), which will read package names from package.json
 ```
