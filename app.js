@@ -105,7 +105,7 @@ if (!config.hasOwnProperty("audio_enable")) config.audio_enable = true;
 var basePath = "." + config.proxy_prefix_then_slash;
 
 
-var tracking_sections = ["track"]
+var tracking_sections = ["track"];
 
 //var section_rates = {}; //how much client pays by the hour for section for time spent outside of startTime and endTime
 //section_rates["care"] = 7.50;
@@ -253,11 +253,11 @@ _settings_default.po.prefill_methods = {"stated_date":"date()"}; //TODO: asdf im
 _settings_default.po.sheet_fields = ["po_number","vendor", "stated_date", "shipping", "total", "budget_account", "ordered_by", "approved_by"];
 _settings_default.po.form_fields = ["po_number","vendor", "stated_date", "vendor_phone", "vendor_addr_lines_i_0", "vendor_addr_lines_i_1", "vendor_city", "vendor_state", "vendor_zip", "vendor_country"];
 for (var i=0; i<18; i++) {
-	_settings_default.po.form_fields.push("qty_i_"+i)
-	_settings_default.po.form_fields.push("order_no_i_"+i)
-	_settings_default.po.form_fields.push("desc_i_"+i)
-	_settings_default.po.form_fields.push("unit_cost_i_"+i)
-	_settings_default.po.form_fields.push("amount_i_"+i)
+	_settings_default.po.form_fields.push("qty_i_"+i);
+	_settings_default.po.form_fields.push("order_no_i_"+i);
+	_settings_default.po.form_fields.push("desc_i_"+i);
+	_settings_default.po.form_fields.push("unit_cost_i_"+i);
+	_settings_default.po.form_fields.push("amount_i_"+i);
 }
 _settings_default.po.form_fields.push("shipping");
 _settings_default.po.form_fields.push("total");
@@ -1800,6 +1800,98 @@ function is_before_school(unit, section, this_time) {
 	}
 }
 
+function get_billing_cycle_selector(unit, section, category) {
+	var ret = "";
+	ret += "<h4>Billing Cycles</h4><br/>"+"\n";
+	//var category = "BillingCycle"; now is a param
+	//var results = push_next_table_entry(unit, section, category, item, req.user.username, false);
+	//cycle_paths = get_table_entry_paths(unit, section, "BillingCycle");
+	var cycle_entry_numbers = get_table_entry_numbers(unit, section, category);
+	//ret += get_table_entry_buttons(config.proxy_prefix_then_slash, "get", section, "BillingCycle", "selected_item_key", "=primary_key()");
+	if (cycle_entry_numbers) {
+		ret += "Found "+cycle_entry_numbers.length+" billing cycle(s).<br/>"+"\n";
+		ret += "Click to generate report:<br/>"+"\n";
+		var cen_entry;
+		var cen_name;
+		for (var cen_i=0,cen_len=cycle_entry_numbers.length; cen_i<cen_len; cen_i++) {
+			cen_entry = null;
+			cen_name = "";
+			//console.log("  cycle entry number index: "+cen_i);
+			var cen = cycle_entry_numbers[cen_i];
+			//console.log("  cycle entry number from filename: "+cen);
+			if (cen!=selected_number) ret += '<a href="'+config.proxy_prefix_then_slash+'?'+
+				'section='+section+
+				'&selected_year='+selected_year+
+				'&selected_month=(none)'+
+				'&selected_day=(none)'+
+				'&selected_number='+cen+
+				'#results">';
+			
+			
+			cen_entry = get_table_entry(unit, section, category, cen);
+			//console.log("    got: "+JSON.stringify(cen_entry));
+			//if (cen==selected_number) {
+			if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
+			//}
+			ret += cen + ": " + cen_name;
+			if (cen!=selected_number) ret += '</a>';
+			ret += "<br/>";
+			/*
+			ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
+			ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+			ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
+			ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
+			ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
+			ret += '<input type="hidden" name="selected_number" id="selected_number" value="'+cen+'" />';
+			if (cen!=selected_number) {
+				var cen_entry = get_table_entry(unit, section, category, selected_number);
+				var cen_name = "";
+				if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
+				ret += '<button class="btn" type="submit">'+cen+": "+cen_name+'</button>';
+			}
+			else {
+				ret += '<button class="btn btn-default" type="submit">'+cen+'</button>';
+			}
+			ret += '</form>';
+			*/
+		}
+		cen_name = null;  // out of loop
+		cen_entry = null;  // out of loop
+		if (fun.is_not_blank(selected_number)) {
+			
+			if ((typeof selected_number)=="string") selected_number = parseInt(selected_number);
+			//var s_sub_path = get_table_entry_parent_path(unit, section, category, selected_number, false);
+			//if (s_sub_path!=null) {
+				//var s_entry_path = s_sub_path + "/" + selected_number + ".yml";
+			cen_entry = get_table_entry(unit, section, category, selected_number);
+			if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
+			if (cen_entry) {
+				ret += "<br/>"+"\n";
+				ret += "<br/>"+"\n";
+				ret += '<a name="results"></a>' + "\n";
+				ret += '(other billing cycle names appear above)';
+				if (cen_name===null) ret += "<h4>Invoices for Billing Cycle "+selected_number+"</h4><br/>"+"\n";
+				else ret += "<h4>Invoices for "+cen_name+"</h4>"+"\n";
+				var billable_items = [];
+				ret += "with end dates: ";
+				if ("end_dates" in cen_entry) {
+					ret += "<ul>\n";
+					for (var ed_i=0,ed_len=cen_entry.end_dates.length; ed_i<ed_len; ed_i++) {
+						ret += "<li>"+cen_entry.end_dates[ed_i] + "</li>\n";
+					}
+					ret += "</ul>\n";
+				}
+				ret += "<br/>\n";
+			}
+			else console.log("ERROR: invalid selected entry "+selected_number);
+			//}
+			//else console.log("ERROR: Could not get entry parent path, probably due to invalid selected entry "+selected_number);
+		}
+	}
+	else ret += '(No billing cycles were created yet.)';
+	return ret;
+}
+
 // Configure express to use handlebars templates
 var hbs = exphbs.create({
 		helpers: {
@@ -1849,13 +1941,13 @@ var hbs = exphbs.create({
 			
 			if (user_has_section_permission(unit, username, section, "settings")) {
 				var settings_keys = get_all_settings_names();
-				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-settings?section="+section+'" class="btn btn-danger" role="button">' + "\n"
+				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-settings?section="+section+'" class="btn btn-danger" role="button">' + "\n";
 				ret += 'Wipe and Reload Settings';
-				ret += '</a></div>' + "\n"
-				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-permissions-and-groups?section="+section+'" class="btn btn-danger" role="button">' + "\n"
+				ret += '</a></div>' + "\n";
+				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-permissions-and-groups?section="+section+'" class="btn btn-danger" role="button">' + "\n";
 				ret += 'Wipe and Reload Permissions and Groups';
-				ret += '</a></div>' + "\n"
-				ret += '<br/>' + "\n"
+				ret += '</a></div>' + "\n";
+				ret += '<br/>' + "\n";
 				for (var i=0, len=settings_keys.length; i<len; i++) {
 					if (settings_keys[i]!=selected_setting) ret += '<a href="'+config.proxy_prefix_then_slash+"?selected_setting="+settings_keys[i]+'">'+settings_keys[i]+"</a><br/>";
 					else {
@@ -1897,7 +1989,6 @@ var hbs = exphbs.create({
 		},
 		show_billing_cycle_preview: function(unit, section, username, selected_number, opts) { //as opposed to having a billing-cycle route
 			var ret = "";
-			var category = "transactions";
 			var mode = "reports";
 			var category = "BillingCycle";
 			var warnings = ""; // show at end after completed successfully
@@ -2030,14 +2121,14 @@ var hbs = exphbs.create({
 														this_item.key = item_key;
 														this_item.tmp["=get_date_from_path()"] = back_date_s;
 														if (this_item.hasOwnProperty("date"))
-															this_item.tmp["=get_origin_date()"] = this_item["date"];
+															this_item.tmp["=get_origin_date()"] = this_item.date;
 														else if (this_item.hasOwnProperty("ctime"))
 															this_item.tmp["=get_origin_date()"] = this_item.ctime.substring(0,10);
 														else {
 															var this_item_path = back_d_path+"/"+item_key;
 															var stats = fs.statSync(this_item_path);
 															var ctime = null;
-															if (stats.hasOwnProperty("ctime")) this_item.tmp["=get_origin_date()"] = stats['ctime'];
+															if (stats.hasOwnProperty("ctime")) this_item.tmp["=get_origin_date()"] = stats.ctime;
 															//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
 															//else if (stats.hasOwnProperty("mtime")) this_item.tmp["=get_origin_date()"] = stats['mtime'];
 															//ctime = new Date(util.inspect(stats.mtime));
@@ -2242,7 +2333,7 @@ var hbs = exphbs.create({
 							var ui_i;
 							var ui_len;
 							if (has_setting(unit, section+".sheet_fields")) {
-								var section_sheet_fields = peek_setting(unit, section+".sheet_fields")
+								var section_sheet_fields = peek_setting(unit, section+".sheet_fields");
 								if (unused_items.length>0) {
 									ret += '<div class="row">';
 									ret += '<div class="col-sm-10">';
@@ -2537,563 +2628,523 @@ var hbs = exphbs.create({
 						ret += '</div>' + "\n";
 						if (selected_month) {
 							var items_by_date = {};
-							if (has_setting(unit, section+".sheet_fields")) {
-								var section_sheet_fields = peek_setting(unit, section+".sheet_fields")
-								var parsing_info = "";
-								var parsing_error = "";
-								var items = [];
-								ret += '<table class="table table-bordered table-sm">' + "\n";
-								ret += '  <thead>' + "\n";
-								ret += '    <tr>' + "\n";
-								var url_params = "?";
-								url_params += "section="+section+"&";
-								url_params += "mode="+mode+"&";
-								
-								ret += '      <th>&nbsp;<!--status--></th>';
-								if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>' + "\n";
-								for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-									var key = section_sheet_fields[ssf_i];
-									var name = key;
-									if (selected_field==key) ret += '      <th class="bg-info">' + "\n";
-									else ret += '      <th>' + "\n";
-									ret += '<small>';
-									if (has_setting(unit, section+".sheet_display_names."+key)) {
-										name = peek_setting(unit, section+".sheet_display_names."+key);
-									}
-									if (default_total.hasOwnProperty(section)) {
-										if (key==default_total[section]) name = "Total " + name; //such as Total Accrued
-									}
-									
-									var override_key = null;
-									if (section_fields_overrides.hasOwnProperty(section)) {
-										for (var this_key in section_fields_overrides[section]) {
-											if (this_key==key) {
-												override_key = section_fields_overrides[section][this_key];
-												break;
-											}
-										}
-									}
-									if (override_key===null) override_key = key;
-									var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+override_key;
-									if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) ret += name;
-									else ret += '<a href="'+href+'">'+name+'</a>';
-									ret += '</small></th>';
+							//NOTE: already checked for section+".sheet_fields" above
+							var parsing_info = "";
+							var parsing_error = "";
+							var items = [];
+							ret += '<table class="table table-bordered table-sm">' + "\n";
+							ret += '  <thead>' + "\n";
+							ret += '    <tr>' + "\n";
+							var url_params = "?";
+							url_params += "section="+section+"&";
+							url_params += "mode="+mode+"&";
+							
+							ret += '      <th>&nbsp;<!--status--></th>';
+							if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>' + "\n";
+							for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
+								var key = section_sheet_fields[ssf_i];
+								var name = key;
+								if (selected_field==key) ret += '      <th class="bg-info">' + "\n";
+								else ret += '      <th>' + "\n";
+								ret += '<small>';
+								if (has_setting(unit, section+".sheet_display_names."+key)) {
+									name = peek_setting(unit, section+".sheet_display_names."+key);
 								}
-								ret += '    </tr>' + "\n";
-								ret += '  </thead>' + "\n";
-								ret += '  <tbody>' + "\n";
+								if (default_total.hasOwnProperty(section)) {
+									if (key==default_total[section]) name = "Total " + name; //such as Total Accrued
+								}
 								
-								//NOTE: don't render rows yet--this loop prepares the data
-								var d_path;
-								var item_path;
-								//TODO: asdf load from fsc[unit][section][category][table_name] instead
-								//table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, false);
-								//unit, section, category, table_name are all helper params passed from handlebars template
-								if (fsc[unit][section][category].hasOwnProperty("table_name")) {
-									y_path = table_path + "/" + selected_year;
-									var m_path = y_path + "/" + selected_month;
-									for (var day_i=0; day_i<days.length; day_i++) {
-										var this_day = fun.zero_padded(days[day_i],2);
-										d_path = m_path + "/" + this_day;
-										var di = get_day_info(fsc[unit][section][category][table_name], [year,month,this_day]);
-										if (di.enable) {  // if (fs.existsSync(d_path)) {
-											//jk item_keys = fun.getVisibleFiles(d_path);
-											//jk if (!dat[section][selected_year][selected_month][this_day]) dat[section][selected_year][selected_month][this_day]={};
-											//jk dat[section][selected_year][selected_month][this_day].item_keys = item_keys;
-											var items = fsc[unit][section][category][table_name][year][month][this_day];
-											//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
-											//console.log("(ITEM KEYS.length:"+item_keys.length+")");
-											//console.log("## ITEMS:"+items);
-											var msg = "";
-											//TODO: deprecate item_key_i, item_keys
-											//for (var item_key_i in item_keys) {
-											for (var item_key in items) {
-												if (items.hasOwnProperty(item_key)) {
-													//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
-													//ret += '    <tr>' + "\n";
-													//var item_key = item_keys[item_key_i];
-													//item_path = d_path + "/" + item_key;
-													if (item_key.endsWith(".yml")) {
-														//try {
-														//dat[section][year][month][this_day][item_key] = yaml.readSync(item_path, "utf8");
-														//var original_item = dat[section][month][month][this_day][item_key];
-														var original_item = items[item_key];
-														original_item.key = item_key;
-														if (!original_item.hasOwnProperty("tmp"))
-															original_item.tmp = {};
-														original_item.tmp["=get_day_from_path()"] = this_day;
-														original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
-														//original_item.tmp["=get_origin_date()"] = null;
-														if (original_item.hasOwnProperty("date"))
-															original_item.tmp["=get_origin_date()"] = original_item["date"];
-														else if (original_item.hasOwnProperty("ctime"))
-															original_item.tmp["=get_origin_date()"] = original_item.ctime.substring(0,10);
-														else {
-															var this_item_path = d_path+"/"+item_key;
-															var stats = fs.statSync(this_item_path);
-															var ctime = null;
-															if (stats.hasOwnProperty("ctime")) original_item.tmp["=get_origin_date()"] = stats['ctime'];
-															//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
-															//else if (stats.hasOwnProperty("mtime")) original_item.tmp["=get_origin_date()"] = stats['mtime'];
-															//ctime = new Date(util.inspect(stats.mtime));
-															//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
-															if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
-														}
-														original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
-														if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
-														original_item.tmp.time = fun.get_time_or_stated_time(original_item);
-														if (original_item.tmp.time===null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
-														//tui: table-unique identifier
-														original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
-														if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
-															items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
-															//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
-															//console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
-														}
-														items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
-														//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
-														//var this_item = original_item;
-														var this_item = JSON.parse(JSON.stringify(original_item));
-														var ymd_array = null;
-														if (this_item.tmp.date) {
-															ymd_array = this_item.tmp.date.split("-");
-															if ((ymd_array!==null) && (ymd_array.length==3)) {
-																this_item.tmp.year = year; // padded version
-																this_item.tmp.month = month; // padded version
-																this_item.tmp.day = this_day; // padded version from loop
-															}
-															else console.log("ERROR in show_reports: bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
-														}
-														else console.log("ERROR in show_reports: missing this_item.date for " + original_item.tmp.tui);
-														var span_info = null;
-														span_info = get_care_time_info(this_item, unit, section);
-														if (span_info.hasOwnProperty("error")) {
-															//TODO: ? or later when warning is shown
-														}
-														// process only section sheet fields, since only they can be processed accurately:
-														for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-															//ret += '      <td>' + "\n";
-															var this_sff = section_sheet_fields[ssf_i];
-															//NOTE: intentionally gets desired fields only
-															if (this_sff.substring(0,1)=="=") {
-																var ender_i = this_sff.indexOf("(");
-																if (ender_i>-1) {
-																	var op = this_sff.substring(1,ender_i).trim();
-																	if ((typeof span_info.seconds)=="string") span_info.seconds = parseInt(span_info.seconds);
-																	var qty_times_seconds = span_info.seconds;
-																	if ("qty" in this_item) {
-																		qty_times_seconds *= parseInt(this_item.qty);  //ok since there only is a number type (no truncation will occur)
-																		if (span_info.seconds>0) {
-																			if (qty_times_seconds<span_info.seconds) {
-																				console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
-																				qty_times_seconds = span_info.seconds;
-																			}
-																			//else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
-																		}
-																	}
-																	if (op == "careprice") {
-																		if (span_info.hasOwnProperty("seconds")) {
-																			this_item.tmp["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
-																			if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
-																				if (span_info.hasOwnProperty("error")) {
-																					if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
-																				}
-																				if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
-																			}
-																		}
-																		else {
-																			this_item.tmp["=careprice()"] = 0.00;
-																			if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
-																				parsing_error += "\n<br/>";
-																				if (span_info.hasOwnProperty("error")) {
-																					if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
-																				}
-																			}
-																		}
-																	}
-																	else if (op == "caretime") {
-																		//span_info = get_care_time_info(this_item, unit, section);
-																		if (span_info.hasOwnProperty("seconds")) {
-																			this_item.tmp["=caretime()"] = qty_times_seconds;
-																		}
-																	}
-																	else if (op == "caretime_m") {
-																		//span_info = get_care_time_info(this_item, unit, section);
-																		if (span_info.hasOwnProperty("seconds")) {
-																			this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
-																		}
-																	}
-																	else if (op == "caretime_h") {
-																		//span_info = get_care_time_info(this_item, unit, section);
-																		if (span_info.hasOwnProperty("seconds")) {
-																			this_item.tmp["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
-																		}
-																	}
-																	//below are already done further up (before copying item to this_item)
-																	//else if (op == "get_date_from_path") {
-																	//	this_item.tmp["=get_date_from_path()"] = this_item.tmp["=get_date_from_path()"];  // also the following is always accurate in this context: selected_year+"-"+selected_month+"-"+this_day;
-																	//}
-																	//else if (op == "get_day_from_path") {
-																	//	this_item.tmp["=get_day_from_path()"] = this_item.tmp["=get_day_from_path()"];
-																	//}
-																}
-																else {
-																	console.log("undefined function :" + this_sff);
-																}
-															}
-															else if (this_item.hasOwnProperty(this_sff)) {
-															//not needed since preprocessing first
-															//if (this_item.hasOwnProperty(this_sff)) {
-																//var val = this_item[this_sff];
-																//ret += val;
-																//var val = items[this_sff];
-																//console.log("    " + this_sff + ": " + val);
-															}
-															//ret += '</td>' + "\n";
-														}
-														//}
-														//catch (err) {
-														//	msg += "\n<br/>Could not finish reading "+item_path+": "+err;
-														//}
-													}
-													else console.log("Skipped "+item_path+": not a data file");
-												}
-												//else not hasOwnProperty
-											}//end for item keys
-											
-											if (msg.length>0) {
-												//res.session.error=msg;
-												console.log(msg);
-												ret += '<div class="alert alert-danger">'+msg+'</div>' + "\n";
-											}
+								var override_key = null;
+								if (section_fields_overrides.hasOwnProperty(section)) {
+									for (var this_key in section_fields_overrides[section]) {
+										if (this_key==key) {
+											override_key = section_fields_overrides[section][this_key];
+											break;
 										}
-										else console.log("Invalid path resulting in cache miss: '"+d_path+"' ("+di.error+")");
-										//else console.log("Invalid path resulting in stale days array: '"+d_path+"'");
-									}//end for days
-									d_path = null;  // out of loop
-									item_path = null;  // out of loop
-									var hdv_field_name = null;
-									var hdv_item_splitter_name = null;
-									if (has_setting(unit, section+".list_implies_qty")) hdv_field_name = peek_setting(unit, section+".list_implies_qty");
-									if (hdv_field_name===null) console.log("[ verbose message ] no "+"settings."+section+".list_implies_qty");
-									if (has_setting(unit, section+".list_implies_multiple_entries")) hdv_item_splitter_name = peek_setting(unit, section+".list_implies_multiple_entries");
-									if (hdv_item_splitter_name===null) console.log("[ verbose message ] no "+section+".list_implies_multiple_entries");
-									var identifying_fields = null;
-									if (has_setting(unit, section+".autofill_requires")) {
-										identifying_fields = [];
-										var ar = peek_setting(unit, section+".autofill_requires");
-										for (var k in ar) {
-											var sub_ar_len = ar[k].length;
-											for (var sub_i=0; sub_i<sub_ar_len; sub_i++) {
-												if (!fun.array_contains(identifying_fields, ar[k][sub_i])) identifying_fields.push(ar[k][sub_i]);
-											}
-										}
-										if (identifying_fields.length<1) {
-											console.log("WARNING: <section name>.autofill_requires setting has zero variable-name-as key arrays, so duplicate detection won't work.");
-											identifying_fields = null;
-										}
-										else console.log("[ ] verbose message: Using identifying fields for duplicate detection (unique fields from <section name>.autofill_requires arrays): "+JSON.stringify(identifying_fields))
 									}
-									else console.log("WARNING: <section name>.autofill_requires does not exist in settings, so duplicate detection won't work.");
-									
-									var debug_stack = [];
-									for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
-										var item = items[item_i];
-										d_path = m_path+"/"+item.tmp.day;
-										item_path = d_path+"/"+item.key;
-										//console.log();
-										//console.log("[CHECKING#"+item_i+"]");
-										var item_enable = (!item.hasOwnProperty("active") || (fun.is_true(item.active)));
-										ret += '    <tr>' + "\n";
-										var a_name = 'scrollto'+item_i;
-										var dup_index = -1;
-										var this_date_items = null;
-										var status_class = "glyphicon glyphicon-remove";
-										var status_style = "color:black";
-										var new_value = "false";
-										if (!fun.item_is_active(item)) {
-											status_class = "glyphicon glyphicon-remove-sign";
-											status_style = "color:gray";
-											new_value = true;
-										}
-										if (item.hasOwnProperty("split_destinations")) {
-											status_class = "glyphicon glyphicon-list";
-										}
-										else if (item.hasOwnProperty("duplicate_of_key")) {
-											status_class = "glyphicon glyphicon-tags";
-										}
-										ret += '      <td>';
-										ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
-										ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-										ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-										ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-										ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-										ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-										ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-										ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-										ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>' + "\n";
-										ret += '  <input type="hidden" name="set_value" id="set_value" value="'+((fun.item_is_active(item))?'false':'true')+'"/>' + "\n";
-										ret += '  <input type="hidden" name="status_changed_by" id="status_changed_by" value="'+username+'"/>' + "\n";  // signals change-microevent-field and write_record_without_validation that this is a manual entry deactivation
-										ret += '  <button class="btn" type="submit">' + "\n";
-										ret += '<span class="'+status_class+'" style="'+status_style+'"></span>' + "\n";
-										ret += '</button>' + "\n";
-										ret += '</form>' + "\n";
-										
-										ret += '</td>';
-										if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
-										var match_count=null;
-										if (item_enable && user_has_section_permission(unit, username, section, mode)) {
-											
-											if (has_setting(unit, section+".form_fields")) {
-											//console.log("[ == ] this "+this_date+" "+this_time+"..."); //this_date does not exist in this scope
-												//if (items_by_date.hasOwnProperty(items[item_i].tmp["=get_date_from_path()"])) {
-												var section_form_fields = peek_setting(unit, section+".form_fields");
-												if (items[item_i].tmp["=get_date_from_path()"] in items_by_date) {
-													this_date_items = items_by_date[items[item_i].tmp["=get_date_from_path()"]];
-													//for (var prev_i=0; prev_i<item_i; prev_i++) { //this would be even slower
-													var active_count = 0;
-													for (var inner_i=0,inner_len=this_date_items.length; inner_i<inner_len; inner_i++) {
-														//if ((!items[prev_i].hasOwnProperty("active")) || fun.is_true(items[prev_i].active)) {
-														if ((!this_date_items[inner_i].hasOwnProperty("active")) || fun.is_true(this_date_items[inner_i].active)) {
-															active_count++;
-															if (items[item_i].key != this_date_items[inner_i].key) {
-																match_count = 0;
-																var ff_len = section_form_fields.length;
-																//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
-																//var prev_date = fun.get_date_or_stated_date(items[prev_i], "item# "+item_i+"&"+prev_i);
-																var prev_time = this_date_items[inner_i].tmp.time;
-																var prev_date =  this_date_items[inner_i].tmp.date; //pre-0.1.0 where date wasn't saved
-																var this_time = items[item_i].tmp.time;
-																//var this_date = fun.get_date_or_stated_date(items[item_i], "item# "+item_i+"&"+prev_i);
-																var this_date = items[item_i].tmp.date;
-																//console.log("[ == ] this "+this_date+" "+this_time+", prev "+prev_date+" "+prev_time+"...");
-																if (prev_date==this_date) {
-																	//console.log("[ match ] "+prev_date + " == " + this_date);
-																	if ((this_time.indexOf("NaN")<=-1)&&(prev_time.indexOf("NaN")<=-1)) {
-																		if (fun.is_not_blank(this_date) && fun.is_not_blank(prev_date)) {
-																			if ((prev_time!==null) && (this_time!==null)) {
-																				var is_out_of_range = false;
-																				var this_is_after_school = is_after_school(unit, section, this_date+" "+this_time);
-																				if ((!this_is_after_school) && (!is_before_school(unit, section, this_date+" "+this_time))) is_out_of_range = true;
-																				var prev_is_after_school = is_after_school(unit, section, prev_date+" "+prev_time);
-																				if ((!prev_is_after_school) && (!is_before_school(unit, section, prev_date+" "+prev_time))) is_out_of_range = true;
-																				var these_fields = section_form_fields;
-																				if (identifying_fields!==null) these_fields = identifying_fields;
-																				var tf_len = these_fields.length;
-																				if ((!is_out_of_range) && (this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
-																					for (var ff_i=0; ff_i<tf_len; ff_i++) {
-																						/*
-																						if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
-																							(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], items[prev_i][these_fields[ff_i]])) || 
-																							(
-																								((typeof items[item_i][these_fields[ff_i]])=="string") && 
-																								((typeof items[prev_i][these_fields[ff_i]])=="string") &&
-																								(items[item_i][these_fields[ff_i]].trim().toLowerCase() == items[prev_i][these_fields[ff_i]].trim().toLowerCase()) )
-																						) {
-																							//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + items[prev_i][these_fields[ff_i]]);
-																							match_count++;
-																						}
-																						//else console.log(" [ <> ] "+items[item_i][these_fields[ff_i]] + " is not " + items[prev_i][these_fields[ff_i]]);
-																						*/
-																						if (these_fields[ff_i]=="stated_date") {
-																							//if (items[item_i][these_fields[ff_i]] == this_date_items[inner_i][these_fields[ff_i]]) {
-																							if (items[item_i].tmp.date==this_date_items[inner_i].tmp.date) {
-																								console.log(" [ == ] "+items[item_i].tmp.date + " is " + this_date_items[inner_i].tmp.date);
-																								match_count++;
-																							}
-																						}
-																						else if (these_fields[ff_i]=="stated_time") {
-																							//do not check time (duplicate can be different time!)
-																							//if (items[item_i][these_fields[ff_i]] == this_date_items[inner_i][these_fields[ff_i]]) {
-																							//if (items[item_i].tmp.time==this_date_items[inner_i].tmp.time) {
-																								//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + this_date_items[inner_i][these_fields[ff_i]]);
-																								match_count++;
-																							//}
-																						}
-																						else {
-																							if (//fun.is_blank(items[item_i][these_fields[ff_i]]) || 
-																								(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], this_date_items[inner_i][these_fields[ff_i]])) || 
-																								(
-																									((typeof items[item_i][these_fields[ff_i]])=="string") && 
-																									((typeof this_date_items[inner_i][these_fields[ff_i]])=="string") &&
-																									(items[item_i][these_fields[ff_i]].trim().toLowerCase() == this_date_items[inner_i][these_fields[ff_i]].trim().toLowerCase()) )
-																							) {
-																								//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + this_date_items[inner_i][these_fields[ff_i]]);
-																								match_count++;
-																							}
-																						}
-																						//console.log(" [ <> ] "+items[item_i][these_fields[ff_i]] + " is not " + this_date_items[inner_i][these_fields[ff_i]]);
-																					}
-																					if (match_count>=tf_len) {
-																						//console.log("matched "+match_count+" of "+tf_len);//+JSON.stringify(these_fields));
-																						//dup_index = prev_i;
-																						//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui);//+" among "+JSON.stringify(these_fields));
-																						//debug only:
-																						//if (items[item_i].first_name=="") {
-																						//var msg = "[ == ] "+this_date+" "+this_time+" after:"+this_is_after_school+"; prev "+prev_date+" "+prev_time+" after:"+prev_is_after_school;
-																						//if (!fun.array_contains(debug_stack, msg)) { //only show once
-																						//	debug_stack.push(msg);
-																						//	console.log(msg);
-																						//}
-																						//}
-																						
-																						dup_index = inner_i;
-																						break;
-																					}
-																					else {
-																						if (match_count>1) {
-																							//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui+" among "+JSON.stringify(these_fields));
-																						}
-																					}
-																				} //if more than one before school or after school for day
-																			}
-																			//else console.log(" [ <> ] prev_time is "+ prev_time + " this_time is " + this_time);
-																		}
-																		else console.log(" [ <> ] Warning: blank date ("+this_date_items[inner_i].tmp.date+" against "+items[item_i].tmp.date+")");
-																	}
-																	else console.log("Warning: Found NaN in time ("+this_date_items[inner_i].tmp.time+" against "+items[item_i].tmp.time+")");
-																}
-																//NOTE: this_date is out of scope
-															}//else is same record (is self)
-															
-															match_count=null;
-														}//if is an active entry
+								}
+								if (override_key===null) override_key = key;
+								var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+override_key;
+								if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) ret += name;
+								else ret += '<a href="'+href+'">'+name+'</a>';
+								ret += '</small></th>';
+							}
+							ret += '    </tr>' + "\n";
+							ret += '  </thead>' + "\n";
+							ret += '  <tbody>' + "\n";
+							
+							//NOTE: don't render rows yet--this loop prepares the data
+							var d_path;
+							var item_path;
+							//TODO: asdf load from fsc[unit][section][category][table_name] instead
+							//table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, false);
+							//unit, section, category, table_name are all helper params passed from handlebars template
+							if (fsc[unit][section][category].hasOwnProperty("table_name")) {
+								y_path = table_path + "/" + selected_year;
+								var m_path = y_path + "/" + selected_month;
+								for (var day_i=0; day_i<days.length; day_i++) {
+									var this_day = fun.zero_padded(days[day_i],2);
+									d_path = m_path + "/" + this_day;
+									var di = get_day_info(fsc[unit][section][category][table_name], [year,month,this_day]);
+									if (di.enable) {  // if (fs.existsSync(d_path)) {
+										//jk item_keys = fun.getVisibleFiles(d_path);
+										//jk if (!dat[section][selected_year][selected_month][this_day]) dat[section][selected_year][selected_month][this_day]={};
+										//jk dat[section][selected_year][selected_month][this_day].item_keys = item_keys;
+										items = fsc[unit][section][category][table_name][year][month][this_day];
+										//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
+										//console.log("(ITEM KEYS.length:"+item_keys.length+")");
+										//console.log("## ITEMS:"+items);
+										var msg = "";
+										//TODO: deprecate item_key_i, item_keys
+										//for (var item_key_i in item_keys) {
+										for (var item_key in items) {
+											if (items.hasOwnProperty(item_key)) {
+												//NOTE: there is no per-day html since that doesn't matter (unless date should be shown)
+												//ret += '    <tr>' + "\n";
+												//var item_key = item_keys[item_key_i];
+												//item_path = d_path + "/" + item_key;
+												if (item_key.endsWith(".yml")) {
+													//try {
+													//dat[section][year][month][this_day][item_key] = yaml.readSync(item_path, "utf8");
+													//var original_item = dat[section][month][month][this_day][item_key];
+													var original_item = items[item_key];
+													original_item.key = item_key;
+													if (!original_item.hasOwnProperty("tmp"))
+														original_item.tmp = {};
+													original_item.tmp["=get_day_from_path()"] = this_day;
+													original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
+													//original_item.tmp["=get_origin_date()"] = null;
+													if (original_item.hasOwnProperty("date"))
+														original_item.tmp["=get_origin_date()"] = original_item.date;
+													else if (original_item.hasOwnProperty("ctime"))
+														original_item.tmp["=get_origin_date()"] = original_item.ctime.substring(0,10);
+													else {
+														var this_item_path = d_path+"/"+item_key;
+														var stats = fs.statSync(this_item_path);
+														var ctime = null;
+														if (stats.hasOwnProperty("ctime")) original_item.tmp["=get_origin_date()"] = stats.ctime;
+														//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
+														//else if (stats.hasOwnProperty("mtime")) original_item.tmp["=get_origin_date()"] = stats['mtime'];
+														//ctime = new Date(util.inspect(stats.mtime));
+														//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
+														if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
 													}
-													//console.log("Checked "+active_count+" active item(s) against "+items[item_i].tmp.tui);
-												}//end if is in items_by_date
-												else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date: "+JSON.stringify(Object.keys(items_by_date)));
-											}
-										}
-										
-										for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-											ret += '      <td>' + "\n";
-											
-											if (ssf_i===0) ret += '<a name="'+a_name+'"></a>';
-											if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
-											var column_name = section_sheet_fields[ssf_i];
-											//NOTE: intentionally gets desired fields only
-											var val = "";
-											if (column_name in item.tmp) { // if (item.tmp.hasOwnProperty(column_name)) {
-												if (column_name=="=careprice()") {
-													//var is_out_of_range = false;
-													//if (   (!is_after_school(unit, section, item.tmp.date+" "+item.tmp.time)))
-													//	&& (!is_before_school(unit, section, item.tmp.date+" "+item.tmp.time))) is_out_of_range = true;
-													if (parseFloat(item.tmp[column_name])<=0.0) val = '<span style="color:red">' + item.tmp[column_name] + '</span>';
-													else val = item.tmp[column_name];
-												}
-												else {
-													//console.log(column_name + " is not careprice"); //debug only 
-													val = item.tmp[column_name];
-												}
-											}
-											else if (item.hasOwnProperty(column_name)) {
-												val = item[column_name];
-											}
-											if (selected_field==column_name) {
-												//don't show value yet if selected (see below)
-											}
-											else ret += val;
-											
-											if (selected_field==column_name) { //show even if does NOT have property
-												ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
-												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>' + "\n";
-												ret += '  <input type="text" size="13" name="set_value" id="set_value" value="'+val+'"/>' + "\n";
-												ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
-												ret += '</form>';
-											}
-											
-											if ((dup_index>-1) && (ssf_i===0)) {
-												ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
-												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>' + "\n";
-												ret += '  <input type="hidden" name="set_value" id="set_value" value="false"/>' + "\n";
-												ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+this_date_items[dup_index].key+'"/>' + "\n";
-												ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+this_date_items[dup_index].tmp.time+'"/>' + "\n";
-												ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+this_date_items[dup_index].tmp.date+'"/>' + "\n";
-												var dup_msg = 'Mark as Duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time;
-												if (fun.visual_debug_enable) dup_msg = 'Mark dated '+items[item_i].tmp.date+' <br/>Duplicate of '+this_date_items[dup_index].tmp.date+'<br/>(actual dup '+this_date_items[dup_index].key+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time;
-												if (item.hasOwnProperty("stated_date") || item.hasOwnProperty("stated_time")) //ret += '<div class="alert alert-info">see duplicate: '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</div>';
-													ret += '  <button class="btn btn-info" type="submit">override as duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>' + "\n";
-												else ret += '  <button class="btn btn-warning" type="submit">'+dup_msg+'</button>' + "\n";
-												//Mark '+item_i+':'+items[item_i].tmp.date+' Duplicate of '+this_date_items[dup_index].tmp.date+' (actual '+dup_index+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'
-												ret += '</form>' + "\n";
-											}
-											
-											if (item_enable) {
-												if (hdv_item_splitter_name && (column_name==hdv_item_splitter_name)) {
-													var subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
-													if (subvalues && (subvalues.length>1)) {
-														
-														var split_enable = true;
-														var hdv_paired_name = null;
-														if (has_setting(unit, section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(unit, section+".list_implies_multiple_entries_paired_with");
-														if (hdv_paired_name!==null) {
-															var co_subvalues = fun.get_human_delimited_values(item[hdv_paired_name]); //TODO: if differs, DON'T offer split!
-															if (co_subvalues!==null) {
-																if (co_subvalues.length==1) {
-																	ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" does not.</div>';
-																	//split_enable = false;
+													original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
+													if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
+													original_item.tmp.time = fun.get_time_or_stated_time(original_item);
+													if (original_item.tmp.time===null) original_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+													//tui: table-unique identifier
+													original_item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
+													if (!items_by_date.hasOwnProperty(original_item.tmp["=get_date_from_path()"])) {
+														items_by_date[original_item.tmp["=get_date_from_path()"]] = [];
+														//console.log("added date to items_by_date: '"+original_item.tmp["=get_date_from_path()"]+"'");
+														//console.log("added date to items_by_date at date "+original_item.tmp["=get_date_from_path()"]);
+													}
+													items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
+													//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
+													//var this_item = original_item;
+													var this_item = JSON.parse(JSON.stringify(original_item));
+													var ymd_array = null;
+													if (this_item.tmp.date) {
+														ymd_array = this_item.tmp.date.split("-");
+														if ((ymd_array!==null) && (ymd_array.length==3)) {
+															this_item.tmp.year = year; // padded version
+															this_item.tmp.month = month; // padded version
+															this_item.tmp.day = this_day; // padded version from loop
+														}
+														else console.log("ERROR in show_reports: bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
+													}
+													else console.log("ERROR in show_reports: missing this_item.date for " + original_item.tmp.tui);
+													var span_info = null;
+													span_info = get_care_time_info(this_item, unit, section);
+													if (span_info.hasOwnProperty("error")) {
+														//TODO: ? or later when warning is shown
+													}
+													// process only section sheet fields, since only they can be processed accurately:
+													for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
+														//ret += '      <td>' + "\n";
+														var this_sff = section_sheet_fields[ssf_i];
+														//NOTE: intentionally gets desired fields only
+														if (this_sff.substring(0,1)=="=") {
+															var ender_i = this_sff.indexOf("(");
+															if (ender_i>-1) {
+																var op = this_sff.substring(1,ender_i).trim();
+																if ((typeof span_info.seconds)=="string") span_info.seconds = parseInt(span_info.seconds);
+																var qty_times_seconds = span_info.seconds;
+																if ("qty" in this_item) {
+																	qty_times_seconds *= parseInt(this_item.qty);  //ok since there only is a number type (no truncation will occur)
+																	if (span_info.seconds>0) {
+																		if (qty_times_seconds<span_info.seconds) {
+																			console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
+																			qty_times_seconds = span_info.seconds;
+																		}
+																		//else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
+																	}
 																}
+																if (op == "careprice") {
+																	if (span_info.hasOwnProperty("seconds")) {
+																		this_item.tmp["=careprice()"] = (qty_times_seconds/60.0/60.0 * this_rate).toFixed(2); //NOTE: toFixed returns a STRING
+																		if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
+																			if (span_info.hasOwnProperty("error")) {
+																				if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																			}
+																			if (span_info.hasOwnProperty("warning")) parsing_info += "\n<br/>NOTE: " + span_info.warning + " in " + item_path;
+																		}
+																	}
+																	else {
+																		this_item.tmp["=careprice()"] = 0.00;
+																		if ((!this_item.hasOwnProperty("active")) || fun.is_true(this_item.active)) {
+																			parsing_error += "\n<br/>";
+																			if (span_info.hasOwnProperty("error")) {
+																				if (parsing_error.indexOf(span_info.error)<0) parsing_error += span_info.error;
+																			}
+																		}
+																	}
+																}
+																else if (op == "caretime") {
+																	//span_info = get_care_time_info(this_item, unit, section);
+																	if (span_info.hasOwnProperty("seconds")) {
+																		this_item.tmp["=caretime()"] = qty_times_seconds;
+																	}
+																}
+																else if (op == "caretime_m") {
+																	//span_info = get_care_time_info(this_item, unit, section);
+																	if (span_info.hasOwnProperty("seconds")) {
+																		this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
+																	}
+																}
+																else if (op == "caretime_h") {
+																	//span_info = get_care_time_info(this_item, unit, section);
+																	if (span_info.hasOwnProperty("seconds")) {
+																		this_item.tmp["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
+																	}
+																}
+																//below are already done further up (before copying item to this_item)
+																//else if (op == "get_date_from_path") {
+																//	this_item.tmp["=get_date_from_path()"] = this_item.tmp["=get_date_from_path()"];  // also the following is always accurate in this context: selected_year+"-"+selected_month+"-"+this_day;
+																//}
+																//else if (op == "get_day_from_path") {
+																//	this_item.tmp["=get_day_from_path()"] = this_item.tmp["=get_day_from_path()"];
+																//}
 															}
 															else {
-																ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" is missing.</div>';
-																split_enable = false;
-															}
-															if ((subvalues.length==2) && (item[hdv_item_splitter_name].indexOf(",")<=-1) && (item[hdv_item_splitter_name].indexOf("&")<=-1)
-																&& (item[hdv_item_splitter_name].indexOf("+")<=-1) && (item[hdv_item_splitter_name].indexOf(" and ")<=-1)
-															) { //only treat as possibly one person if has no splitters other than space
-																ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
-																ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-																ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-																ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-																ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-																ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-																ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-																ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-																ret += '  <input type="hidden" name="selected_field" id="selected_field" value="last_name"/>' + "\n"; //SET last_name
-																ret += '  <input type="hidden" name="set_value" id="set_value" value="'+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'"/>' + "\n";
-																ret += '  <button class="btn btn-warning" type="submit">Set to '+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'</button>' + "\n";
-																ret += '</form>' + "\n";
+																console.log("undefined function :" + this_sff);
 															}
 														}
-														if (split_enable) {
-															ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">' + "\n";
-															ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-															ret += '  <input type="hidden" name="section" id="unit" value="'+unit+'"/>' + "\n";
-															ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-															ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-															ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-															ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-															ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-															ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-															ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n";
-															//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>' + "\n";
-															ret += '  <input type="hidden" name="expected_count" id="expected_count" value="'+subvalues.length+'"/>' + "\n";
-															ret += '  <button class="btn btn-danger" type="submit">Split into '+subvalues.length+' entries</button>' + "\n";
-															ret += '</form>' + "\n";
+														else if (this_item.hasOwnProperty(this_sff)) {
+														//not needed since preprocessing first
+														//if (this_item.hasOwnProperty(this_sff)) {
+															//var val = this_item[this_sff];
+															//ret += val;
+															//var val = items[this_sff];
+															//console.log("    " + this_sff + ": " + val);
 														}
+														//ret += '</td>' + "\n";
 													}
+													//}
+													//catch (err) {
+													//	msg += "\n<br/>Could not finish reading "+item_path+": "+err;
+													//}
 												}
-												else if (fun.is_blank(item[column_name]) && hdv_field_name && (column_name=="qty")) {
+												else console.log("Skipped "+item_path+": not a data file");
+											}
+											//else not hasOwnProperty
+										}//end for item keys
+										
+										if (msg.length>0) {
+											//res.session.error=msg;
+											console.log(msg);
+											ret += '<div class="alert alert-danger">'+msg+'</div>' + "\n";
+										}
+									}
+									else console.log("Invalid path resulting in cache miss: '"+d_path+"' ("+di.error+")");
+									//else console.log("Invalid path resulting in stale days array: '"+d_path+"'");
+								}//end for days
+								d_path = null;  // out of loop
+								item_path = null;  // out of loop
+								var hdv_field_name = null;
+								var hdv_item_splitter_name = null;
+								if (has_setting(unit, section+".list_implies_qty")) hdv_field_name = peek_setting(unit, section+".list_implies_qty");
+								if (hdv_field_name===null) console.log("[ verbose message ] no "+"settings."+section+".list_implies_qty");
+								if (has_setting(unit, section+".list_implies_multiple_entries")) hdv_item_splitter_name = peek_setting(unit, section+".list_implies_multiple_entries");
+								if (hdv_item_splitter_name===null) console.log("[ verbose message ] no "+section+".list_implies_multiple_entries");
+								var identifying_fields = null;
+								if (has_setting(unit, section+".autofill_requires")) {
+									identifying_fields = [];
+									var ar = peek_setting(unit, section+".autofill_requires");
+									for (var k in ar) {
+										var sub_ar_len = ar[k].length;
+										for (var sub_i=0; sub_i<sub_ar_len; sub_i++) {
+											if (!fun.array_contains(identifying_fields, ar[k][sub_i])) identifying_fields.push(ar[k][sub_i]);
+										}
+									}
+									if (identifying_fields.length<1) {
+										console.log("WARNING: <section name>.autofill_requires setting has zero variable-name-as key arrays, so duplicate detection won't work.");
+										identifying_fields = null;
+									}
+									else console.log("[ ] verbose message: Using identifying fields for duplicate detection (unique fields from <section name>.autofill_requires arrays): "+JSON.stringify(identifying_fields));
+								}
+								else console.log("WARNING: <section name>.autofill_requires does not exist in settings, so duplicate detection won't work.");
+								
+								var debug_stack = [];
+								for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
+									var item = items[item_i];
+									d_path = m_path+"/"+item.tmp.day;
+									item_path = d_path+"/"+item.key;
+									//console.log();
+									//console.log("[CHECKING#"+item_i+"]");
+									var item_enable = (!item.hasOwnProperty("active") || (fun.is_true(item.active)));
+									ret += '    <tr>' + "\n";
+									var a_name = 'scrollto'+item_i;
+									var dup_index = -1;
+									var this_date_items = null;
+									var status_class = "glyphicon glyphicon-remove";
+									var status_style = "color:black";
+									var new_value = "false";
+									if (!fun.item_is_active(item)) {
+										status_class = "glyphicon glyphicon-remove-sign";
+										status_style = "color:gray";
+										new_value = true;
+									}
+									if (item.hasOwnProperty("split_destinations")) {
+										status_class = "glyphicon glyphicon-list";
+									}
+									else if (item.hasOwnProperty("duplicate_of_key")) {
+										status_class = "glyphicon glyphicon-tags";
+									}
+									ret += '      <td>';
+									ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+									ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+									ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+									ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+									ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>' + "\n";
+									ret += '  <input type="hidden" name="set_value" id="set_value" value="'+((fun.item_is_active(item))?'false':'true')+'"/>' + "\n";
+									ret += '  <input type="hidden" name="status_changed_by" id="status_changed_by" value="'+username+'"/>' + "\n";  // signals change-microevent-field and write_record_without_validation that this is a manual entry deactivation
+									ret += '  <button class="btn" type="submit">' + "\n";
+									ret += '<span class="'+status_class+'" style="'+status_style+'"></span>' + "\n";
+									ret += '</button>' + "\n";
+									ret += '</form>' + "\n";
+									
+									ret += '</td>';
+									if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
+									var match_count=null;
+									if (item_enable && user_has_section_permission(unit, username, section, mode)) {
+										
+										if (has_setting(unit, section+".form_fields")) {
+										//console.log("[ == ] this "+this_date+" "+this_time+"..."); //this_date does not exist in this scope
+											//if (items_by_date.hasOwnProperty(items[item_i].tmp["=get_date_from_path()"])) {
+											var section_form_fields = peek_setting(unit, section+".form_fields");
+											if (items[item_i].tmp["=get_date_from_path()"] in items_by_date) {
+												this_date_items = items_by_date[items[item_i].tmp["=get_date_from_path()"]];
+												//for (var prev_i=0; prev_i<item_i; prev_i++) { //this would be even slower
+												var active_count = 0;
+												for (var inner_i=0,inner_len=this_date_items.length; inner_i<inner_len; inner_i++) {
+													//if ((!items[prev_i].hasOwnProperty("active")) || fun.is_true(items[prev_i].active)) {
+													if ((!this_date_items[inner_i].hasOwnProperty("active")) || fun.is_true(this_date_items[inner_i].active)) {
+														active_count++;
+														if (items[item_i].key != this_date_items[inner_i].key) {
+															match_count = 0;
+															var ff_len = section_form_fields.length;
+															//var prev_time = fun.get_time_or_stated_time(items[prev_i]);
+															//var prev_date = fun.get_date_or_stated_date(items[prev_i], "item# "+item_i+"&"+prev_i);
+															var prev_time = this_date_items[inner_i].tmp.time;
+															var prev_date =  this_date_items[inner_i].tmp.date; //pre-0.1.0 where date wasn't saved
+															var this_time = items[item_i].tmp.time;
+															//var this_date = fun.get_date_or_stated_date(items[item_i], "item# "+item_i+"&"+prev_i);
+															var this_date = items[item_i].tmp.date;
+															//console.log("[ == ] this "+this_date+" "+this_time+", prev "+prev_date+" "+prev_time+"...");
+															if (prev_date==this_date) {
+																//console.log("[ match ] "+prev_date + " == " + this_date);
+																if ((this_time.indexOf("NaN")<=-1)&&(prev_time.indexOf("NaN")<=-1)) {
+																	if (fun.is_not_blank(this_date) && fun.is_not_blank(prev_date)) {
+																		if ((prev_time!==null) && (this_time!==null)) {
+																			var is_out_of_range = false;
+																			var this_is_after_school = is_after_school(unit, section, this_date+" "+this_time);
+																			if ((!this_is_after_school) && (!is_before_school(unit, section, this_date+" "+this_time))) is_out_of_range = true;
+																			var prev_is_after_school = is_after_school(unit, section, prev_date+" "+prev_time);
+																			if ((!prev_is_after_school) && (!is_before_school(unit, section, prev_date+" "+prev_time))) is_out_of_range = true;
+																			var these_fields = section_form_fields;
+																			if (identifying_fields!==null) these_fields = identifying_fields;
+																			var tf_len = these_fields.length;
+																			if ((!is_out_of_range) && (this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
+																				for (var ff_i=0; ff_i<tf_len; ff_i++) {
+																					/*
+																					if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
+																						(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], items[prev_i][these_fields[ff_i]])) || 
+																						(
+																							((typeof items[item_i][these_fields[ff_i]])=="string") && 
+																							((typeof items[prev_i][these_fields[ff_i]])=="string") &&
+																							(items[item_i][these_fields[ff_i]].trim().toLowerCase() == items[prev_i][these_fields[ff_i]].trim().toLowerCase()) )
+																					) {
+																						//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + items[prev_i][these_fields[ff_i]]);
+																						match_count++;
+																					}
+																					//else console.log(" [ <> ] "+items[item_i][these_fields[ff_i]] + " is not " + items[prev_i][these_fields[ff_i]]);
+																					*/
+																					if (these_fields[ff_i]=="stated_date") {
+																						//if (items[item_i][these_fields[ff_i]] == this_date_items[inner_i][these_fields[ff_i]]) {
+																						if (items[item_i].tmp.date==this_date_items[inner_i].tmp.date) {
+																							console.log(" [ == ] "+items[item_i].tmp.date + " is " + this_date_items[inner_i].tmp.date);
+																							match_count++;
+																						}
+																					}
+																					else if (these_fields[ff_i]=="stated_time") {
+																						//do not check time (duplicate can be different time!)
+																						//if (items[item_i][these_fields[ff_i]] == this_date_items[inner_i][these_fields[ff_i]]) {
+																						//if (items[item_i].tmp.time==this_date_items[inner_i].tmp.time) {
+																							//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + this_date_items[inner_i][these_fields[ff_i]]);
+																							match_count++;
+																						//}
+																					}
+																					else {
+																						if (//fun.is_blank(items[item_i][these_fields[ff_i]]) || 
+																							(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], this_date_items[inner_i][these_fields[ff_i]])) || 
+																							(
+																								((typeof items[item_i][these_fields[ff_i]])=="string") && 
+																								((typeof this_date_items[inner_i][these_fields[ff_i]])=="string") &&
+																								(items[item_i][these_fields[ff_i]].trim().toLowerCase() == this_date_items[inner_i][these_fields[ff_i]].trim().toLowerCase()) )
+																						) {
+																							//console.log(" [ == ] "+items[item_i][these_fields[ff_i]] + " is " + this_date_items[inner_i][these_fields[ff_i]]);
+																							match_count++;
+																						}
+																					}
+																					//console.log(" [ <> ] "+items[item_i][these_fields[ff_i]] + " is not " + this_date_items[inner_i][these_fields[ff_i]]);
+																				}
+																				if (match_count>=tf_len) {
+																					//console.log("matched "+match_count+" of "+tf_len);//+JSON.stringify(these_fields));
+																					//dup_index = prev_i;
+																					//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui);//+" among "+JSON.stringify(these_fields));
+																					//debug only:
+																					//if (items[item_i].first_name=="") {
+																					//var msg = "[ == ] "+this_date+" "+this_time+" after:"+this_is_after_school+"; prev "+prev_date+" "+prev_time+" after:"+prev_is_after_school;
+																					//if (!fun.array_contains(debug_stack, msg)) { //only show once
+																					//	debug_stack.push(msg);
+																					//	console.log(msg);
+																					//}
+																					//}
+																					
+																					dup_index = inner_i;
+																					break;
+																				}
+																				else {
+																					if (match_count>1) {
+																						//console.log("matched "+match_count+" of "+tf_len+" against "+items[item_i].tmp.tui+" among "+JSON.stringify(these_fields));
+																					}
+																				}
+																			} //if more than one before school or after school for day
+																		}
+																		//else console.log(" [ <> ] prev_time is "+ prev_time + " this_time is " + this_time);
+																	}
+																	else console.log(" [ <> ] Warning: blank date ("+this_date_items[inner_i].tmp.date+" against "+items[item_i].tmp.date+")");
+																}
+																else console.log("Warning: Found NaN in time ("+this_date_items[inner_i].tmp.time+" against "+items[item_i].tmp.time+")");
+															}
+															//NOTE: this_date is out of scope
+														}//else is same record (is self)
+														
+														match_count=null;
+													}//if is an active entry
+												}
+												//console.log("Checked "+active_count+" active item(s) against "+items[item_i].tmp.tui);
+											}//end if is in items_by_date
+											else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date: "+JSON.stringify(Object.keys(items_by_date)));
+										}
+									}
+									
+									for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
+										ret += '      <td>' + "\n";
+										
+										if (ssf_i===0) ret += '<a name="'+a_name+'"></a>';
+										if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
+										var column_name = section_sheet_fields[ssf_i];
+										//NOTE: intentionally gets desired fields only
+										var val = "";
+										if (column_name in item.tmp) { // if (item.tmp.hasOwnProperty(column_name)) {
+											if (column_name=="=careprice()") {
+												//var is_out_of_range = false;
+												//if (   (!is_after_school(unit, section, item.tmp.date+" "+item.tmp.time)))
+												//	&& (!is_before_school(unit, section, item.tmp.date+" "+item.tmp.time))) is_out_of_range = true;
+												if (parseFloat(item.tmp[column_name])<=0.0) val = '<span style="color:red">' + item.tmp[column_name] + '</span>';
+												else val = item.tmp[column_name];
+											}
+											else {
+												//console.log(column_name + " is not careprice"); //debug only 
+												val = item.tmp[column_name];
+											}
+										}
+										else if (item.hasOwnProperty(column_name)) {
+											val = item[column_name];
+										}
+										if (selected_field==column_name) {
+											//don't show value yet if selected (see below)
+										}
+										else ret += val;
+										
+										if (selected_field==column_name) { //show even if does NOT have property
+											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>' + "\n";
+											ret += '  <input type="text" size="13" name="set_value" id="set_value" value="'+val+'"/>' + "\n";
+											ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
+											ret += '</form>';
+										}
+										
+										if ((dup_index>-1) && (ssf_i===0)) {
+											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="active"/>' + "\n";
+											ret += '  <input type="hidden" name="set_value" id="set_value" value="false"/>' + "\n";
+											ret += '  <input type="hidden" name="duplicate_key" id="duplicate_key" value="'+this_date_items[dup_index].key+'"/>' + "\n";
+											ret += '  <input type="hidden" name="duplicate_time" id="duplicate_timef" value="'+this_date_items[dup_index].tmp.time+'"/>' + "\n";
+											ret += '  <input type="hidden" name="duplicate_date" id="duplicate_date" value="'+this_date_items[dup_index].tmp.date+'"/>' + "\n";
+											var dup_msg = 'Mark as Duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time;
+											if (fun.visual_debug_enable) dup_msg = 'Mark dated '+items[item_i].tmp.date+' <br/>Duplicate of '+this_date_items[dup_index].tmp.date+'<br/>(actual dup '+this_date_items[dup_index].key+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time;
+											if (item.hasOwnProperty("stated_date") || item.hasOwnProperty("stated_time")) //ret += '<div class="alert alert-info">see duplicate: '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</div>';
+												ret += '  <button class="btn btn-info" type="submit">override as duplicate<br/>of '+this_date_items[dup_index].tmp.date+' '+this_date_items[dup_index].tmp.time+'</button>' + "\n";
+											else ret += '  <button class="btn btn-warning" type="submit">'+dup_msg+'</button>' + "\n";
+											//Mark '+item_i+':'+items[item_i].tmp.date+' Duplicate of '+this_date_items[dup_index].tmp.date+' (actual '+dup_index+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'
+											ret += '</form>' + "\n";
+										}
+										
+										if (item_enable) {
+											if (hdv_item_splitter_name && (column_name==hdv_item_splitter_name)) {
+												var subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
+												if (subvalues && (subvalues.length>1)) {
 													
-													var hdv_subvalues = null;
-													if (hdv_item_splitter_name) hdv_subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
-													if (!hdv_subvalues || hdv_subvalues.length==1) { //only use qty if no splitter overrides qty
-														var hdvs = fun.get_human_delimited_values(item[hdv_field_name]);
-														if (hdvs && hdvs.length>1) {
+													var split_enable = true;
+													var hdv_paired_name = null;
+													if (has_setting(unit, section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(unit, section+".list_implies_multiple_entries_paired_with");
+													if (hdv_paired_name!==null) {
+														var co_subvalues = fun.get_human_delimited_values(item[hdv_paired_name]); //TODO: if differs, DON'T offer split!
+														if (co_subvalues!==null) {
+															if (co_subvalues.length==1) {
+																ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" does not.</div>';
+																//split_enable = false;
+															}
+														}
+														else {
+															ret += '<div class="alert alert-warning">implies multiple but "'+hdv_paired_name+'" is missing.</div>';
+															split_enable = false;
+														}
+														if ((subvalues.length==2) && (item[hdv_item_splitter_name].indexOf(",")<=-1) && (item[hdv_item_splitter_name].indexOf("&")<=-1) &&
+															(item[hdv_item_splitter_name].indexOf("+")<=-1) && (item[hdv_item_splitter_name].indexOf(" and ")<=-1)
+														) { //only treat as possibly one person if has no splitters other than space
 															ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 															ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
 															ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
@@ -3102,173 +3153,208 @@ var hbs = exphbs.create({
 															ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
 															ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
 															ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-															ret += '  <input type="hidden" name="selected_field" id="selected_field" value="qty"/>' + "\n"; //SET qty
-															ret += '  <input type="hidden" name="set_value" id="set_value" value="'+hdvs.length+'"/>' + "\n";
-															ret += '  <button class="btn btn-warning" type="submit">Set to '+hdvs.length+'</button>' + "\n";
+															ret += '  <input type="hidden" name="selected_field" id="selected_field" value="last_name"/>' + "\n"; //SET last_name
+															ret += '  <input type="hidden" name="set_value" id="set_value" value="'+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'"/>' + "\n";
+															ret += '  <button class="btn btn-warning" type="submit">Set to '+fun.split_capitalized(item[hdv_item_splitter_name],' ').join('')+'</button>' + "\n";
 															ret += '</form>' + "\n";
 														}
 													}
-												}
-												
-												if (fun.is_blank(item[column_name])) {
-													if (has_setting(unit, section+"."+mode+".suggest_missing_required_fields_enable")) {
-														if (fun.is_true(peek_setting(unit, section+"."+mode+".suggest_missing_required_fields_enable"))) {
-															//if is an autofill requirement and is blank suggest value based on remaining fields:
-															if (has_setting(unit, section+".autofill_requires")) {
-																for (var requirer in _settings[section].autofill_requires) {
-																	var requirements = _settings[section].autofill_requires[requirer];
-																	if (requirements.length>1) {
-																		//console.log("[ ] verbose message: found requirements "+JSON.stringify(requirements));
-																		var my_index = fun.array_index_of(requirements, column_name);
-																		if (my_index>-1) {  // if (requirements.hasOwnProperty(column_name)) { //hasOwnProperty doesn't work
-																			if (section in autofill_cache) {
-																				if (requirer in autofill_cache[section]) {
-																					var suggested_values = [];
-																					for (var combined_primary_key in autofill_cache[section][requirer]) {
-																						match_count=0;
-																						var suggested_val=null;
-																						var good_values = combined_primary_key.split("+");
-																						//var debug_stack = [];
-																						for (var gv_i=0; gv_i<good_values.length; gv_i++) {
-																							//NOTE: gv_i should be exactly the same index in requirements since autofill_cache entries are based on requirements array
-																							if (gv_i==my_index) {
-																								suggested_val = good_values[gv_i];
-																								var last_irregular_values = null;
-																								if (has_setting(unit, section+".autofill_equivalents."+column_name)) {
-																									var irregular_values_lists = peek_setting(unit, section+".autofill_equivalents."+column_name);
-																									for (var normal_value_as_key in irregular_values_lists) {
-																										if (suggested_val.toLowerCase()==normal_value_as_key.toLowerCase() &&
-																											suggested_val!=normal_value_as_key)
-																											suggested_val=normal_value_as_key; //convert case of cache to expected case
-																										var irregular_value_index = fun.array_index_of(irregular_values_lists[normal_value_as_key], suggested_val);
-																										last_irregular_values = irregular_values_lists[normal_value_as_key];
-																										if (irregular_value_index>-1) {
-																											suggested_val = normal_value_as_key;
-																											break;
-																										}
-																									}
-																									//console.log("[ ]   verbose message: suggested value is "+suggested_val+" for "+column_name+" in "+item.key+" (has "+JSON.stringify(fun.get_row(item,requirements))+")");
-																									//if (suggested_val!=good_values[gv_i]) console.log("        (normalized from "+good_values[gv_i]+")");
-																									//else console.log("        (same as cache since is "+suggested_val+" not in irregular values "+JSON.stringify(last_irregular_values)+")");
-																								}
-																								//else don't try to make normal--field has no good value array of equivalent values
-																							}
-																							else {
-																								if ((requirements[gv_i] in item) && fun.is_not_blank(item[requirements[gv_i]])) {
-																									if ((typeof item[requirements[gv_i]])=="string") {
-																										if (item[requirements[gv_i]].toLowerCase()==good_values[gv_i]) {
-																											match_count++;
-																										}
-																										//else suggested_val = good_values[gv_i];
-																									}
-																									else {
-																										if (item[requirements[gv_i]]==good_values[gv_i]) {
-																											match_count++;
-																										}
-																									}
-																									//debug_stack.push(item[requirements[gv_i]]);
-																								}
-																								else {
-																									//Do nothing. Form validation must not have been working (so required field is missing in saved data).
-																									//suggested_val = good_values[gv_i];
-																									//NOTE: d_path is not set here by user, only manually by metadata added during preprocessing in this method!
-																									//console.log("[ ]   ERROR: no "+requirements[gv_i]+" in item "+item_path); //+" only "+JSON.stringify(item)
-																								}
-																							}
-																						}
-																						if (match_count>=requirements.length-1) { //if only missing one value
-																							if (!fun.array_contains(suggested_values, suggested_val)) {
-																								ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
-																								ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-																								ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n"; //SET missing required field
-																								ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>' + "\n";
-																								ret += '  <button class="btn btn-warning" type="submit">Set to '+suggested_val+'</button>' + "\n";
-																								ret += '</form>' + "\n";
-																								suggested_values.push(suggested_val);
-																							}
-																						}
-																						//else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
-																					}
-																					match_count = null;  // out of scope
-																				}
-																				else {
-																					if (show_no_requirer_for_section_warning_enable) {
-																						console.log("[ ]   WARNING: nothing to suggest since no "+requirer+" for "+section+" in autofill_cache");
-																						show_no_requirer_for_section_warning_enable = false;
-																					}
-																				}
-																			}
-																			else {
-																				if (show_autofill_yet_in_section_warning_enable) {
-																					console.log("[ ]   WARNING: nothing to suggest since no "+section+" in autofill_cache");
-																					show_autofill_yet_in_section_warning_enable = false;
-																				}
-																			}
-																			//console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
-																			break;
-																		}
-																		//else console.log("[ ]   verbose message: "+column_name+" is not required for autofill of "+requirer);
-																	}
-																	//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested"); 
-																}
-															}
-															else {
-																if (no_autofill_requires_in_section_warning_enable) {
-																	console.log("[ ] WARNING: nothing to suggest since no autofill_requires for "+section);
-																	no_autofill_requires_in_section_warning_enable = false;
-																}
-															}
-														}
-														else console.log("[ ] verbose message: suggestion of missing required values is not enabled");
+													if (split_enable) {
+														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">' + "\n";
+														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+														ret += '  <input type="hidden" name="section" id="unit" value="'+unit+'"/>' + "\n";
+														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n";
+														//ret += '  <input type="hidden" name="set_value" id="set_value" value="'++'"/>' + "\n";
+														ret += '  <input type="hidden" name="expected_count" id="expected_count" value="'+subvalues.length+'"/>' + "\n";
+														ret += '  <button class="btn btn-danger" type="submit">Split into '+subvalues.length+' entries</button>' + "\n";
+														ret += '</form>' + "\n";
 													}
-													else console.log("[ ] WARNING: missing setting "+section+"."+mode+".suggest_missing_required_fields_enable");
+												}
+											}
+											else if (fun.is_blank(item[column_name]) && hdv_field_name && (column_name=="qty")) {
+												
+												var hdv_subvalues = null;
+												if (hdv_item_splitter_name) hdv_subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
+												if (!hdv_subvalues || hdv_subvalues.length==1) { //only use qty if no splitter overrides qty
+													var hdvs = fun.get_human_delimited_values(item[hdv_field_name]);
+													if (hdvs && hdvs.length>1) {
+														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+														ret += '  <input type="hidden" name="selected_field" id="selected_field" value="qty"/>' + "\n"; //SET qty
+														ret += '  <input type="hidden" name="set_value" id="set_value" value="'+hdvs.length+'"/>' + "\n";
+														ret += '  <button class="btn btn-warning" type="submit">Set to '+hdvs.length+'</button>' + "\n";
+														ret += '</form>' + "\n";
+													}
 												}
 											}
 											
-											if (!item_enable) {
-												ret += '</span>' + "\n";
-												if ((ssf_i===0) && ("duplicate_of_time" in items[item_i])) ret+='<span class="text-muted"> see '+items[item_i].duplicate_of_time;
-											}
-											if (column_name=="=get_date_from_path()") {
-												if (items[item_i].tmp["=get_date_from_path()"] != items[item_i].tmp.date) {
-													//ret+='<div class="alert alert-danger">'+items[item_i].tmp.date+'</div>';
-													ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
-													ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-													ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-													ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
-													ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
-													ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
-													ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
-													ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-													ret += '  <input type="hidden" name="selected_field" id="selected_field" value="ctime"/>' + "\n"; //SET ctime
-													ret += '  <input type="hidden" name="set_value" id="set_value" value="'+items[item_i].ctime.replaceAll(items[item_i].tmp.date,items[item_i].tmp["=get_date_from_path()"])+'"/>' + "\n";
-													ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+items[item_i].tmp["=get_date_from_path()"]+'</button>' + "\n";
-													ret += '</form>' + "\n";
-													
+											if (fun.is_blank(item[column_name])) {
+												if (has_setting(unit, section+"."+mode+".suggest_missing_required_fields_enable")) {
+													if (fun.is_true(peek_setting(unit, section+"."+mode+".suggest_missing_required_fields_enable"))) {
+														//if is an autofill requirement and is blank suggest value based on remaining fields:
+														if (has_setting(unit, section+".autofill_requires")) {
+															for (var requirer in _settings[section].autofill_requires) {
+																var requirements = _settings[section].autofill_requires[requirer];
+																if (requirements.length>1) {
+																	//console.log("[ ] verbose message: found requirements "+JSON.stringify(requirements));
+																	var my_index = fun.array_index_of(requirements, column_name);
+																	if (my_index>-1) {  // if (requirements.hasOwnProperty(column_name)) { //hasOwnProperty doesn't work
+																		if (section in autofill_cache) {
+																			if (requirer in autofill_cache[section]) {
+																				var suggested_values = [];
+																				for (var combined_primary_key in autofill_cache[section][requirer]) {
+																					match_count=0;
+																					var suggested_val=null;
+																					var good_values = combined_primary_key.split("+");
+																					//var debug_stack = [];
+																					for (var gv_i=0; gv_i<good_values.length; gv_i++) {
+																						//NOTE: gv_i should be exactly the same index in requirements since autofill_cache entries are based on requirements array
+																						if (gv_i==my_index) {
+																							suggested_val = good_values[gv_i];
+																							var last_irregular_values = null;
+																							if (has_setting(unit, section+".autofill_equivalents."+column_name)) {
+																								var irregular_values_lists = peek_setting(unit, section+".autofill_equivalents."+column_name);
+																								for (var normal_value_as_key in irregular_values_lists) {
+																									if (suggested_val.toLowerCase()==normal_value_as_key.toLowerCase() &&
+																										suggested_val!=normal_value_as_key)
+																										suggested_val=normal_value_as_key; //convert case of cache to expected case
+																									var irregular_value_index = fun.array_index_of(irregular_values_lists[normal_value_as_key], suggested_val);
+																									last_irregular_values = irregular_values_lists[normal_value_as_key];
+																									if (irregular_value_index>-1) {
+																										suggested_val = normal_value_as_key;
+																										break;
+																									}
+																								}
+																								//console.log("[ ]   verbose message: suggested value is "+suggested_val+" for "+column_name+" in "+item.key+" (has "+JSON.stringify(fun.get_row(item,requirements))+")");
+																								//if (suggested_val!=good_values[gv_i]) console.log("        (normalized from "+good_values[gv_i]+")");
+																								//else console.log("        (same as cache since is "+suggested_val+" not in irregular values "+JSON.stringify(last_irregular_values)+")");
+																							}
+																							//else don't try to make normal--field has no good value array of equivalent values
+																						}
+																						else {
+																							if ((requirements[gv_i] in item) && fun.is_not_blank(item[requirements[gv_i]])) {
+																								if ((typeof item[requirements[gv_i]])=="string") {
+																									if (item[requirements[gv_i]].toLowerCase()==good_values[gv_i]) {
+																										match_count++;
+																									}
+																									//else suggested_val = good_values[gv_i];
+																								}
+																								else {
+																									if (item[requirements[gv_i]]==good_values[gv_i]) {
+																										match_count++;
+																									}
+																								}
+																								//debug_stack.push(item[requirements[gv_i]]);
+																							}
+																							else {
+																								//Do nothing. Form validation must not have been working (so required field is missing in saved data).
+																								//suggested_val = good_values[gv_i];
+																								//NOTE: d_path is not set here by user, only manually by metadata added during preprocessing in this method!
+																								//console.log("[ ]   ERROR: no "+requirements[gv_i]+" in item "+item_path); //+" only "+JSON.stringify(item)
+																							}
+																						}
+																					}
+																					if (match_count>=requirements.length-1) { //if only missing one value
+																						if (!fun.array_contains(suggested_values, suggested_val)) {
+																							ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+																							ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n"; //SET missing required field
+																							ret += '  <input type="hidden" name="set_value" id="set_value" value="'+suggested_val+'"/>' + "\n";
+																							ret += '  <button class="btn btn-warning" type="submit">Set to '+suggested_val+'</button>' + "\n";
+																							ret += '</form>' + "\n";
+																							suggested_values.push(suggested_val);
+																						}
+																					}
+																					//else console.log("[ ]   verbose message: "+JSON.stringify(debug_stack)+" is not enough like good values "+JSON.stringify(good_values));
+																				}
+																				match_count = null;  // out of scope
+																			}
+																			else {
+																				if (show_no_requirer_for_section_warning_enable) {
+																					console.log("[ ]   WARNING: nothing to suggest since no "+requirer+" for "+section+" in autofill_cache");
+																					show_no_requirer_for_section_warning_enable = false;
+																				}
+																			}
+																		}
+																		else {
+																			if (show_autofill_yet_in_section_warning_enable) {
+																				console.log("[ ]   WARNING: nothing to suggest since no "+section+" in autofill_cache");
+																				show_autofill_yet_in_section_warning_enable = false;
+																			}
+																		}
+																		//console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
+																		break;
+																	}
+																	//else console.log("[ ]   verbose message: "+column_name+" is not required for autofill of "+requirer);
+																}
+																//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested"); 
+															}
+														}
+														else {
+															if (no_autofill_requires_in_section_warning_enable) {
+																console.log("[ ] WARNING: nothing to suggest since no autofill_requires for "+section);
+																no_autofill_requires_in_section_warning_enable = false;
+															}
+														}
+													}
+													else console.log("[ ] verbose message: suggestion of missing required values is not enabled");
 												}
+												else console.log("[ ] WARNING: missing setting "+section+"."+mode+".suggest_missing_required_fields_enable");
 											}
-
-											ret += '</td>' + "\n";
 										}
-										ret += '    </tr>' + "\n";
+										
+										if (!item_enable) {
+											ret += '</span>' + "\n";
+											if ((ssf_i===0) && ("duplicate_of_time" in items[item_i])) ret+='<span class="text-muted"> see '+items[item_i].duplicate_of_time;
+										}
+										if (column_name=="=get_date_from_path()") {
+											if (items[item_i].tmp["=get_date_from_path()"] != items[item_i].tmp.date) {
+												//ret+='<div class="alert alert-danger">'+items[item_i].tmp.date+'</div>';
+												ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
+												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
+												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="ctime"/>' + "\n"; //SET ctime
+												ret += '  <input type="hidden" name="set_value" id="set_value" value="'+items[item_i].ctime.replaceAll(items[item_i].tmp.date,items[item_i].tmp["=get_date_from_path()"])+'"/>' + "\n";
+												ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+items[item_i].tmp["=get_date_from_path()"]+'</button>' + "\n";
+												ret += '</form>' + "\n";
+												
+											}
+										}
+
+										ret += '</td>' + "\n";
 									}
-									ret += '  </tbody>' + "\n";
-									ret += '</table>' + "\n";
-									ret += '<div class="alert alert-info">'+'finished reading '+items.length+' item(s)'+'</div>';
-									if (parsing_info.length>0) ret += '<div class="alert alert-info">'+parsing_info+'</div>';
-									if (parsing_error.length>0) ret += '<div class="alert alert-error">'+parsing_error+'</div>';
+									ret += '    </tr>' + "\n";
 								}
-								else ret += '<div class="alert alert-info">'+'Cannot create folder for '+section+' section.'+'</div>';
+								ret += '  </tbody>' + "\n";
+								ret += '</table>' + "\n";
+								ret += '<div class="alert alert-info">'+'finished reading '+items.length+' item(s)'+'</div>';
+								if (parsing_info.length>0) ret += '<div class="alert alert-info">'+parsing_info+'</div>';
+								if (parsing_error.length>0) ret += '<div class="alert alert-error">'+parsing_error+'</div>';
 							}
-							else {
-								ret += '<div class="alert alert-info">'+'There is no table layout for the '+section+' section.'+'</div>';
-							}
+							else ret += '<div class="alert alert-info">'+'Cannot create folder for '+section+' section.'+'</div>';
 						}
 						else {
 							if (selected_year) { //if no month selected, but does have year, show Billing Cycle Designer aka billing-cycle but this is not a route for downloading a csv
@@ -3398,93 +3484,7 @@ var hbs = exphbs.create({
 											//ret += ' </div><!--end col-->' + "\n";
 											
 											ret += ' <div class="col-sm-6 col-sm-offset-2">' + "\n";
-											ret += "<h4>Billing Cycles</h4><br/>"+"\n";
-											var category = "BillingCycle";
-											//var results = push_next_table_entry(unit, section, category, item, req.user.username, false);
-											//cycle_paths = get_table_entry_paths(unit, section, "BillingCycle");
-											var cycle_entry_numbers = get_table_entry_numbers(unit, section, category);
-											//ret += get_table_entry_buttons(config.proxy_prefix_then_slash, "get", section, "BillingCycle", "selected_item_key", "=primary_key()");
-											if (cycle_entry_numbers) {
-												ret += "Found "+cycle_entry_numbers.length+" billing cycle(s).<br/>"+"\n";
-												ret += "Click to generate report:<br/>"+"\n";
-												var cen_entry;
-												var cen_name;
-												for (var cen_i=0,cen_len=cycle_entry_numbers.length; cen_i<cen_len; cen_i++) {
-													cen_entry = null;
-													cen_name = "";
-													//console.log("  cycle entry number index: "+cen_i);
-													var cen = cycle_entry_numbers[cen_i];
-													//console.log("  cycle entry number from filename: "+cen);
-													if (cen!=selected_number) ret += '<a href="'+config.proxy_prefix_then_slash+'?'+
-														'section='+section+
-														'&selected_year='+selected_year+
-														'&selected_month=(none)'+
-														'&selected_day=(none)'+
-														'&selected_number='+cen+
-														'#results">';
-													
-													
-													cen_entry = get_table_entry(unit, section, category, cen);
-													//console.log("    got: "+JSON.stringify(cen_entry));
-													//if (cen==selected_number) {
-													if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
-													//}
-													ret += cen + ": " + cen_name;
-													if (cen!=selected_number) ret += '</a>';
-													ret += "<br/>";
-													/*
-													ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
-													ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
-													ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
-													ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
-													ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
-													ret += '<input type="hidden" name="selected_number" id="selected_number" value="'+cen+'" />';
-													if (cen!=selected_number) {
-														var cen_entry = get_table_entry(unit, section, category, selected_number);
-														var cen_name = "";
-														if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
-														ret += '<button class="btn" type="submit">'+cen+": "+cen_name+'</button>';
-													}
-													else {
-														ret += '<button class="btn btn-default" type="submit">'+cen+'</button>';
-													}
-													ret += '</form>';
-													*/
-												}
-												cen_name = null;  // out of loop
-												cen_entry = null;  // out of loop
-												if (fun.is_not_blank(selected_number)) {
-													
-													if ((typeof selected_number)=="string") selected_number = parseInt(selected_number);
-													//var s_sub_path = get_table_entry_parent_path(unit, section, category, selected_number, false);
-													//if (s_sub_path!=null) {
-														//var s_entry_path = s_sub_path + "/" + selected_number + ".yml";
-													cen_entry = get_table_entry(unit, section, category, selected_number);
-													if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
-													if (cen_entry) {
-														ret += "<br/>"+"\n";
-														ret += "<br/>"+"\n";
-														ret += '<a name="results"></a>' + "\n";
-														ret += '(other billing cycle names appear above)';
-														if (cen_name===null) ret += "<h4>Invoices for Billing Cycle "+selected_number+"</h4><br/>"+"\n";
-														else ret += "<h4>Invoices for "+cen_name+"</h4>"+"\n";
-														var billable_items = [];
-														ret += "with end dates: ";
-														if ("end_dates" in cen_entry) {
-															ret += "<ul>\n";
-															for (var ed_i=0,ed_len=cen_entry.end_dates.length; ed_i<ed_len; ed_i++) {
-																ret += "<li>"+cen_entry.end_dates[ed_i] + "</li>\n";
-															}
-															ret += "</ul>\n";
-														}
-														ret += "<br/>\n";
-													}
-													else console.log("ERROR: invalid selected entry "+selected_number);
-													//}
-													//else console.log("ERROR: Could not get entry parent path, probably due to invalid selected entry "+selected_number);
-												}
-											}
-											else ret += '(No billing cycles were created yet.)';
+											ret += get_billing_cycle_selector(unit, section, "BillingCycle");
 										}
 										else ret += '  <div class="alert alert-warning">selected year "'+selected_year+'" is not a number, so report is not possible on this folder.</div>';
 										ret += ' </div><!--end col-->' + "\n";
@@ -3808,8 +3808,8 @@ var hbs = exphbs.create({
 							//item.tmp = {};
 							//if (item.hasOwnProperty(primary_key)) {
 							//item.tmp.key = item[primary_key];
-							for (var id in dat.units[unit][section].status[primary_key]) {
-								ret+= '<p>'+JSON.stringify(dat.units[unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
+							for (var id in fsc[unit][section].status[primary_key]) {
+								ret+= '<p>'+JSON.stringify(fsc[unit][section].status[primary_key][id]).replaceAll(',',', ')+'</p><br/>' + "\n";
 								//req.session.success = "tracking: "+JSON.stringify(item);
 								//tracked_count++;
 							}
@@ -4203,7 +4203,7 @@ app.get('/', function(req, res){
 				}
 				if (cat_count==1) category=last_cat;
 			}
-			if (table_name==null) {
+			if (table_name===null) {
 				if (category!==null && fsc[unit].hasOwnProperty(category)) {
 					
 					var table_count = 0;
@@ -5195,7 +5195,7 @@ app.get('/save-status', function(req, res){
 			section = s_info.value;
 			if (s_info.hasOwnProperty("error")) req.session.error = s_info.error + "during /save-status";
 		}
-		if ((unit!==null) && (section!=null)) {
+		if ((unit!==null) && (section!==null)) {
 			if ((fsc[unit][section].hasOwnProperty("status"))) {
 				var tracked_count = 0;
 				if (has_setting(unit, section+".status_keys")) {
@@ -5239,8 +5239,8 @@ app.get('/save-status', function(req, res){
 									});
 								}
 								else {
-									console.log("[ status ] Error during /save-status: " + file_name + " doesn't exist in cache for "
-											    + unit + "." + section + "." + category + "." + table_name + "." + id);
+									console.log("[ status ] Error during /save-status: " + file_name + " doesn't exist in cache for " +
+											    unit + "." + section + "." + category + "." + table_name + "." + id);
 								}
 							}
 						}
@@ -5337,6 +5337,7 @@ function do_track(params) {
 	// req.body does not inherit from object therefore doesn't have hasOwnProperty
 	var results = {};
 	var unit = null;
+	var section = null;
 	if (typeof params.hasOwnProperty !== 'function') {
 		results.error = "ERROR in do_track: params must be converted to object";
 		console.log(results.error);
@@ -5344,19 +5345,18 @@ function do_track(params) {
 	else {
 		var u_info = fun.param_info(params, "unit", fsc);
 		unit = u_info.value;
-		var section = null;
+		
 		if (u_info.hasOwnProperty("error")) results.error = u_info.error + "during do_track";
 		else {
-			var s_info = fun.param_info(req.query, "section", fsc[unit]);
+			var s_info = fun.param_info(params, "section", fsc[unit]);
 			section = s_info.value;
 			if (s_info.hasOwnProperty("error")) results.error = s_info.error + "during do_track";
 		}
 	}
-	if ((unit!==null) && (section!=null)) {
+	if ((unit!==null) && (section!==null)) {
 	//if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		//if (user_has_section_permission(unit, req.user.username, "admin", "poke-settings")) {
 	
-		var section = params.section;
 		if ("mode" in params) {
 			var mode = params.mode;
 			if (mode == "create") {
@@ -5381,10 +5381,10 @@ function do_track(params) {
 						//item.tmp = {};
 						var item = null; //start as null for each key, in case their are multiple tables (each with different primary key)
 						var modify_enable = false;
-						if ( (primary_key in dat.units[unit][section].status)
-							&& (id in dat.units[unit][section].status[primary_key])
+						if ( (primary_key in dat.units[unit][section].status) &&
+							 (id in dat.units[unit][section].status[primary_key])
 						) {
-							item = dat.units[unit][section].status[primary_key][id]
+							item = dat.units[unit][section].status[primary_key][id];
 							modify_enable = true;
 						}
 						if (item === null) item = {};
@@ -5458,7 +5458,7 @@ app.get('/cpflr', function(req, res) {  // computer policy file list request
 	if (req.query.hasOwnProperty("kernel")) kernel = req.query.kernel.toLowerCase();
 	else {
 		kernel = "linux";
-		script_msg += "; no kernel was in request"
+		script_msg += "; no kernel was in request";
 	}
 	if (kernel == "windows") {
 		this_endl = "\r\n";
@@ -5532,19 +5532,19 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	else {
 		if (params_dict.hasOwnProperty("script_name")) {
 			file_key = params_dict.script_name;
-			script_msg += "; script_name is deprecated--use file_key instead"
+			script_msg += "; script_name is deprecated--use file_key instead";
 		}
 		else {
 			// file_key = "daily";
 			file_key = "heal_student_updater";
-			script_msg += "; no file_key was in request"
+			script_msg += "; no file_key was in request";
 		}
 	}
 	var kernel = null;
 	if (params_dict.hasOwnProperty("kernel")) kernel = params_dict.kernel.toLowerCase();
 	else {
 		kernel = "linux";
-		script_msg += "; no kernel was in request"
+		script_msg += "; no kernel was in request";
 	}
 	var script_remark = "# ";
 	var this_endl = "\n";
@@ -5610,7 +5610,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 						if (l_i==1) {
 							msg += this_endl + script_remark + "file_key: " + file_key;
 							msg += this_endl + script_remark + "dest_path: " + dest_path;
-							if (remarks_list != null) {
+							if (remarks_list !== null) {
 								for (var r_i=0; r_i<remarks_list.length; r_i++) {
 									msg += this_endl + script_remark + remarks_list[r_i];
 								}
@@ -5665,7 +5665,7 @@ app.get('/cpsr', function(req, res) {  // computer policy text file request
 	// then the file will be named iedu-cs-hourly
 	res.type('text/plain');//res.setHeader("content-type", "text/plain");
 	remarks = [];
-	remarks.push("cpsr (script request) is deprecated. Use cppr (plain text request) instead")
+	remarks.push("cpsr (script request) is deprecated. Use cppr (plain text request) instead");
 	//TODO: define unit
 	var msg = get_cpf_plain_text(req.query, remarks);
 	res.send(msg);
@@ -5830,9 +5830,9 @@ app.post('/student-microevent', function(req, res){
 		req.session.section = req.body.section;
 		var section = req.body.section;
 		req.session.mode = req.body.mode;
-		
+		var section_form_fields = null;
 		if (has_setting(unit, section+".form_fields")) {
-			var section_form_fields = peek_setting(unit, section+".form_fields");
+			section_form_fields = peek_setting(unit, section+".form_fields");
 			for (var index in section_form_fields) {
 				if (section_form_fields.hasOwnProperty(index)) {
 					var key = section_form_fields[index];
@@ -6028,11 +6028,13 @@ app.post('/student-microevent', function(req, res){
 				//delete req.session.prefill.heading;
 			}
 		}
-		else {
+		else { //custom error
 			for (var field_name in req.body) {
-				var section_form_fields = peek_setting(unit, section+".form_fields");
-				if (fun.array_contains(section_form_fields, field_name)) {
-					req.session.prefill[field_name] = req.body[field_name];
+				if (section_form_fields !== null) {
+						// may be null since this is custom_error case
+					if (fun.array_contains(section_form_fields, field_name)) {
+						req.session.prefill[field_name] = req.body[field_name];
+					}
 				}
 			}
 			delete req.session.prefill.pin;

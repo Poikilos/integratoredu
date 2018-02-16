@@ -65,3 +65,7 @@ typings/
 /err.txt
 /etc/quality.tmp
 /quality.tmp
+/10/filedefs/filetypes.README
+/10/geany.conf
+/10/keybindings.conf
+/10/templates/templates.README

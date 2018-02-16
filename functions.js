@@ -138,7 +138,7 @@ exports.param_info = function(params, name, source) {
 		else {
 			if (!source.hasOwnProperty(results.value)) {
 				results.value = null;
-				results.error = name + " " + results.value + " does not exist."
+				results.error = name + " " + results.value + " does not exist.";
 			}
 		}
 	}
@@ -146,7 +146,7 @@ exports.param_info = function(params, name, source) {
 		results.error = "no unit specified";
 	}
 	return results;
-}
+};
 
 
 //from mtomis on <https://stackoverflow.com/questions/6831918/node-js-read-a-text-file-into-an-array-each-line-an-item-in-the-array> edited May 22 '12 at 11:42. 30 Jan 2018.
@@ -182,7 +182,7 @@ exports.to_object = function(body) {
 		results[key] = body[key];
 	}
 	return results;
-}
+};
 
 //from Titlacauan on https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs
 exports.getDirectories = function(path) {
