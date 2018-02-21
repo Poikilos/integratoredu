@@ -5629,6 +5629,11 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 						msg += this_endl + lines[l_i];
 					}
 					msg += this_endl + script_remark + good_flag;
+					if (file_key == "minetest_conf") {
+						if (fun.is_not_blank(stated_username)) {
+							msg += this_endl + "name = " + stated_username;
+						}
+					}
 				}
 				else {
 					msg += this_endl + 'echo "server has no mps setting ' + script_dest_trail + '"';
