@@ -1,0 +1,14 @@
+[Unit]
+Description=IntegratorEdu node.js webapp (created by Jake Gustafson) provides services for campus microevents.
+After=multi-user.target
+
+[Service]
+User=owner
+Group=owner
+WorkingDirectory=/home/owner/Applications/integratoredu
+ExecStart=/usr/bin/js app.js
+ExecStop=/usr/bin/killall js
+Type=idle
+
+[Install]
+WantedBy=multi-user.target
