@@ -1,0 +1,43 @@
+#!/bin/sh
+package_name=$1
+#results in:
+#debian-binary (text file which contains debian binary version such as 2.0)
+#control.tar.gz
+#data.tar.xz (contains folders such as usr, etc)
+#see <https://ask.fedoraproject.org/en/question/52141/how-to-convert-rpm-package-to-deb/>
+repkg_suffix=_repack
+subdir=$package_name$repkg_suffix
+if [ -d "$subdir" ]; then
+  rm -Rf "$subdir"
+fi
+mkdir $subdir
+cd $subdir
+ar vx ../$package_name
+mkdir data
+cd data
+tar xf ../data.tar.xz
+cd ..
+mkdir control
+cd control
+#TODO: change desktop files that contain paths such as /usr/bin/* to /usr/local/bin/*
+tar xzf ../control.tar.gz
+  echo "ignoring (not yet implemented):"
+ls
+if [ -f debian-binary ]; then
+  echo "ignoring (not needed):"
+  echo "debian-binary flag file containing:"
+  cat debian-binary
+fi
+cd ..
+#NOTE: chmod is NOT needed below if original deb was packaged correctly.
+if [ -d data/usr/bin ]; then
+  #chmod 755 data/usr/bin/*
+  echo "detected bin (bin & share will be placed in /usr/local/)"
+elif [ -d data/usr/share/FlashPrint ]; then
+  echo "detected FlashPrint (bin & share will be placed in /usr/local/)"
+fi
+yes | cp -Rf data/usr/* /usr/local/
+echo
+echo "Finished."
+echo
+
