@@ -89,8 +89,8 @@ module.exports = {
 				* click the billing cycle that you named under "Billing Cycles" (or, if you didn't name it, click the number)
 				* print the page for your records (Ctrl P, then choose a printer, or for PDF, choose Print to PDF and save it)--this is your report, so like with any report, it should be printed or saved for your financial records. Each Invoice (per family id) will appear on a separate page.
 				* The last page will list remaining issues:
-					* manually-entered times are converted to 24-hr time. You may need to verify these, but this is not a problem unless you suspect that manual entries were abused or entered incorrectly. If the manually entered date (+12 if PM) differs from the 24-hr date, please create an issue on the 
-					developer's website: <http://www.github.com/expertmm/integratoredu> (if doesn't already appear in the "Issues" tab). 
+					* manually-entered times are converted to 24-hr time. You may need to verify these, but this is not a problem unless you suspect that manual entries were abused or entered incorrectly. If the manually entered date (+12 if PM) differs from the 24-hr date, please create an issue on the
+					developer's website: <http://www.github.com/expertmm/integratoredu> (if doesn't already appear in the "Issues" tab).
 		* If you find a bug:
 			* go to <http://www.github.com/expertmm/integratoredu>
 			* before entering an issue, search for the issue under "Known Issues" in the README.md and see if the problem is considered minor (is preceded by "(~)") and if so there is no need to report the issue--long-term requests will be considered at a future date.
@@ -146,6 +146,30 @@ tm:
   If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
+(2018-03-11)
+* continuing migration from dat cache to fsc cache
+* removing uses of `req.session` for storing navigation variables (section, selected_year, selected_month. selected_day)
+* remove bad (single user) cache-tracking globals:
+```
+//keep track of last listing (only refresh if data could have possibly changed naturally):
+var listed_year_on_month = null;
+var listed_month_on_date = null;
+var listed_day_on_date = null;
+```
+* fix instances of "define unit" comment
+  * autofill-query form should specify all navigation variables
+* account for new structure unit/section/category/table_name such as in
+  (tables or transactions is implied category in all below which contain
+  one of those in the name of the method or in parenthesis):
+  * get_table_path_if_exists_else_null
+  * get_table_entry
+  * get_table_entry_parent_path
+  * get_table_entry_paths
+  * get_table_entry_numbers
+  * push_next_table_entry
+  * push_next_transaction
+  * write_record_without_validation (transaction)
+  * get_year_month_select_buttons (transaction)
 (2018-02-09)
 * eliminated: requested_unit, _default_unit
 * force use of unit
@@ -322,7 +346,7 @@ tm:
 * (2017-08-30) renamed sign-student action to sign-extcare, renamed picked_up_by to chaperone, sign-extcare to student-microevent
 
 ## Regression tests
-* use of `section+"` in has_settings or peek_settings params where no dot following and should be `section+".` 
+* use of `section+"` in has_settings or peek_settings params where no dot following and should be `section+".`
 * selected_unit should be _selected_unit
 * see https://getbootstrap.com/docs/4.0/migration/
 * always use item.tmp.date (which is derived during load) instead of manually deriving date, to save on code and avoid having different logic for deriving date elsewhere other than at yaml.read*
@@ -337,7 +361,7 @@ tm:
 * strip() should be trim() in javascript
 * fun. should be exports if in functions.js; whereas if in any other file, exports. should be fun.
 * fun.fun. should be fun. no really that could be type-o for calls to functions.js
-* remember that javascript string substring method takes slice-like params (start, endbefore [NOT length]) 
+* remember that javascript string substring method takes slice-like params (start, endbefore [NOT length])
 * use of `fun.file_name_no_ext(s)` where actual code should be `fun.splitext(s)[0]` (autocomplete error)
 * Quote in end tag (such as '</div">')
 * Check against http://www.bootlint.com
@@ -358,6 +382,11 @@ tm:
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* reduce use of get_table_path_if_exists_else_null in favor of get_table_info
+* (!) add category and table_name to get_year_month_select_buttons
+* (!) add category and table_name to get_section_form
+* (?) add category and table_name to get_billing_cycle_selector, add-end-dates-to-bill, show_billing_cycle_preview, update_query
+
 * (!) cache per-unit settings (see _selected_unit)
 * (!) cache per-unit autofill (see _selected_unit)
 * (!) eliminate change-selection
@@ -497,14 +526,14 @@ see LICENSE file for license
   ```
   Any file or folder staring with "." is ignored.
   <data|root>/units/<unit_no>/unit.yml
-  
+
   and data is stored as:
   <data|root>/units/<unit_no>/<filedb_name>/<table>/<primary_key>.yml
   * such as units/0/business/Contacts
   or
   <data|root>/units/<unit_no>/<filedb_name>/<table>/<year>/<month>/<day>/<files|folders>
   * such as units/0/care/microevents/student/0.yml
-  
+
   and audit trail is stored as:
   <data|root>/units/<unit_no>/metadata/audit/<year>/<month>/<day>/<sequential_number>.yml
   where yml file contains all info to undo the change (location of data file and old value of any values that were changed).
@@ -527,7 +556,7 @@ see LICENSE file for license
 ### Security
 * use "req.sanitizeBody('name').escape();" from express-validator (see https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/forms )
 * Security checking must be done using groups["group name"] where each group name contains an array of users
-* student-microevent is only a group for display, not for security. 
+* student-microevent is only a group for display, not for security.
 
 
 ### First-time setup

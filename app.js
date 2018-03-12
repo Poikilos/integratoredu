@@ -19,8 +19,8 @@ var path = require("path");
 var Handlebars = require('handlebars');
 //var dynamic_a_name = "dynamic_bookmark";
 
-var autofill_cache_format = "yml"; //yml or json
-var risky_write_missing_tz_info_using_current_enable = true; //in case of timezone info missing from record (such as in records written by early pre-0.1.0 versions), fill in next time record is modified (ASSUMES timezone info hasn't changed since original write)
+var autofill_cache_format = "yml";  // yml or json
+var risky_write_missing_tz_info_using_current_enable = true;  // in case of timezone info missing from record (such as in records written by early pre-0.1.0 versions), fill in next time record is modified (ASSUMES timezone info hasn't changed since original write)
 
 //region only show these once (missing optional settings)
 var show_no_requirer_for_section_warning_enable = true;
@@ -32,24 +32,24 @@ var no_autofill_requires_in_section_warning_enable = true;
 
 //see also https://stackoverflow.com/questions/1144783/how-to-replace-all-occurrences-of-a-string-in-javascript
 //String.prototype.replaceAll = function(search, replace) {
-//    if (replace === undefined) {
-//        return this.toString();
-//    }
-//    return this.split(search).join(replace);
+    //if (replace === undefined) {
+        //return this.toString();
+    //}
+    //return this.split(search).join(replace);
 //}
 String.prototype.replaceAll = function(search, replacement) {
     var target = this;
     return target.split(search).join(replacement);
 };
 //Speech.init({
-//    'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
-//    'lang': 'en-GB', // specify en-GB language (no detection applied)
-//    'volume': 0.5,
-//    'rate': 0.8,
-//    'pitch': 0.8
+    //'onVoicesLoaded': (data) => {console.log('voices', data.voices)},
+    //'lang': 'en-GB', // specify en-GB language (no detection applied)
+    //'volume': 0.5,
+    //'rate': 0.8,
+    //'pitch': 0.8
 //});
 //if(Speech.browserSupport()) {
-//    console.log("speech synthesis supported")
+    //console.log("speech synthesis supported")
 //}
 
 var ptcache = {}; // this is the custom plain text cache by file path
@@ -85,12 +85,12 @@ if (!Array.prototype.includes) { //if doesn't support ECMA 2016
 }
 
 var storage_name = "data";
-var storage_path = './'+storage_name; //formerly just storage_name
+var storage_path = './' + storage_name; //formerly just storage_name
 var groups_path = storage_path + "/groups.yml";
 var permissions_path = storage_path + "/permissions.yml";
 
 //We will be creating these two files shortly
-var config = require(storage_path+'/config.js'), //config file contains all tokens and other private info
+var config = require(storage_path + '/config.js'), //config file contains all tokens and other private info
 	fun = require('./functions.js'); //functions file contains our non-app-specific functions including those for our Passport and database work
 
 var app = express();
@@ -136,7 +136,7 @@ var never_save_fields = ["pin", "password", "section", "mode", "tmp"]; //and for
 
 //these variables are not security groups--they only determine where to display security warning that only employees should be given the rights to current section
 var only_employee_read_sections = ["commute"]; //NOTE: do not include care, since care (non-employee) user is allowed to list attendance
-var only_employee_modify_sections = ["commute", "care"]; 
+var only_employee_modify_sections = ["commute", "care"];
 
 
 
@@ -177,6 +177,8 @@ _settings_default.unit.local_time_zone = "America/New_York";
 _settings_default.admin = {};
 _settings_default.admin.display_name = "Advanced";
 _settings_default.care = {};
+_settings_default.care.primary_category = "transactions";
+_settings_default.care.primary_table_name = "student";
 _settings_default.care.display_name = "Extended Care";
 _settings_default.care.form_fields = ["first_name", "last_name", "chaperone", "grade_level", "family_id", "stated_time", "stated_date"];
 _settings_default.care.form_collapsed_fields = ["family_id", "stated_time", "stated_date"];
@@ -222,6 +224,8 @@ _settings_default.care.autofill_requires.qty = ["first_name"];
 _settings_default.care.history_sheet_fields = ["time", "qty", "=mid(first_name,1,1)", "=mid(last_name,1,1)", "grade_level", "chaperone", "family_id"];
 _settings_default.care.mode_priority = ["reports","create", "read"];
 _settings_default.commute = {};
+_settings_default.commute.primary_category = "transactions";
+_settings_default.commute.primary_table_name = "student";
 _settings_default.commute.display_name = "Commute";
 _settings_default.commute.field_lookup_values = {};
 _settings_default.commute.field_lookup_values.heading = ["in", "out"];
@@ -231,7 +235,7 @@ _settings_default.commute.form_display_names = {"name":"Name", "grade_level":"Gr
 _settings_default.commute.required_fields = ["name", "grade_level", "heading", "reason"];
 _settings_default.commute.sheet_fields = ["=get_date_from_path()", "time", "heading", "name", "grade_level", "reason"];
 _settings_default.commute.sheet_display_names = {"=get_date_from_path()":"Date", "grade_level":"Grade Level"};  // "time":"Time"
-_settings_default.commute.history_sheet_fields = ["time", "name", "grade_level", "reason"];  // "=get_date_from_path()", 
+_settings_default.commute.history_sheet_fields = ["time", "name", "grade_level", "reason"];  // "=get_date_from_path()",
 _settings_default.commute.local_start_time = '08:10:00';
 _settings_default.commute.local_end_time = '15:05:00';
 _settings_default.commute.reports = {};
@@ -239,6 +243,8 @@ _settings_default.commute.reports.suggest_missing_required_fields_enable = true;
 _settings_default.commute.reports.auto_select_month_enable = true; //ok since in reports section
 _settings_default.commute.mode_priority = ["reports","create", "read"];
 _settings_default.track = {};
+_settings_default.track.primary_category = "status";
+_settings_default.track.primary_table_name = "MAC";
 _settings_default.track.display_name = ["Track"];
 _settings_default.track.form_fields = ["UserName", "MachineName", "HostName", "MAC"];
 _settings_default.track.required_fields = ["MAC"];
@@ -247,6 +253,8 @@ _settings_default.track.sheet_fields = ["MAC","MachineName","UserName","HostName
 _settings_default.track.status_keys = ["MAC"];
 //TODO: employee leave request (aka absence request)
 _settings_default.po = {};
+_settings_default.po.primary_category = "tables";
+_settings_default.po.primary_table_name = "PurchaseOrder";
 _settings_default.po.minimum_key_values = {"po_number":4213}; //TODO: asdf implement this
 _settings_default.po.key_field = "po_number";  //TODO: asdf implement this
 _settings_default.po.prefill_methods = {"stated_date":"date()"}; //TODO: asdf implement this
@@ -332,7 +340,7 @@ function get_yaml_objects_recursively(path, name) {
 
 function regenerate_cache() {
 	//if (!fsc) {
-	fsc={};
+	fsc = {};
 	//}
 	if (!fs.existsSync(storage_path))
 		fs.mkdirSync(storage_path);
@@ -346,10 +354,11 @@ function regenerate_cache() {
 			fsc[unit] = {};
 			var unit_path = units_path + "/" + unit;
 			var sections = fun.getVisibleDirectories(unit_path);
-			for (var s_i = 0; s_i < units.length; s_i++) {
+			for (var s_i = 0; s_i < sections.length; s_i++) {
 				var section = sections[s_i];
 				fsc[unit][section] = {};
 				var section_path = unit_path + "/" + section;
+				console.log("[ + ] caching " + section_path + " (in "+unit_path+")");
 				var categories = fun.getVisibleDirectories(section_path);
 				//removed the commented parts in order to keep reload_cache independent of implementation
 				//var category_enable = {};
@@ -358,8 +367,15 @@ function regenerate_cache() {
 				for (var c_i = 0; c_i < categories.length; c_i++) {
 					var category = categories[c_i]; // a category is actually a storage type (a folder/file arrangement method)
 					var cat_path = section_path + "/" + category;
-					console.log("[ + ] caching " + cat_path);
-					fsc[unit][section][category] = get_yaml_objects_recursively(cat_path, category);
+					console.log("[ + ] caching " + cat_path + " (in "+categories.length+" total)");
+					fsc[unit][section][category] = {};
+					//fsc[unit][section][category] = get_yaml_objects_recursively(cat_path, category);
+					var table_names = fun.getVisibleDirectories(cat_path);
+					for (var t_i = 0; t_i < table_names.length; t_i++) {
+						var table_name=table_names[t_i];
+						var table_path=cat_path+"/"+table_name;
+						fsc[unit][section][category][table_name] = get_yaml_objects_recursively(table_path, table_name);
+					}
 					//category_enable[category] = false;
 					//category_count++;
 				}
@@ -370,7 +386,7 @@ function regenerate_cache() {
 				//	category_enable["table"] = true;
 				//	categories_enabled_count++;
 				//	var table_names = fun.getVisibleDirectories(cat_path);
-					
+
 				//}
 				//if (categories_enabled_count < category_count) {
 				//	console.log("[ + ] WARNING in regenerate_cache: the following table storage methods in "++" were not recognized")
@@ -378,6 +394,7 @@ function regenerate_cache() {
 			}
 		}
 	}
+	console.log("caching is finished.")
 }
 
 function load_permissions(reason, req) {
@@ -482,9 +499,9 @@ function autofill(unit, section, record, change_record_object_enable) {
 							//else console.log("[ ~ ] checked irregularity list: none for " + key + " in " + section);
 						}
 						//else console.log("[ ~ ] skipping regularity check since change_record_object_enable is false");
-						
+
 						var val = "";
-						if (key in record) { //hasOwnProperty(key) doesn't work
+						if (key in record) { //hasOwnProperty(key) doesn't work--why doesn't this work?
 							var cache_as_value = record[key].replaceAll("+","&").toLowerCase().trim();
 							if (has_setting(unit, section+".autofill_equivalents."+key)) {
 								if (irregularity_lists===null) //if change_record_object_enable, this wouldn't be loaded yet
@@ -532,7 +549,7 @@ function autofill(unit, section, record, change_record_object_enable) {
 						if (fun.is_not_blank(record[requirer])) {
 							autofill_cache[section][requirer][combined_primary_key] = record[requirer];
 							//json.writeFile(autofill_cache_path, autofill_cache);
-							save_autofill_cache("since updated combined_primary_key "+combined_primary_key); 
+							save_autofill_cache("since updated combined_primary_key "+combined_primary_key);
 						}
 						else console.log("[ _@ ] verbose message: cache not written for "+requirer+" since blank for "+JSON.stringify(_settings[section].autofill_requires[requirer])+": "+fun.get_row(record, _settings[section].autofill_requires[requirer]));
 					}
@@ -589,7 +606,7 @@ function _get_settings_names_recursively(scope_stack) {
 	console.log("_get_settings_names_recursively: scope at "+name);
 	if ( (typeof scope === "object") && (scope !== null) ) {
 		for (var key in scope) {
-			//if (scope.hasOwnProperty(key)) {
+			//if (scope.hasOwnProperty(key)) {  //TODO? hasOwnProperty fails in certain other places--why doesn't this work?
 				console.log("  _get_settings_names_recursively: checking in "+key);
 				var scope_stack2 = [];
 				scope_stack2 = scope_stack2.concat(scope_stack);
@@ -617,7 +634,7 @@ function get_all_settings_names() {
 
 
 function _poke_object(info, scope_o, scope_stack, asserted_depth, val) {
-	asserted_depth+=1; //since caller assures us, "I sent care which contains reports," or in other words, "I sent 0 which contains 1." 
+	asserted_depth+=1; //since caller assures us, "I sent care which contains reports," or in other words, "I sent 0 which contains 1."
 	if (asserted_depth+1>=scope_stack.length) {
 		if ((!scope_o.hasOwnProperty(scope_stack[scope_stack.length-1])) || (scope_o[scope_stack[scope_stack.length-1]] != val)) {
 			info.changed = true;
@@ -672,7 +689,7 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 	var result = null;
 	//asserted_depth+=1; //since caller assures us, "I am giving you care; care contains reports," or in other words, "I am giving you 0; 0 contains 1"
 	if (asserted_depth+1>=scope_stack.length) {
-		
+
 		//if (scope_stack[scope_stack.length-1] in scope_o) {//would result in errors such as TypeError: Cannot use 'in' operator to search for 'local_time_zone' in America/New_York if scope_stack[0] is a leaf name
 		if (scope_o.hasOwnProperty(scope_stack[scope_stack.length-1])) { //NOTE: hasOwnProperty doesn't work if scope_stack[0] is a leaf name, so that must be checked in shallower scope first
 			result=scope_o[scope_stack[scope_stack.length-1]];
@@ -688,16 +705,16 @@ function _peek_object(scope_o, scope_stack, asserted_depth) {
 		}
 	}
 	else {
-		//if (scope_stack[asserted_depth] in scope_o) {  // 
+		//if (scope_stack[asserted_depth] in scope_o) {  //
 		if (scope_o.hasOwnProperty(scope_stack[asserted_depth])) { //NOTE: hasOwnProperty doesn't work if scope_stack[0] is a leaf name, so that must be checked in shallower scope first
 			asserted_depth+=1;
-			result=_peek_object(scope_o[scope_stack[asserted_depth-1]], scope_stack, asserted_depth); 
+			result=_peek_object(scope_o[scope_stack[asserted_depth-1]], scope_stack, asserted_depth);
 		}
 		else {
 			var breadcrumbs = "";
 			for (var i=0; i<scope_stack.length; i++) {
 				breadcrumbs += scope_stack[i] + " ";
-			}	
+			}
 			//console.log("[ ./ ] ERROR: no "+scope_stack[asserted_depth]+" ("+breadcrumbs+"-- at "+asserted_depth+" so far of "+scope_stack.length+"), only has ");
 			//for (var key in scope_o) {
 			//	if (scope_o.hasOwnProperty(key)) {
@@ -961,7 +978,7 @@ function get_filtered_form_fields_html(unit, section, mode, username, show_colla
 		for (var i = 0, len = section_form_fields.length; i < len; i++) {
 			var friendly_name = section_form_fields[i];
 			var field_name = section_form_fields[i];
-			
+
 			if (!has_setting(unit, section+".form_collapsed_fields")) {
 				console.log("(verbose message in get_filtered_form_fields_html) missing optional "+section+".form_collapsed_fields setting");
 			}
@@ -1025,8 +1042,9 @@ function get_filtered_form_fields_html(unit, section, mode, username, show_colla
 }
 
 // this method does not look up data, it receives data and formats it
-function get_year_month_select_buttons(unit, section, mode, username, years, months, selected_year, selected_month) {
+function get_year_month_select_buttons(unit, section, table_name, mode, username, years, months, selected_year, selected_month) {
 	var ret = "";
+	var category="transactions";
 	//var years = get_transaction_years(unit, section, table); //see "deprecated - js.md"
 	var years_heading = "Year:";
 	if (has_setting(unit, section+"."+mode+".years_heading"))
@@ -1035,9 +1053,10 @@ function get_year_month_select_buttons(unit, section, mode, username, years, mon
 	var i=0;
 	for (i=0, len=years.length; i<len; i++) {
 		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">' + "\n";
-		ret += '<input type="hidden" name="unit" id="unit" value="'+unit+'"/>';
-		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
-		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
+		ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
+		ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+		ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+		ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+years[i]+'" />';
 		ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
 		ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
@@ -1054,11 +1073,13 @@ function get_year_month_select_buttons(unit, section, mode, username, years, mon
 	var months_heading = "Month:";
 	if (has_setting(unit, section+"."+mode+".months_heading"))
 		months_heading = peek_setting(unit, section+"."+mode+".months_heading");  // such as <h3>Reports</h3>
-	ret += '<div>'+months_heading+"\n";	
+	ret += '<div>'+months_heading+"\n";
 	for (i=0, len=months.length; i<len; i++) {
 		ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">' + "\n";
-		ret += '<input type="hidden" name="unit" id="unit" value="'+unit+'"/>';
-		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+		ret += '<input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
+		ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+		ret += '<input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+		ret += '<input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 		ret += '<input type="hidden" name="mode" id="mode" value="'+mode+'"/>';
 		ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
 		ret += '<input type="hidden" name="selected_month" id="selected_month" value="'+months[i]+'" />';
@@ -1087,10 +1108,10 @@ function get_care_time_info(this_item, unit, section) {
 	var local_now = moment();
 	if (local_time_zone!==null) local_now = moment().tz(local_time_zone);
 	else console.log("ERROR: missing unit.local_time_zone setting during get_care_time_info");
-	
+
 	// The code below the comment works since both are normally in same timezone.
-	// However, there may be issues since timezone offset (in yml) is not checked.	
-	
+	// However, there may be issues since timezone offset (in yml) is not checked.
+
 	//if (this_item.hasOwnProperty("time")) {
 	//	if (fun.is_not_blank(this_item.time)) {
 	//		foundTime = moment(this_item.time, "HH:mm:ss");
@@ -1108,7 +1129,7 @@ function get_care_time_info(this_item, unit, section) {
 			}
 		}
 	}
-	
+
 	if (foundTime!==null) {
 		if (!section) console.log("ERROR: no section given to get_care_time_info");
 		if ( has_setting(unit, section+".local_start_time") && //&& _settings[section].hasOwnProperty("local_start_time")
@@ -1188,13 +1209,13 @@ function get_day_info(table_cache, ymd_array) {
 	var results = {};
 	results.enable = false;
 	if (ymd_array.length === 3) {
-		if (is_not_blank(ymd_array[0])) {
+		if (fun.is_not_blank(ymd_array[0])) {
 			var year = ymd_array[0];
 			if (table_cache.hasOwnProperty(year)) {
-				if (is_not_blank(ymd_array[1])) {
+				if (fun.is_not_blank(ymd_array[1])) {
 					var month = ymd_array[1];
 					if (table_cache[year].hasOwnProperty(month)) {
-						if (is_not_blank(ymd_array[2])) {
+						if (fun.is_not_blank(ymd_array[2])) {
 							var day = ymd_array[2];
 							if (table_cache[year][month].hasOwnProperty(day)) {
 								results.enable = true;
@@ -1217,25 +1238,26 @@ function get_day_info(table_cache, ymd_array) {
 function get_table_info(unit, section, category, table_name) {
 	var results = {};
 	results.enable = false;
-	if (is_not_blank(unit)) {
+	if (fun.is_not_blank(unit)) {
 		if (fsc.hasOwnProperty(unit)) {
-			if (is_not_blank(section)) {
+			if (fun.is_not_blank(section)) {
 				if (fsc[unit].hasOwnProperty(section)) {
-					if (is_not_blank(category)) {
+					if (fun.is_not_blank(category)) {
 						if (fsc[unit][section].hasOwnProperty(category)) {
-							if (is_not_blank(table_name)) {
+							if (fun.is_not_blank(table_name)) {
 								if (fsc[unit][section][category].hasOwnProperty(table_name)) {
 									results.enable = true;
+									results.table_path = storage_path + "/units/" + unit + "/" + section + "/" + category + "/" + table_name;
 								}
 								else results.error='table ' + table_name + ' does not exist.';
 							}
 							else results.error='table_name was not specified.';
 						}
-						else results.error='category ' + category + ' does not exist.';
+						else results.error='category ' + category + ' does not exist in unit '+unit+' section '+section+'.';
 					}
 					else results.error='category was not specified.';
 				}
-				else results.error='section ' + section + ' does not exist.';
+				else results.error='section ' + section + ' does not exist in unit '+unit+'.';
 			}
 			else results.error='section was not specified.';
 		}
@@ -1246,7 +1268,7 @@ function get_table_info(unit, section, category, table_name) {
 }
 
 
-function get_table_path_if_exists_else_null(unit, section, filedb_name, category, create_enable) {
+function get_table_path_if_exists_else_null(unit, section, category, table_name, create_enable) {
 	var result = null;
 	if (create_enable && !fs.existsSync(storage_path))
 		fs.mkdirSync(storage_path);
@@ -1259,10 +1281,10 @@ function get_table_path_if_exists_else_null(unit, section, filedb_name, category
 	var section_path = storage_path + "/units/" + unit + "/" + section;
 	if (create_enable && !fs.existsSync(section_path))
 		fs.mkdirSync(section_path);
-	var filedb_path = section_path + "/" + filedb_name;
-	if (create_enable && !fs.existsSync(filedb_path))
-		fs.mkdirSync(filedb_path);
-	var table_path = filedb_path + "/" + category;
+	var cat_path = section_path + "/" + category;
+	if (create_enable && !fs.existsSync(cat_path))
+		fs.mkdirSync(cat_path);
+	var table_path = cat_path + "/" + table_name;
 	if (!fs.existsSync(table_path)) {
 		if (create_enable) {
 			fs.mkdirSync(table_path);
@@ -1276,8 +1298,8 @@ function get_table_path_if_exists_else_null(unit, section, filedb_name, category
 
 var next_index_cache = {};
 
-function get_next_transaction_index(unit, section, category, ymd_array, increment_after_getting_enable) {
-	var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", category, false);
+function get_next_transaction_index(unit, section, table_name, ymd_array, increment_after_getting_enable) {
+	var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", table_name, false);
 	var result = 0;
 	if (table_path !== null) {
 		if (ymd_array && (ymd_array.length>=1) && fun.is_not_blank(ymd_array[0])) {
@@ -1310,9 +1332,9 @@ function get_next_transaction_index(unit, section, category, ymd_array, incremen
 	return result;
 }
 
-function get_table_entry(unit, section, category, number) {
+function get_table_entry(unit, section, table_name, number) {
 	var result = null;
-	var parent_path = get_table_entry_parent_path(unit, section, category, number, false);
+	var parent_path = get_table_entry_parent_path(unit, section, table_name, number, false);
 	if (parent_path !== null) {
 		var result_key = number + ".yml";
 		var entry_path = parent_path + "/" + result_key;
@@ -1329,9 +1351,9 @@ function get_table_entry(unit, section, category, number) {
 	return result;
 }
 
-function get_table_entry_parent_path(unit, section, category, number, create_enable) {
+function get_table_entry_parent_path(unit, section, table_name, number, create_enable) {
 	var result = null;
-	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", category, create_enable);
+	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", table_name, create_enable);
 	if (table_path!==null) {
 		var million_count = Math.trunc(number/1000000);
 		var million_path = table_path + "/" + million_count;
@@ -1351,8 +1373,8 @@ function get_table_entry_parent_path(unit, section, category, number, create_ena
 	return result;
 }
 
-function get_table_entry_paths(unit, section, category) {
-	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", category, false);
+function get_table_entry_paths(unit, section, table_name) {
+	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", table_name, false);
 	var results = [];
 	if (table_path !== null) {
 		var millions = fun.getVisibleDirectories(table_path);
@@ -1372,8 +1394,8 @@ function get_table_entry_paths(unit, section, category) {
 	return results;
 }
 
-function get_table_entry_numbers(unit, section, category) {
-	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", category, false);
+function get_table_entry_numbers(unit, section, table_name) {
+	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", table_name, false);
 	var results = [];
 	if (table_path !== null) {
 		var millions = fun.getVisibleDirectories(table_path);
@@ -1397,8 +1419,8 @@ function get_table_entry_numbers(unit, section, category) {
 	return results;
 }
 
-function get_next_table_index(unit, section, category, increment_after_getting_enable) {
-	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", category, false);
+function get_next_table_index(unit, section, table_name, increment_after_getting_enable) {
+	var table_path = get_table_path_if_exists_else_null(unit, section, "tables", table_name, false);
 	var result = 0;
 	if (table_path !== null) {
 		if (table_path in next_index_cache) {
@@ -1421,7 +1443,7 @@ function get_next_table_index(unit, section, category, increment_after_getting_e
 					for (var f_i=0,f_len=file_names.length; f_i<f_len; f_i++) {
 						var number = parseInt(fun.splitext(file_names[f_i])[0]);
 						if (number+1>result) result = number + 1;
-						//console.log(category+" number: "+number);
+						//console.log(table_name+" number: "+number);
 					}
 				}
 			}
@@ -1435,48 +1457,50 @@ function get_next_table_index(unit, section, category, increment_after_getting_e
 
 
 //returns object which only includes out_path if file was written
-function push_next_transaction(unit, section, category, ymd_array, item, as_username, autofill_enable) {
-	var this_index = get_next_transaction_index(unit, section, category, ymd_array, true);
-	var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", category, true);
+function push_next_transaction(unit, section, table_name, ymd_array, item, as_username, autofill_enable) {
+	var category="transactions";
+	var this_index = get_next_transaction_index(unit, section, table_name, ymd_array, true);
+	var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", table_name, true);
 	var results = null;
 	if (table_path !== null) {
-		results=write_record_without_validation(null, unit, section, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
+		results=write_record_without_validation(null, unit, section, category, table_name, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_transaction had to try again since '"+results.error+"'");
-			this_index = get_next_transaction_index(unit, section, category, ymd_array, true);
-			results=write_record_without_validation(null, unit, section, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
+			this_index = get_next_transaction_index(unit, section, table_name, ymd_array, true);
+			results=write_record_without_validation(null, unit, section, category, table_name, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
 		}
 	}
 	else {
 		results = {};
-		results.error = "Can't get table path for "+category+" transactions in "+section;
+		results.error = "Can't get table path for "+table_name+" transactions in section "+section;
 	}
 	return results;
 }
 
-function push_next_table_entry(unit, section, category, item, as_username, autofill_enable) {
-	var this_index = get_next_table_index(unit, section, category, true);
-	var deepest_path = get_table_entry_parent_path(unit, section, category, this_index, true);
+function push_next_table_entry(unit, section, table_name, item, as_username, autofill_enable) {
+	var category="tables";
+	var this_index = get_next_table_index(unit, section, table_name, true);
+	var deepest_path = get_table_entry_parent_path(unit, section, table_name, this_index, true);
 	var results = null;
 	if (deepest_path !== null) {
-		results = write_record_without_validation(null, unit, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
+		results = write_record_without_validation(null, unit, section, category, table_name, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_table_entry had to try again since '"+results.error+"'");
-			this_index = get_next_table_index(unit, section, category, true);
-			results = write_record_without_validation(null, unit, section, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
+			this_index = get_next_table_index(unit, section, table_name, true);
+			results = write_record_without_validation(null, unit, section, category, table_name, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
 		}
 	}
 	return results;
 }
 
 //if name is null, name of .yml file is in HHmmss format, where time is now, and hyphen and sequential digit is added if two entries are created in same second.
-function write_record_without_validation(req_else_null, unit, section, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
+function write_record_without_validation(req_else_null, unit, section, category, table_name, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable) {
 	var results = {};
-	var category = "transactions";
+	//var category = "transactions";
 	var indent = "      ";
 	var local_time_zone = peek_setting(unit, "unit.local_time_zone");
 	//unique values are below
-	var table_path = get_table_path_if_exists_else_null(unit, section, category, "student", true);
+	var table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, true);
 	if (table_path !== null) {
 		//write files
 		var deep_path;
@@ -1616,8 +1640,8 @@ function write_record_without_validation(req_else_null, unit, section, date_arra
 			}
 			//else already checked for bad write_mode and this code won't run in that case
 			//endregion generated fields
-			
-			
+
+
 			console.log(indent+"* WRITING "+out_path);
 			yaml.writeSync(out_path, record, "utf8");
 			results.out_path = out_path;
@@ -1649,49 +1673,6 @@ function write_record_without_validation(req_else_null, unit, section, date_arra
 					}
 				}
 			}
- 			//write cache
-			//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
-			/*
-			if (dat) {
-				if (!dat.hasOwnProperty(section)) {
-					console.log(indent+"ERROR: section "+section+" is not in cache");
-					dat[section]={};
-				}
-				if (fun.is_not_blank(y_dir_name)) {
-					if (!dat[section].hasOwnProperty(y_dir_name))
-						dat[section][y_dir_name]={};
-					if (!dat[section].hasOwnProperty("years"))
-						dat[section].years = [];
-					if (!fun.array_contains(dat[section].years, y_dir_name))
-						dat[section].years.push(y_dir_name);
-					
-					
-					if (!dat[section][y_dir_name].hasOwnProperty(m_dir_name))
-						dat[section][y_dir_name][m_dir_name]={};
-					if (!dat[section][y_dir_name].hasOwnProperty("months"))
-						dat[section][y_dir_name].months = [];
-					if (!fun.array_contains(dat[section][y_dir_name].months, m_dir_name))
-						dat[section][y_dir_name].months.push(m_dir_name);
-					
-					if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty(d_dir_name))
-						dat[section][y_dir_name][m_dir_name][d_dir_name] = {};
-					if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty("days"))
-						dat[section][y_dir_name][m_dir_name].days = [];
-					if (!fun.array_contains(dat[section][y_dir_name][m_dir_name].days, d_dir_name))
-						dat[section][y_dir_name][m_dir_name].days.push(d_dir_name);
-
-					dat[section][y_dir_name][m_dir_name][d_dir_name][results.out_name] = record;
-					if (!dat[section][y_dir_name][m_dir_name][d_dir_name].hasOwnProperty("item_keys"))
-						dat[section][y_dir_name][m_dir_name][d_dir_name].item_keys = [];
-					if (!fun.array_contains(dat[section][y_dir_name][m_dir_name][d_dir_name].item_keys, results.out_name))
-						dat[section][y_dir_name][m_dir_name][d_dir_name].item_keys.push(results.out_name);
-					//console.log(indent+"CACHE was updated for section "+section+" by adding entry "+results.out_name+" to date "+y_dir_name+"-"+m_dir_name+"-"+d_dir_name);
-				}
-				//else //is not a transaction table so has no dates.
-					//TODO: cache it a different way
-			}
-			//else doesn't matter since cache will be loaded from drive and then be fresh
-			*/
 			results.notice = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
 			//if (record.stated_time) results.notice += " (stated time " + record.stated_time + ")";
 		}
@@ -1720,8 +1701,8 @@ function is_after_school(unit, section, this_time) {
 			var tmp_local_end_date = now_date_string+" "+peek_setting(unit, section+".local_end_time");
 			//console.log("tmp_local_end_date:"+tmp_local_end_date);
 			var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
-			var endTimeString = endTime.format("HH:mm:ss");			
-			//console.log("UTC Offset (minutes): "+local_now.utcOffset()); 
+			var endTimeString = endTime.format("HH:mm:ss");
+			//console.log("UTC Offset (minutes): "+local_now.utcOffset());
 			//console.log("Z: "+local_now.format("Z"));  for example, in EST, outputs -4:00 during Eastern Daylight Time, -5:00 the rest of the year
 			//if (!endTime.isAfter(local_now)) {
 			var msg;
@@ -1770,7 +1751,7 @@ function is_before_school(unit, section, this_time) {
 			//console.log("tmp_local_start_date:"+tmp_local_start_date);
 			var startTime = moment(tmp_local_start_date); //, "HH:mm:ss" // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
 			var startTimeString = startTime.format("HH:mm:ss");
-			
+
 			//if (startTime.isAfter(local_now)) {
 			if (currentTimeString < startTimeString) {
 				//msg = "is_before_school " + currentTimeString + ":y (<  " + endTimeString + ")";
@@ -1800,13 +1781,14 @@ function is_before_school(unit, section, this_time) {
 	}
 }
 
-function get_billing_cycle_selector(unit, section, category) {
+function get_billing_cycle_selector(unit, section, table_name) {
+	var category="tables";
 	var ret = "";
 	ret += "<h4>Billing Cycles</h4><br/>"+"\n";
 	//var category = "BillingCycle"; now is a param
-	//var results = push_next_table_entry(unit, section, category, item, req.user.username, false);
+	//var results = push_next_table_entry(unit, section, table_name, item, req.user.username, false);
 	//cycle_paths = get_table_entry_paths(unit, section, "BillingCycle");
-	var cycle_entry_numbers = get_table_entry_numbers(unit, section, category);
+	var cycle_entry_numbers = get_table_entry_numbers(unit, section, table_name);
 	//ret += get_table_entry_buttons(config.proxy_prefix_then_slash, "get", section, "BillingCycle", "selected_item_key", "=primary_key()");
 	if (cycle_entry_numbers) {
 		ret += "Found "+cycle_entry_numbers.length+" billing cycle(s).<br/>"+"\n";
@@ -1820,15 +1802,17 @@ function get_billing_cycle_selector(unit, section, category) {
 			var cen = cycle_entry_numbers[cen_i];
 			//console.log("  cycle entry number from filename: "+cen);
 			if (cen!=selected_number) ret += '<a href="'+config.proxy_prefix_then_slash+'?'+
-				'section='+section+
+				'unit='+unit+
+				'&section='+section+
+				'&category='+category+
 				'&selected_year='+selected_year+
 				'&selected_month=(none)'+
 				'&selected_day=(none)'+
 				'&selected_number='+cen+
 				'#results">';
-			
-			
-			cen_entry = get_table_entry(unit, section, category, cen);
+
+
+			cen_entry = get_table_entry(unit, section, table_name, cen);
 			//console.log("    got: "+JSON.stringify(cen_entry));
 			//if (cen==selected_number) {
 			if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
@@ -1838,13 +1822,16 @@ function get_billing_cycle_selector(unit, section, category) {
 			ret += "<br/>";
 			/*
 			ret += '<form action="'+config.proxy_prefix_then_slash+'" method="get">';
-			ret += '<input type="hidden" name="section" id="section" value="'+section+'"/>';
+			ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
+			ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+			ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+			ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 			ret += '<input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'" />';
 			ret += '<input type="hidden" name="selected_month" id="selected_month" value="(none)" />';
 			ret += '<input type="hidden" name="selected_day" id="selected_day" value="(none)" />';
 			ret += '<input type="hidden" name="selected_number" id="selected_number" value="'+cen+'" />';
 			if (cen!=selected_number) {
-				var cen_entry = get_table_entry(unit, section, category, selected_number);
+				var cen_entry = get_table_entry(unit, section, table_name, selected_number);
 				var cen_name = "";
 				if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
 				ret += '<button class="btn" type="submit">'+cen+": "+cen_name+'</button>';
@@ -1858,12 +1845,12 @@ function get_billing_cycle_selector(unit, section, category) {
 		cen_name = null;  // out of loop
 		cen_entry = null;  // out of loop
 		if (fun.is_not_blank(selected_number)) {
-			
+
 			if ((typeof selected_number)=="string") selected_number = parseInt(selected_number);
-			//var s_sub_path = get_table_entry_parent_path(unit, section, category, selected_number, false);
+			//var s_sub_path = get_table_entry_parent_path(unit, section, table_name, selected_number, false);
 			//if (s_sub_path!=null) {
 				//var s_entry_path = s_sub_path + "/" + selected_number + ".yml";
-			cen_entry = get_table_entry(unit, section, category, selected_number);
+			cen_entry = get_table_entry(unit, section, table_name, selected_number);
 			if (cen_entry && fun.is_not_blank(cen_entry.cycle_name)) cen_name = cen_entry.cycle_name;
 			if (cen_entry) {
 				ret += "<br/>"+"\n";
@@ -1905,7 +1892,7 @@ var hbs = exphbs.create({
 		},
 		if_eq: function(a, b, opts) {
 			//console.log("* checking if_eq while user is " + a);
-			if (a == b) // Or === 
+			if (a == b) // Or ===
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -1922,7 +1909,7 @@ var hbs = exphbs.create({
 				}
 			}
 			//}
-			if (is_match) // Or === 
+			if (is_match) // Or ===
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -1938,7 +1925,7 @@ var hbs = exphbs.create({
 		},
 		show_settings: function(unit, section, username, selected_setting, opts) {
 			var ret = "";
-			
+
 			if (user_has_section_permission(unit, username, section, "settings")) {
 				var settings_keys = get_all_settings_names();
 				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-settings?section="+section+'" class="btn btn-danger" role="button">' + "\n";
@@ -1961,10 +1948,12 @@ var hbs = exphbs.create({
 						//ret += '<div class="form-group row">';
 						ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 						ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+						//ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+						//ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 						ret += '  <input type="hidden" name="mode" id="mode" value="settings"/>' + "\n";
 						ret += '  <input type="hidden" name="selected_setting" id="selected_setting" value="'+selected_setting+'"/>' + "\n";
 						//ret += '  <label for="selected_setting_value" class="col-sm-2 col-form-label">'+settings_keys[i]+'&nbsp;=&nbsp;</label>' + "\n";
-						
+
 						//ret += '    <div class="col-sm-10">' + "\n";
 						ret += '  <div class="input-group">' + "\n";
 						ret += '      <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+peek_setting(unit, selected_setting)+'"/>' + "\n";
@@ -2004,7 +1993,7 @@ var hbs = exphbs.create({
 						if (this_rate<=0.00001) {
 							warnings += '<div class="alert alert-warning">Hourly rate is '+this_rate+'</div>';
 						}
-						cen_entry = get_table_entry(unit, section, category, selected_number);
+						cen_entry = get_table_entry(unit, section, table_name, selected_number);
 						var section_friendly_name = section;
 						var error="";
 						if (has_setting(unit, section + ".display_name")) section_friendly_name = peek_setting(unit, section + ".display_name");
@@ -2018,7 +2007,7 @@ var hbs = exphbs.create({
 						if (bill_dow>=1 & bill_dow<=7) {
 						}
 						else error+="Day of week for billing ("+section+".bill_iso_day_of_week) is configured incorrectly as "+bill_dow+bill_source_msg+" (should be 1-7, where 1 is Monday). ";
-						
+
 						if (cen_entry && cen_entry.end_dates && fun.is_blank(error)) {
 							var key_totals_by_end_date = {};
 							var unused_items = [];
@@ -2082,7 +2071,7 @@ var hbs = exphbs.create({
 										var back_d_path = table_path + "/" + back_y_s + "/" + back_m_s + "/" + back_d_s;
 										var back_date_s = back_y_s+"-"+back_m_s+"-"+back_d_s;
 										var back_date = moment(back_date_s, "YYYY-MM-DD");
-										
+
 										//NOTE: back_d_path could be same as before, if is friday (if d_backstep is 0)
 										if (fs.existsSync(back_d_path)) {
 											//ret += '* '+back_date.format("dddd MMM D, Y")+'<br/>' + "\n";//debug only
@@ -2093,7 +2082,7 @@ var hbs = exphbs.create({
 												if (item_path.endsWith(".yml")) {
 													var this_item = yaml.readSync(item_path, "utf8");
 													this_item.tmp = {};
-													
+
 													//if ("stated_time" in this_item) this_item.tmp.time = this_item.stated_time;
 													//else if ("time" in this_item) this_item.tmp.time = this_item.time;
 													//else {
@@ -2132,7 +2121,7 @@ var hbs = exphbs.create({
 															//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
 															//else if (stats.hasOwnProperty("mtime")) this_item.tmp["=get_origin_date()"] = stats['mtime'];
 															//ctime = new Date(util.inspect(stats.mtime));
-															//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
+															//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime));
 															//NOTE: this intentionally shows a full timestamp to indicate there was a problem getting the date via normal means:
 															if (ctime!==null) this_item.tmp["=get_origin_date()"] = ctime;
 														}
@@ -2142,14 +2131,14 @@ var hbs = exphbs.create({
 																if (!this_item[groupby].startsWith("-")) {
 																	//ok to proceed since fun.is_not_blank DOES check length>0 AFTER trim
 																	if (!(this_item[groupby] in data_by_group)) data_by_group[this_item[groupby]] = {};
-								
-																	
+
+
 																	span_info = get_care_time_info(this_item, unit, section);
 																	if (span_info.hasOwnProperty("error")) {
 																		warnings += '<div class="alert alert-warning">'+span_info.error+' in '+item_path+'</div>';
 																	}
 																	if (span_info.hasOwnProperty("seconds")) {
-																		
+
 																		if ((typeof span_info.seconds)=="string") span_info.seconds = parseInt(span_info.seconds);
 																		var qty_times_seconds = span_info.seconds;
 																		if ("qty" in this_item) {
@@ -2177,7 +2166,7 @@ var hbs = exphbs.create({
 																		this_item.tmp["=caretime_h()"] = 0.00;
 																		this_item.tmp["=careprice()"] = 0.00;
 																	}
-																	
+
 																	span_info["=caretime()"] = this_item.tmp["=caretime()"];
 																	span_info["=caretime_m()"] = this_item.tmp["=caretime_m()"];
 																	span_info["=caretime_h()"] = this_item.tmp["=caretime_h()"];
@@ -2195,16 +2184,16 @@ var hbs = exphbs.create({
 																		//console.log(this_item[groupby]+"  "+span_info["=caretime_h()"].toFixed(3)+"hrs: "+old_amount.toFixed(2) + " + " + span_info["=careprice()"].toFixed(2) + " = " + data_by_group[this_item[groupby]]["=careprice()"].toFixed(2));
 																	}
 																	old_amount = 0.0;
-																	
+
 																	if (!("=careprice()" in data_by_group[this_item[groupby]])) data_by_group[this_item[groupby]]["=careprice()"] = span_info["=careprice()"];
 																	else {
 																		old_amount = data_by_group[this_item[groupby]]["=careprice()"];
 																		data_by_group[this_item[groupby]]["=careprice()"] += span_info["=careprice()"];
 																		//console.log(this_item[groupby]+"  "+span_info["=caretime_h()"].toFixed(3)+"hrs: "+old_amount.toFixed(2) + " + " + span_info["=careprice()"].toFixed(2) + " = " + data_by_group[this_item[groupby]]["=careprice()"].toFixed(2));
 																	}
-								
-								
-								
+
+
+
 																	if (!("identifiers" in data_by_group[this_item[groupby]])) data_by_group[this_item[groupby]].identifiers = [];
 																	var combined_primary_key=null;
 																	if (primary_key_components!==null) {
@@ -2264,7 +2253,10 @@ var hbs = exphbs.create({
 								//ret += '<div style="page-break-before: always"> </div>' + "\n";
 								//ret += "You should save this report for your records, such as by printing or print to PDF (Ctrl P). Each "+groupby+" will print on a separate page.";
 								//ret += '<form class="form" id="download-billing-cycle-report" action="' + config.proxy_prefix_then_slash + 'download-billing-cycle-report">' + "\n";
-								//ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+								//ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
+								//ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+								//ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+								//ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 								//ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 								//ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>' + "\n";
 								//ret += '    <input type="hidden" name="selected_month" id="selected_month" value="(none)"/>' + "\n";
@@ -2321,13 +2313,13 @@ var hbs = exphbs.create({
 								ret += '    </div>' + "\n";
 								ret += '  </div>' + "\n";
 							}
-							
+
 							ret += '  <div class="row" style="page-break-before: always">';
 							ret += '    <div class="col-sm-10">';
 							ret += '      <h3>Remaining Issues:</h3>';
 							ret += '    </div>';
 							ret += '  </div>';
-							
+
 							if (fun.is_not_blank(warnings)) ret += warnings;
 							ret += '<h4>Uncategorized Items Not Billed:</h4>';
 							var ui_i;
@@ -2337,7 +2329,7 @@ var hbs = exphbs.create({
 								if (unused_items.length>0) {
 									ret += '<div class="row">';
 									ret += '<div class="col-sm-10">';
-									
+
 									ret += '<table class="table">' + "\n";
 									ret += '  <thead>' + "\n";
 									ret += '  <tr>' + "\n";
@@ -2421,13 +2413,13 @@ var hbs = exphbs.create({
 			var year = null;
 			var month = null;
 			var day = null;
-			if (is_not_blank(selected_year)) {
+			if (fun.is_not_blank(selected_year)) {
 				year = fun.zero_padded(selected_year, 4);
 			}
-			if (is_not_blank(selected_month)) {
+			if (fun.is_not_blank(selected_month)) {
 				month = fun.zero_padded(selected_month, 2);
 			}
-			if (is_not_blank(selected_day)) {
+			if (fun.is_not_blank(selected_day)) {
 				day = fun.zero_padded(selected_day, 2);
 			}
 			var table_info = get_table_info(unit, section, category, table_name);
@@ -2446,13 +2438,13 @@ var hbs = exphbs.create({
 						if (container_enable==="true") ret += '<div class="container">' + "\n";
 						ret += '  <div class="row">' + "\n";
 						ret += '    <div class="col-sm-2">' + "\n";
-						ret += get_year_month_select_buttons(unit, section, mode, username, years, months, selected_year, selected_month)+"\n";
+						ret += get_year_month_select_buttons(unit, section, table_name, mode, username, years, months, selected_year, selected_month)+"\n";
 						ret += '    </div><!--end col-sm-2-->' + "\n";
 						ret += '    <div class="col-sm-8">' + "\n";
 						ret += '      <h3>Queries</h3>';
 						var selected_field = null;
 						var this_rate = 0.0;
-						if (!section) console.log("ERROR: no section given to "+mode+" helper"); 
+						if (!section) console.log("ERROR: no section given to "+mode+" helper");
 						if ( has_setting(unit, section+".extended_hours_hourly_price") ) {
 							var section_friendly_name = section;
 							var this_start_time_string = "";
@@ -2461,7 +2453,10 @@ var hbs = exphbs.create({
 							if (has_setting(unit, section+".display_name")) section_friendly_name = peek_setting(unit, section+".display_name");
 							this_rate = peek_setting(unit, section+".extended_hours_hourly_price");
 							ret += '    <form class="form-inline" id="autofill-query" action="' + config.proxy_prefix_then_slash + 'autofill-query" method="post">' + "\n";
+							ret += '    <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 							ret += '    <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+							ret += '    <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+							ret += '    <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 							ret += '    <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 							ret += '    <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>' + "\n";
 							ret += '    <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>' + "\n";
@@ -2492,13 +2487,16 @@ var hbs = exphbs.create({
 									//ret += " " + default_groupby[section];
 								var this_field = null;
 								if (selected_field) this_field = selected_field;
-								else if (has_setting(unit, section+".default_groupby"))  
+								else if (has_setting(unit, section+".default_groupby"))
 									this_field = peek_setting(unit, section+".default_groupby");
 								if (has_setting(unit, section+".autofill_requires."+this_field)) {
 									//ret += " Change entries for person where";
 									//ret += ":";
 									ret += '<form class="form-horizontal" id="update-query" action="' + config.proxy_prefix_then_slash + 'update-query" method="post">' + "\n";
+									ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 									ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+									ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+									ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 									ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 									ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+selected_year+'"/>' + "\n";
 									ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+selected_month+'"/>' + "\n";
@@ -2519,14 +2517,14 @@ var hbs = exphbs.create({
 									var this_field_friendly_name = this_field;
 									if (has_setting(unit, section+".sheet_display_names."+this_field))
 										this_field_friendly_name = peek_setting(unit, section+".sheet_display_names."+this_field);
-									
+
 									ret += '  <div class="input-group mb-2 mb-sm-0">' + "\n";
 									ret += '  <span class="input-group-addon" style="font-weight:bold">Change '+this_field_friendly_name+' to:</span>' + "\n";
 									//ret += '    <div class="col-sm-10">';
 									ret += '      <input type="text" class="form-control" name="set_value" id="set_value" value=""/>' + "\n"; //'+val+'
 									//ret += '    </div>';
 									ret += '  </div>' + "\n";
-										
+
 									ret += '  <button type="submit" class="btn btn-primary" font-weight:bold"/>Change All Matching</button>' + "\n";
 									ret += '</form>' + "\n";
 								}
@@ -2536,7 +2534,7 @@ var hbs = exphbs.create({
 							else {
 							}
 							//endregion CHANGE ALL MATCHING
-							
+
 
 							ret += '    </div><!--end 2nd col: col-sm-8-->' + "\n";
 							ret += '    <div class="col-sm-2">' + "\n";
@@ -2546,6 +2544,8 @@ var hbs = exphbs.create({
 							ret += '              <div class="form-row align-items-center">' + "\n";
 							ret += '                <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 							ret += '                <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+							//ret += '                <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+							//ret += '                <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 							ret += '                <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 							ret += '                <input type="hidden" name="selected_setting" id="selected_setting" value="extended_hours_hourly_price"/>' + "\n";
 							//ret += '               <div class="col-auto">' + "\n";
@@ -2556,7 +2556,7 @@ var hbs = exphbs.create({
 							//ret += '               </div>' + "\n";
 							ret += '              </div>' + "\n";
 							ret += '            </form>' + "\n";
-							
+
 							var free_from_caption = "free_from";
 							if (has_setting(unit, section+".sheet_display_names.free_from"))
 								free_from_caption = peek_setting(unit, section+".sheet_display_names.free_from");
@@ -2584,7 +2584,7 @@ var hbs = exphbs.create({
 							ret += '  <input type="text" class="form-control" size="8" name="selected_setting_value" id="selected_setting_value" value="'+this_end_time_string+'"/>' + "\n";
 							ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
 							ret += '</form>' + "\n";
-							
+
 							if (selected_field) {//section_report_edit_field.hasOwnProperty(section)) {
 								if (!section_report_edit_field.hasOwnProperty(section)) section_report_edit_field[section] = {};
 								if (!section_report_edit_field[section].hasOwnProperty(mode)) section_report_edit_field[section][mode] = selected_field;
@@ -2638,7 +2638,7 @@ var hbs = exphbs.create({
 							var url_params = "?";
 							url_params += "section="+section+"&";
 							url_params += "mode="+mode+"&";
-							
+
 							ret += '      <th>&nbsp;<!--status--></th>';
 							if (fun.visual_debug_enable) ret += '      <th><small>#</small></th>' + "\n";
 							for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
@@ -2653,7 +2653,7 @@ var hbs = exphbs.create({
 								if (default_total.hasOwnProperty(section)) {
 									if (key==default_total[section]) name = "Total " + name; //such as Total Accrued
 								}
-								
+
 								var override_key = null;
 								if (section_fields_overrides.hasOwnProperty(section)) {
 									for (var this_key in section_fields_overrides[section]) {
@@ -2672,7 +2672,7 @@ var hbs = exphbs.create({
 							ret += '    </tr>' + "\n";
 							ret += '  </thead>' + "\n";
 							ret += '  <tbody>' + "\n";
-							
+
 							//NOTE: don't render rows yet--this loop prepares the data
 							var d_path;
 							var item_path;
@@ -2719,14 +2719,14 @@ var hbs = exphbs.create({
 													else if (original_item.hasOwnProperty("ctime"))
 														original_item.tmp["=get_origin_date()"] = original_item.ctime.substring(0,10);
 													else {
-														var this_item_path = d_path+"/"+item_key;
+														var this_item_path = d_path + "/" + item_key;
 														var stats = fs.statSync(this_item_path);
 														var ctime = null;
 														if (stats.hasOwnProperty("ctime")) original_item.tmp["=get_origin_date()"] = stats.ctime;
 														//see Oleg Mikhailov on https://stackoverflow.com/questions/7559555/last-modified-file-date-in-node-js edited May 12 '16 answered May 11, '16
 														//else if (stats.hasOwnProperty("mtime")) original_item.tmp["=get_origin_date()"] = stats['mtime'];
 														//ctime = new Date(util.inspect(stats.mtime));
-														//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime)); 
+														//TODO: why doesn't this work (util not defined [even though installed via npm and required at top of file]): var mtime = new Date(util.inspect(stats.mtime));
 														if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
 													}
 													original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
@@ -2850,7 +2850,7 @@ var hbs = exphbs.create({
 											}
 											//else not hasOwnProperty
 										}//end for item keys
-										
+
 										if (msg.length>0) {
 											//res.session.error=msg;
 											console.log(msg);
@@ -2885,7 +2885,7 @@ var hbs = exphbs.create({
 									else console.log("[ ] verbose message: Using identifying fields for duplicate detection (unique fields from <section name>.autofill_requires arrays): "+JSON.stringify(identifying_fields));
 								}
 								else console.log("WARNING: <section name>.autofill_requires does not exist in settings, so duplicate detection won't work.");
-								
+
 								var debug_stack = [];
 								for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
 									var item = items[item_i];
@@ -2915,7 +2915,10 @@ var hbs = exphbs.create({
 									ret += '      <td>';
 									ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 									ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+									ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 									ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+									ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+									ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 									ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 									ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 									ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -2928,12 +2931,12 @@ var hbs = exphbs.create({
 									ret += '<span class="'+status_class+'" style="'+status_style+'"></span>' + "\n";
 									ret += '</button>' + "\n";
 									ret += '</form>' + "\n";
-									
+
 									ret += '</td>';
 									if (fun.visual_debug_enable) ret += '      <td>'+items[item_i].key+'</td>';
 									var match_count=null;
 									if (item_enable && user_has_section_permission(unit, username, section, mode)) {
-										
+
 										if (has_setting(unit, section+".form_fields")) {
 										//console.log("[ == ] this "+this_date+" "+this_time+"..."); //this_date does not exist in this scope
 											//if (items_by_date.hasOwnProperty(items[item_i].tmp["=get_date_from_path()"])) {
@@ -2973,10 +2976,10 @@ var hbs = exphbs.create({
 																			if ((!is_out_of_range) && (this_is_after_school==prev_is_after_school)) { //either before or after, as long as same
 																				for (var ff_i=0; ff_i<tf_len; ff_i++) {
 																					/*
-																					if (fun.is_blank(items[item_i][these_fields[ff_i]]) || 
-																						(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], items[prev_i][these_fields[ff_i]])) || 
+																					if (fun.is_blank(items[item_i][these_fields[ff_i]]) ||
+																						(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], items[prev_i][these_fields[ff_i]])) ||
 																						(
-																							((typeof items[item_i][these_fields[ff_i]])=="string") && 
+																							((typeof items[item_i][these_fields[ff_i]])=="string") &&
 																							((typeof items[prev_i][these_fields[ff_i]])=="string") &&
 																							(items[item_i][these_fields[ff_i]].trim().toLowerCase() == items[prev_i][these_fields[ff_i]].trim().toLowerCase()) )
 																					) {
@@ -3001,10 +3004,10 @@ var hbs = exphbs.create({
 																						//}
 																					}
 																					else {
-																						if (//fun.is_blank(items[item_i][these_fields[ff_i]]) || 
-																							(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], this_date_items[inner_i][these_fields[ff_i]])) || 
+																						if (//fun.is_blank(items[item_i][these_fields[ff_i]]) ||
+																							(fun.safe_equals_ci(items[item_i][these_fields[ff_i]], this_date_items[inner_i][these_fields[ff_i]])) ||
 																							(
-																								((typeof items[item_i][these_fields[ff_i]])=="string") && 
+																								((typeof items[item_i][these_fields[ff_i]])=="string") &&
 																								((typeof this_date_items[inner_i][these_fields[ff_i]])=="string") &&
 																								(items[item_i][these_fields[ff_i]].trim().toLowerCase() == this_date_items[inner_i][these_fields[ff_i]].trim().toLowerCase()) )
 																						) {
@@ -3026,7 +3029,7 @@ var hbs = exphbs.create({
 																					//	console.log(msg);
 																					//}
 																					//}
-																					
+
 																					dup_index = inner_i;
 																					break;
 																				}
@@ -3045,7 +3048,7 @@ var hbs = exphbs.create({
 															}
 															//NOTE: this_date is out of scope
 														}//else is same record (is self)
-														
+
 														match_count=null;
 													}//if is an active entry
 												}
@@ -3054,10 +3057,10 @@ var hbs = exphbs.create({
 											else console.log("WARNING: "+items[item_i].tmp.tui+" must not be in correct folder, because "+items[item_i].tmp["=get_date_from_path()"]+" is not in items_by_date: "+JSON.stringify(Object.keys(items_by_date)));
 										}
 									}
-									
+
 									for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
 										ret += '      <td>' + "\n";
-										
+
 										if (ssf_i===0) ret += '<a name="'+a_name+'"></a>';
 										if (!item_enable) ret += '<span class="text-muted" style="text-decoration:line-through;">';
 										var column_name = section_sheet_fields[ssf_i];
@@ -3072,7 +3075,7 @@ var hbs = exphbs.create({
 												else val = item.tmp[column_name];
 											}
 											else {
-												//console.log(column_name + " is not careprice"); //debug only 
+												//console.log(column_name + " is not careprice"); //debug only
 												val = item.tmp[column_name];
 											}
 										}
@@ -3083,11 +3086,14 @@ var hbs = exphbs.create({
 											//don't show value yet if selected (see below)
 										}
 										else ret += val;
-										
+
 										if (selected_field==column_name) { //show even if does NOT have property
 											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+											ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+											ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+											ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -3098,11 +3104,14 @@ var hbs = exphbs.create({
 											ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
 											ret += '</form>';
 										}
-										
+
 										if ((dup_index>-1) && (ssf_i===0)) {
 											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+											ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 											ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+											ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+											ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 											ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 											ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -3121,12 +3130,12 @@ var hbs = exphbs.create({
 											//Mark '+item_i+':'+items[item_i].tmp.date+' Duplicate of '+this_date_items[dup_index].tmp.date+' (actual '+dup_index+': '+this_date_items[dup_index].ctime.substring(0,10)+') '+this_date_items[dup_index].tmp.time+'
 											ret += '</form>' + "\n";
 										}
-										
+
 										if (item_enable) {
 											if (hdv_item_splitter_name && (column_name==hdv_item_splitter_name)) {
 												var subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
 												if (subvalues && (subvalues.length>1)) {
-													
+
 													var split_enable = true;
 													var hdv_paired_name = null;
 													if (has_setting(unit, section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(unit, section+".list_implies_multiple_entries_paired_with");
@@ -3147,7 +3156,10 @@ var hbs = exphbs.create({
 														) { //only treat as possibly one person if has no splitters other than space
 															ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 															ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+															ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 															ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+															ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+															ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 															ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 															ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 															ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -3162,8 +3174,10 @@ var hbs = exphbs.create({
 													if (split_enable) {
 														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'split-entry" method="post">' + "\n";
 														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
-														ret += '  <input type="hidden" name="section" id="unit" value="'+unit+'"/>' + "\n";
+														ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+														ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+														ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -3178,7 +3192,7 @@ var hbs = exphbs.create({
 												}
 											}
 											else if (fun.is_blank(item[column_name]) && hdv_field_name && (column_name=="qty")) {
-												
+
 												var hdv_subvalues = null;
 												if (hdv_item_splitter_name) hdv_subvalues = fun.get_human_delimited_values(item[hdv_item_splitter_name]);
 												if (!hdv_subvalues || hdv_subvalues.length==1) { //only use qty if no splitter overrides qty
@@ -3186,7 +3200,10 @@ var hbs = exphbs.create({
 													if (hdvs && hdvs.length>1) {
 														ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 														ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+														ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 														ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+														ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+														ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 														ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 														ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 														ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -3199,7 +3216,7 @@ var hbs = exphbs.create({
 													}
 												}
 											}
-											
+
 											if (fun.is_blank(item[column_name])) {
 												if (has_setting(unit, section+"."+mode+".suggest_missing_required_fields_enable")) {
 													if (fun.is_true(peek_setting(unit, section+"."+mode+".suggest_missing_required_fields_enable"))) {
@@ -3270,7 +3287,10 @@ var hbs = exphbs.create({
 																						if (!fun.array_contains(suggested_values, suggested_val)) {
 																							ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 																							ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 																							ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+																							ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 																							ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
 																							ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 																							ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
@@ -3300,12 +3320,12 @@ var hbs = exphbs.create({
 																				show_autofill_yet_in_section_warning_enable = false;
 																			}
 																		}
-																		//console.log("[ ]   verbose message: done looking in requirements since examined "+column_name); 
+																		//console.log("[ ]   verbose message: done looking in requirements since examined "+column_name);
 																		break;
 																	}
 																	//else console.log("[ ]   verbose message: "+column_name+" is not required for autofill of "+requirer);
 																}
-																//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested"); 
+																//else console.log("[ ]                  verbose message: there are not enough requirements for a sibling requirement's value to be suggested");
 															}
 														}
 														else {
@@ -3320,7 +3340,7 @@ var hbs = exphbs.create({
 												else console.log("[ ] WARNING: missing setting "+section+"."+mode+".suggest_missing_required_fields_enable");
 											}
 										}
-										
+
 										if (!item_enable) {
 											ret += '</span>' + "\n";
 											if ((ssf_i===0) && ("duplicate_of_time" in items[item_i])) ret+='<span class="text-muted"> see '+items[item_i].duplicate_of_time;
@@ -3330,8 +3350,10 @@ var hbs = exphbs.create({
 												//ret+='<div class="alert alert-danger">'+items[item_i].tmp.date+'</div>';
 												ret += '<form id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 												ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
+												ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 												ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
-												ret += '  <input type="hidden" name="mode" id="mode" value="'+mode+'"/>' + "\n";
+												ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+												ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 												ret += '  <input type="hidden" name="selected_year" id="selected_year" value="'+item.tmp.year+'"/>' + "\n";
 												ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
 												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
@@ -3340,7 +3362,7 @@ var hbs = exphbs.create({
 												ret += '  <input type="hidden" name="set_value" id="set_value" value="'+items[item_i].ctime.replaceAll(items[item_i].tmp.date,items[item_i].tmp["=get_date_from_path()"])+'"/>' + "\n";
 												ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+items[item_i].tmp["=get_date_from_path()"]+'</button>' + "\n";
 												ret += '</form>' + "\n";
-												
+
 											}
 										}
 
@@ -3363,7 +3385,7 @@ var hbs = exphbs.create({
 									if (has_setting(unit, section+"."+mode+".auto_select_month_enable")) auto_select_month_enable = peek_setting(unit, section+"."+mode+".auto_select_month_enable");
 									//This is not really going to auto select, but true can imply that the user expectation is to see a month (see next line)
 									//if (auto_select_month_enable) ret += "(select a month)<br/>";  // they probably want a month if auto select is enabled
-									//else 
+									//else
 									//ret += "(to exit billing and to edit entries, select a month above)<br/><br/>"+"\n";  // they probably want a month if auto select is enabled
 									if (container_enable=="true") ret += '<div class="container">' + "\n";
 									else {
@@ -3376,7 +3398,7 @@ var hbs = exphbs.create({
 									//var months = [];
 									//NOTE: months is already a param given to this helper
 									//var sub_months = [];
-									table_path = get_table_path_if_exists_else_null(unit, section, "transactions", "student", false);
+									table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, false);
 									if (table_path !== null) {
 										y_path = table_path + "/" + selected_year;
 										var y_i = parseInt(selected_year);
@@ -3400,7 +3422,7 @@ var hbs = exphbs.create({
 												ret += '    <form class="form" id="add-end-dates-to-bill" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">' + "\n";
 												ret += '      <div class="form-group">' + "\n";
 												//ret += '        <div class="entry form-group col-sm-6">' + "\n"; //input-group mb-2 mr-sm-2 mb-sm-0
-												
+
 												//ret += '          <div class="input-group-addon" >New Billing Cycle Name:</div>';
 												//ret += '            <label for="new_cycle_name">New Cycle Name:</label>' + "\n";
 												//ret += '            <input type="text" class="form-control" name="new_cycle_name" id="new_cycle_name" value=""/>' + "\n";
@@ -3409,7 +3431,7 @@ var hbs = exphbs.create({
 												//ret += '            <button type="submit" class="btn btn-primary">Create from Selected Weeks</button>' + "\n";
 												//ret += '          </div">';
 												//ret += '        </div>' + "\n";//end col
-												
+
 												ret += '          <div class="input-group">';
 												ret += '            <input type="text" class="form-control" name="new_cycle_name" placeholder="New Cycle Name">' + "\n";
 												ret += '            <span class="input-group-btn">' + "\n";
@@ -3418,7 +3440,10 @@ var hbs = exphbs.create({
 												ret += '          </div>' + "\n";
 												ret += '      </div>' + "\n";//end form-group
 												ret += '      <input type="hidden" name="selected_year" value="'+selected_year+'"/>' + "\n";
-												ret += '      <input type="hidden" name="section" value="'+section+'"/>' + "\n";
+												ret += '      <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
+												ret += '      <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+												ret += '      <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+												ret += '      <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 												ret += '      <input type="hidden" name="mode" value="'+mode+'"/>' + "\n";
 												for (var m_i=12; m_i>=1; m_i--) {
 													var m_s = fun.zero_padded(m_i, 2);
@@ -3479,10 +3504,10 @@ var hbs = exphbs.create({
 											}
 											else ret += '  <div class="alert alert-warning">Day of Week for billing must be 1-7 where 1 is Monday, but value'+bill_source_msg+' was "'+bill_dow+'".</div>';
 											ret += ' </div><!--end col-->' + "\n";
-											
+
 											//ret += ' <div class="col-sm-2">' + "\n";
 											//ret += ' </div><!--end col-->' + "\n";
-											
+
 											ret += ' <div class="col-sm-6 col-sm-offset-2">' + "\n";
 											ret += get_billing_cycle_selector(unit, section, "BillingCycle");
 										}
@@ -3491,7 +3516,7 @@ var hbs = exphbs.create({
 										ret += '</div><!--end row-->' + "\n";
 										if (container_enable=="true") ret += '</div><!--end billing container-->' + "\n";
 									}
-									else ret += '  <div class="alert alert-warning">failed to find folder for '+section+' transactions student</div>';
+									else ret += '  <div class="alert alert-warning">failed to find folder for '+section+' '+category+' '+table_name+'</div>';
 								}
 								//else no billing permission
 							}
@@ -3507,15 +3532,17 @@ var hbs = exphbs.create({
 				}
 			} //end if table_enable
 			else {
-				ret += '  <div class="alert alert-warning">ERROR in show_reports: '+table_info.error+'</div>';
+				ret += '  <div class="alert alert-warning">ERROR in show_reports (table_info.error): '+table_info.error+'</div>';
 			}
 			//else error already shown
 			return new Handlebars.SafeString(ret);
 		},  //end show_reports
-		get_section_form: function(unit, section, mode, username, prefill, missing_fields, opts) {
+		get_section_form: function(unit, section, category, table_name, mode, username, prefill, missing_fields, opts) {
 			//aka get_form
 			//globals of note:
 			//prefill_data_by_user
+			//category="transactions";
+			//table_name="student";
 			if (!prefill) {
 				prefill={}; //prevent crashes related to "in" keyword
 				console.log("WARNING: prefill was false in get_section_form");
@@ -3529,9 +3556,11 @@ var hbs = exphbs.create({
 				//    }
 				//}
 				ret = "\n"+'<form class="form-horizontal" id="student-microevent" action="' + config.proxy_prefix_then_slash + 'student-microevent" method="post">' + "\n";
-				
-				ret += '  <input type="hidden" name="unit" value="'+unit+'"/>' + "\n";
-				ret += '  <input type="hidden" name="section" value="'+section+'"/>' + "\n";
+
+				ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
+				ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+				ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+				ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 				if (!(prefill.hasOwnProperty("mode"))) {
 					ret += '  <input type="hidden" name="mode" id="mode" value="create"/>' + "\n";
 				}
@@ -3573,7 +3602,7 @@ var hbs = exphbs.create({
 			return ret;
 		},
 		user_has_pinless_time: function(unit, section, username, opts) {
-			if (user_has_pinless_time(unit, section, username)) // Or === 
+			if (user_has_pinless_time(unit, section, username)) // Or ===
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -3582,7 +3611,7 @@ var hbs = exphbs.create({
 			//NOTE: Never use this, since sending undefined variables to render causes failure to render!
 			//      Ensure variable exists, and then use is_blank instead.
 			//console.log("* checking if_eq while user is " + a);
-			if (a === undefined) // Or === 
+			if (a === undefined) // Or ===
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -3679,8 +3708,8 @@ var hbs = exphbs.create({
 				var tmp_local_end_date = now_date_string+" "+peek_setting(unit, section+".local_end_time");
 				//console.log("tmp_local_end_date:"+tmp_local_end_date);
 				var endTime = moment(tmp_local_end_date); //, "HH:mm:ss"; // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
-				var endTimeString = endTime.format("HH:mm:ss");			
-				//console.log("UTC Offset (minutes): "+local_now.utcOffset()); 
+				var endTimeString = endTime.format("HH:mm:ss");
+				//console.log("UTC Offset (minutes): "+local_now.utcOffset());
 				//console.log("Z: "+local_now.format("Z"));  for example, in EST, outputs -4:00 during Eastern Daylight Time, -5:00 the rest of the year
 				//if (!endTime.isAfter(local_now)) {
 				if (currentTimeString >= endTimeString) {
@@ -3715,7 +3744,7 @@ var hbs = exphbs.create({
 				//console.log("tmp_local_start_date:"+tmp_local_start_date);
 				var startTime = moment(tmp_local_start_date); //, "HH:mm:ss" // var endTime = moment(_settings[section].local_end_time, "HH:mm:ss");
 				var startTimeString = startTime.format("HH:mm:ss");
-				
+
 				//if (startTime.isAfter(local_now)) {
 				if (currentTimeString < startTimeString) {
 					//console.log("is_before_school: yes, now " + currentTimeString + " < " + startTimeString);
@@ -3744,6 +3773,20 @@ var hbs = exphbs.create({
 			else
 				return "/";
 		},
+		get_primary_table_name: function(unit, section, opts) {
+			var table_name = null;
+			if (has_setting(unit, section+".primary_table_name")) {
+				table_name=peek_setting(unit, section+".primary_table_name");
+			}
+			return table_name;
+		},
+		get_primary_category: function(unit, section, opts) {
+			var category = null;
+			if (has_setting(unit, section+".primary_category")) {
+				category=peek_setting(unit, section+".primary_category");
+			}
+			return category;
+		},
 		get_tz_offset_mins: function(opts) {
 			return moment().utcOffset();
 		},
@@ -3757,7 +3800,10 @@ var hbs = exphbs.create({
 				var found = false;
 				//TODO: why are labels centered?
 				ret += '<form class="form-horizontal" id="test-update" action="' + config.proxy_prefix_then_slash + 'tp" method="post">';
+				ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
 				ret += '  <input type="hidden" name="section" id="section" value="'+section+'"/>' + "\n";
+				ret += '  <input type="hidden" name="category" id="category" value="'+category+'"/>' + "\n";
+				ret += '  <input type="hidden" name="table_name" id="table_name" value="'+table_name+'"/>' + "\n";
 				ret += '  <input type="hidden" name="mode" id="mode" value="create"/>' + "\n";
 				ret += '  <div class="form-group">' + "\n";
 				ret += '    <label class="control-label col-sm-2" >UserName:</label>' + "\n";
@@ -3798,7 +3844,7 @@ var hbs = exphbs.create({
 					var tracked_count = 0;
 					if (has_setting(unit, section+".status_keys")) {
 						found = true;
-						
+
 						var status_keys = peek_setting(unit, section+".status_keys");
 						ret += "<!--show_status: listing "+status_keys.length+" status_key(s) for "+section+"-->";
 						var href = config.proxy_prefix_then_slash+"save-status?section="+section;//+url_params+"change_section_report_edit_field="+override_key;
@@ -3887,7 +3933,7 @@ var hbs = exphbs.create({
 						//NOTE: if i is used instead of var i, infinite loop occurs where i is always 4!
 						var i_date = fun.get_date_or_stated_date(objects[i], "history item "+i+" of "+len); //gets stuck on history item 4 on 2017-11-16 using expertmm private test data
 						if (("tmp" in objects[i]) && ("date" in objects[i].tmp)) i_date = objects[i].tmp.date;
-						//if (i_date==null) 
+						//if (i_date==null)
 						if (force_date_enable) {
 							ret += "<td>"+i_date+"</td>\n";
 						}
@@ -3990,10 +4036,6 @@ app.set('view engine', 'handlebars');
 
 //===============ROUTES===============
 
-//keep track of last listing (only refresh if data could have possibly changed naturally):
-var listed_year_on_month = null;
-var listed_month_on_date = null;
-var listed_day_on_date = null;
 /*
 //use app.use(express.static(__dirname + '/public')); // instead of below (see above)
 app.get('/public/sounds/missing-information.wav', function(req, res){
@@ -4010,7 +4052,7 @@ app.get('/public/sounds/missing-information.wav', function(req, res){
 	res.writeHead(200, {'Content-Type': 'audio/wav'});
 	res.end(wav, 'binary');
 	//}
-	//} else { 
+	//} else {
 	//    res.writeHead(200, {'Content-Type': 'text/plain' });
 	//    res.end('Hello World \n');
 	//}
@@ -4044,7 +4086,7 @@ function check_settings() {
 				console.log("[ . ] Error while saving settings after loading defaults (did not exist in app.get('/')): " + err);
 			}
 			else console.log("[ . ]: No settings file, so app.get('/') saved defaults to new settings file.");
-		}); 
+		});
 		}
 	}
 	if (autofill_cache===null) {
@@ -4059,7 +4101,7 @@ function check_settings() {
 	}
 }
 
-//displays our homepage
+// default route "/"
 app.get('/', function(req, res){
 	console.log("");
 	if (req.query.hasOwnProperty("clear_selection") && (req.query.clear_selection=="true")) {
@@ -4073,7 +4115,7 @@ app.get('/', function(req, res){
 		}
 	}
 	check_settings();
-	
+
 	var user_sections = [];
 	var user_modes_by_section = {};
 	var years = [];
@@ -4135,27 +4177,14 @@ app.get('/', function(req, res){
 						console.log("[ route / ] ERROR: Missing required setting unit.selectable_modes in unit " + unit + " (this should never happen)");
 					}
 				}
-		// 		var section_path = storage_path + "/" + val;
-		//		var table_path = section_path + "/student-microevents";
-		// 		if (fs.existsSync(table_path)) {
-		// 			var y_dir_name = moment().format("YYYY");
-		// 			var m_dir_name = moment().format("MM");
-		// 			var d_dir_name = moment().format("DD");
-		// 			dat[val] = {};
-		// 		}
 			}
 		}
 	}
 	if (fun.is_not_blank(req.query.section)) {
 		section = req.query.section;
-		req.session.section = section;
 	}
-	//else if (fun.is_not_blank(req.session.section)) {
-	//	section = req.session.section;
-	//}
 	else if (user_sections && (user_sections.length>=1)) {
 		section = user_sections[0];
-		req.session.section = section;
 	}
 	if (fun.is_not_blank(req.query.category)) {
 		category = req.query.category;
@@ -4165,57 +4194,77 @@ app.get('/', function(req, res){
 		table_name = req.query.table;
 		//TODO: make fine-grained permission for this
 	}
+	else if (fun.is_not_blank(req.query.table_name)) {
+		table_name = req.query.table_name;
+		//TODO: make fine-grained permission for this
+	}
 	if (unit!==null) {
 		if (!fsc.hasOwnProperty(unit)) {
 			console.log("[ - ] ERROR in route '/': selected unit " + unit + " does not exist");
 		}
 		else {
-			if (!fsc[unit].hasOwnProperty(category)) {
-				console.log("[ - ] ERROR in route '/': selected category " + category + " does not exist in unit " + unit);
+			if (!fsc[unit].hasOwnProperty(section)) {
+				console.log("[ - ] ERROR in route '/': selected section " + section + " does not exist in unit " + unit);
 			}
 			else {
-				if (!fsc[unit][category].hasOwnProperty(table_name)) {
-					console.log("[ - ] ERROR in route '/': selected table "+table_name+" does not exist in category " + category + " in unit " + unit);
+				if (!fsc[unit][section].hasOwnProperty(category)) {
+					console.log("[ - ] ERROR in route '/': selected category "+category+" does not exist in unit "+unit+" section " + section);
 				}
-			}
-		}
-	}
-	if (section) {
-		if (has_setting(unit, section+".sheet_fields")) {
-			var section_sheet_fields = peek_setting(unit, section+".sheet_fields");
-			for (var indexer in section_sheet_fields) {
-				var ssf = section_sheet_fields[indexer];
-				this_sheet_field_names.push(ssf);
-				if (has_setting(unit, section+".sheet_display_names."+ssf)) ssf = peek_setting(unit, section+".sheet_display_names."+ssf);
-				this_sheet_field_friendly_names.push(ssf);
-			}
-		}
-		if (fsc.hasOwnProperty(unit) && fsc[unit].hasOwnProperty(section)) {
-			if (category===null) {
-				var cat_count = 0;
-				var last_cat = null;
-				for (var this_cat in fsc[unit]) {
-					if (fsc[unit].hasOwnProperty(this_cat)) {
-						cat_count++;
-						last_cat = this_cat;
-						if (cat_count > 1) break;
+				else {
+					if (!fsc[unit][section][category].hasOwnProperty(table_name)) {
+						console.log("[ - ] ERROR in route '/': selected table "+table_name+" does not exist in unit "+unit+" section " + section + " category " + category);
 					}
 				}
-				if (cat_count==1) category=last_cat;
 			}
+		}
+
+		if (section) {
 			if (table_name===null) {
-				if (category!==null && fsc[unit].hasOwnProperty(category)) {
-					
-					var table_count = 0;
-					var last_table = null;
-					for (var this_table in fsc[unit][category]) {
-						if (fsc[unit][category].hasOwnProperty(this_table)) {
-							table_count++;
-							last_table = this_table;
-							if (table_count > 1) break;
+				if (has_setting(unit, section+".primary_table_name")) {
+					table_name=peek_setting(unit, section+".primary_table_name");
+				}
+			}
+			if (category===null) {
+				if (has_setting(unit, section+".primary_category")) {
+					category=peek_setting(unit, section+".primary_category");
+				}
+			}
+			if (has_setting(unit, section+".sheet_fields")) {
+				var section_sheet_fields = peek_setting(unit, section+".sheet_fields");
+				for (var indexer in section_sheet_fields) {
+					var ssf = section_sheet_fields[indexer];
+					this_sheet_field_names.push(ssf);
+					if (has_setting(unit, section+".sheet_display_names."+ssf)) ssf = peek_setting(unit, section+".sheet_display_names."+ssf);
+					this_sheet_field_friendly_names.push(ssf);
+				}
+			}
+			if (fsc.hasOwnProperty(unit) && fsc[unit].hasOwnProperty(section)) {
+				if (category===null) {
+					var cat_count = 0;
+					var last_cat = null;
+					for (var this_cat in fsc[unit]) {
+						if (fsc[unit].hasOwnProperty(this_cat)) {
+							cat_count++;
+							last_cat = this_cat;
+							if (cat_count > 1) break;
 						}
 					}
-					if (table_count==1) table_name=last_table;
+					if (cat_count==1) category=last_cat;
+				}
+				if (table_name===null) {
+					if (category!==null && fsc[unit].hasOwnProperty(category)) {
+
+						var table_count = 0;
+						var last_table = null;
+						for (var this_table in fsc[unit][category]) {
+							if (fsc[unit][category].hasOwnProperty(this_table)) {
+								table_count++;
+								last_table = this_table;
+								if (table_count > 1) break;
+							}
+						}
+						if (table_count==1) table_name=last_table;
+					}
 				}
 			}
 		}
@@ -4223,17 +4272,13 @@ app.get('/', function(req, res){
 
 	if (fun.is_not_blank(req.query.mode)) {
 		mode = req.query.mode;
-		req.session.mode = mode;
 	}
-	//else if (fun.is_not_blank(req.session.mode)) {
-	//	mode = req.session.mode;
-	//}
 	else if (user_modes_by_section.hasOwnProperty(section) && user_modes_by_section[section] && user_modes_by_section[section].length>=1) {
 		if (req.user && req.user.username && (default_mode_by_user.hasOwnProperty(req.user.username))) mode=default_mode_by_user[req.user.username];
 		else mode = user_modes_by_section[section][user_modes_by_section[section].length-1];
 		req.session.mode = mode;
 	}
-	
+
 	var prefill_mode = ""; //differs from prefill.mode in that prefill_mode specifies what mode the form should post as
 	if (fun.is_not_blank(req.query.prefill_mode)) {
 		prefill_mode = req.query.prefill_mode;
@@ -4304,36 +4349,23 @@ app.get('/', function(req, res){
 				if (fun.is_not_blank(mode)) {
 					if (has_setting(unit, section+"."+mode+".auto_select_month_enable")) auto_select_month_enable = peek_setting(unit, section+"."+mode+".auto_select_month_enable");
 				}
-
-				if (!dat) {
-					dat = {};
-				}
-				var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", "student", true);
-				if (table_path !== null) {
-					if (!(dat[section]&&dat[section].years) || !listed_year_on_month || (listed_year_on_month!=year_month_string)) {
-						listed_year_on_month = year_month_string;
-						if (fs.existsSync(table_path)) {
-							if (!dat[section]) dat[section] = {};
-							years = fun.getVisibleDirectories(table_path);
-							dat[section].years = years;
-							//for (var y_i = 0; y_i < years.length; y_i++) {
-								//var this_year = years[y_i];
-								//dat[section][this_year] = {};
-							//}
-						}
+				if (fsc != null && unit != null && fsc.hasOwnProperty(unit) && section != null && fsc[unit].hasOwnProperty(section) &&
+						category != null && fsc[unit][section].hasOwnProperty(category)) {  // NOTE: regenerate_cache (called after listen) probably already finished making sure that fsc is setup
+					// TODO: years is only the proper thing to check if category=="transactions"
+					var unit_path=storage_path+"/units/"+unit;
+					var cat_path=unit_path+"/"+category;
+					if (table_name!=null && fsc[unit][section][category].hasOwnProperty(table_name)) {
+						years = Object.keys(fsc[unit][section][category][table_name]);
 					}
-					else years = dat[section].years;
-					if (req.query.selected_year!=="(none)") { //else do not autoselect if (none) was explicit
+					if (req.query.selected_year!=="(none)") {  // else do not autoselect if (none) was explicit
 						if (years.length==1) {
 							selected_year = years[0];
-							req.session.selected_year = selected_year;
 							if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
 							else console.log("[   ] "+moment().format("HH:mm:ss")+" verbose message: autoselected the only existing year "+selected_year);
 						}
 						else if (fun.is_blank(selected_year) && years.length>0) {
 							console.log("[   ] no selected_year "+selected_year);
 							selected_year = years[years.length-1];
-							req.session.selected_year = selected_year;
 							if (!selected_year) console.log("ERROR: blanked out on year (cache fail)");
 							else console.log("[   ] "+moment().format("HH:mm:ss")+" verbose message: autoselected the latest year "+selected_year);
 						}
@@ -4341,172 +4373,86 @@ app.get('/', function(req, res){
 					if (!years) {
 						console.log("WARNING: no years (no data or cache fail)");
 					}
+
 					if (selected_year) {
+						var table_path=cat_path+"/"+table_name;
 						var y_path = table_path + "/" + selected_year;
-						if (fs.existsSync(y_path)) {
-							if (!(dat[section][selected_year]&&dat[section][selected_year].months) || !listed_month_on_date || (listed_month_on_date!=date_string) ) {
-								listed_month_on_date = date_string;
-								months = fun.getVisibleDirectories(y_path);
-								if (!dat[section][selected_year]) dat[section][selected_year] = {};
-								dat[section][selected_year].months = months;
-								for (var m_i = 0; m_i < months.length; m_i++) {
-									var this_month = months[m_i];
-									//console.log("# FOUND MONTH "+this_month +" in "+y_path);
-									dat[section][selected_year][this_month] = {};
-								}
+						if (fsc[unit][section][category][table_name].hasOwnProperty(selected_year)) {
+								// ok since if selected_year, there must be years in this table
+							if (fsc[unit][section][category][table_name][selected_year]===null) {
+								//TODO: load this year into cache
+								console.log("[   ] missing cache for " + unit + "/" + section + "/" + category + "/" + selected_year + " (null year cache subobject)");
 							}
 							else {
-								months = dat[section][selected_year].months;
+								months = Object.keys(fsc[unit][section][category][table_name][selected_year]);
 								//console.log("(got cached months: "+fun.to_ecmascript_value(months));
 							}
 							if (auto_select_month_enable && (req.query.selected_month!=="(none)")) { //else do not autoselect if (none) was explicit
 								if (months.length==1) {
 									selected_month = months[0];
-									req.session.selected_month = selected_month;
 									console.log("[   ] Auto selected_month "+selected_month);
 									if (!selected_month) console.log("ERROR: blanked out on month[0] (cache fail)");
 								}
 								else if (!selected_month && months.length>0) {
 									selected_month = months[months.length-1];
-									req.session.selected_month = selected_month;
 									console.log("[   ] Auto selected_month "+selected_month);
 									if (!selected_month) console.log("ERROR: blanked out on month[length-1] (cache fail)");
 								}
 							}
 							else console.log("[   ] month "+selected_month+" was not autoselected (selected_year: "+selected_year+").");
-							
+
 							var m_path = y_path + "/" + selected_month;
-							if (fun.is_not_blank(selected_month) && !fs.existsSync(m_path)) {
+							if (fun.is_not_blank(selected_month) && !fsc[unit][section][category][table_name][selected_year].hasOwnProperty(selected_month)) {
 								//stale selection
 								console.log("* cleared stale month selection "+selected_month+" from other section or year (that isn't in "+selected_year+" in "+section+")");
-								if (req.session.hasOwnProperty("selected_month")) delete req.session.selected_month;
-								else console.log("WARNING: stale selected_month "+selected_month+" stuck from another section or year doesn't exist in this "+selected_year+" in "+section);
 								selected_month = null;
 							}
 							if (selected_month) {
-								
-								if ( !(dat[section][selected_year][selected_month]&&dat[section][selected_year][selected_month].days) ||
-									!listed_day_on_date || listed_day_on_date!=date_string) {
-									listed_day_on_date=date_string;
-									days = fun.getVisibleDirectories(m_path);
-									if (!dat[section][selected_year][selected_month]) dat[section][selected_year][selected_month]={};
-									dat[section][selected_year][selected_month].days = days;
-									for (var d_i = 0; d_i < days.length; d_i++) {
-										var this_day = days[d_i];
-										//console.log("this_day:"+this_day);
-										dat[section][selected_year][selected_month][this_day] = {};
-									}
+								if (fsc[unit][section][category][table_name][selected_year].hasOwnProperty(selected_month)) {
+									days = Object.keys(fsc[unit][section][category][table_name][selected_year][selected_month]);
 								}
-								else days = dat[section][selected_year][selected_month].days;
+								else selected_day = null;
 								if (req.query.selected_day!=="(none)") { //else do not autoselect if (none) was explicit
 									if (days.length==1) {
 										selected_day = days[0];
-										req.session.selected_day = selected_day;
-										//console.log("     AUTO selected_day (key) ="+selected_day);
 									}
 									else if (!selected_day && days.length>0) {
 										selected_day = days[days.length-1];
-										req.session.selected_day = selected_day;
-										if (!selected_day) console.log("ERROR: blanked out on day (cache fail)");
 									}
 								}
 								if (selected_day) {
 									var d_path = m_path + "/" + selected_day;
-									//if (!(dat[section][selected_year][selected_month][selected_day]&&dat[section][selected_year][selected_month][selected_day].item_keys)
-									//lists files every page load since modification not saved nor checked
-									//subs = fun.getVisibleDirectories(d_path);
-									//NOTE: fs.readdir is ASYNC! use fun.getVisibleFiles which uses fs.readdirsync
-									//fs.readdir(d_path, function(err, these_item_keys) {
-									//these_item_keys = fun.getVisibleFiles(d_path);
-									//	for (var i=0; i<these_item_keys.length; i++) {
-									//for (var i = 0; i < these_item_keys.length; i++) {
-									//	var this_day = these_item_keys[i];
-									//	//console.log(item_keys);
-									//	item_keys.push(these_item_keys[i]);
-									//}
-									//console.log("LISTING files in " + d_path);
-									if (fs.existsSync(d_path)) {
-										item_keys = fun.getVisibleFiles(d_path);
-										
-										//for (var i=0; i<item_keys.length; i++) {
-										//    console.log("   * " + item_keys[i]);
-										//}
-										if (!dat[section][selected_year][selected_month][selected_day]) dat[section][selected_year][selected_month][selected_day]={};
-										//dat[section][selected_year][selected_month][selected_day].item_keys = 
-										
-										//console.log("## ITEM KEYS: "+fun.to_ecmascript_value(item_keys));
-										//console.log("(ITEM KEYS.length:"+item_keys.length+")");
-										//console.log("## ITEMS:"+items);
-										//for (var item_key_i = 0; item_key_i < item_keys.length; item_key_i++) {
-										var msg = "";
-										for (var item_key_i in item_keys) {
-											var item_key = item_keys[item_key_i];
-											var item_path = d_path + "/" + item_key;
-											//console.log("  - "+item_key);
-											dat[section][selected_year][selected_month][selected_day][item_key] = {};
-											if (fs.statSync(item_path).isFile()) {
-												if (item_path.endsWith(".yml")) {
-													try {
-														var errors = "";
-														dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
-														
-														dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
-														//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
-														var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
-														this_item.tmp = {};
-														this_item.tmp.time = fun.get_time_or_stated_time(this_item);
-														if (this_item.tmp.time===null) {
-															var name_as_time = fun.splitext(item_key)[0];
-															if (name_as_time.length>=6) {
-																this_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
-															}
-															else {
-																errors+='cannot derive time for '+item_path+" \n";
-															}
-														}
-														this_item.tmp.date = fun.get_date_or_stated_date(this_item, "saving "+item_key+" to cache");
-														if (this_item.tmp.date===null) this_item.tmp.date = selected_year + "-" + selected_month + "-" + selected_day;
-														items.push(this_item);
-														//for (var field_key in this_item) {
-															//if (this_item.hasOwnProperty(field_key)) {
-																//var val = this_item[field_key];
-																//var val = items[field_key];
-																//console.log("    " + field_key + ": " + val);
-															//}
-														//}
-														if (errors.length>0) req.session.error = errors;
-													}
-													catch (err) {
-														req.session.error = "\nCould not finish reading "+item_path+": "+err;
-													}
-												}
-												else console.log("\nSkipped "+item_path+": not a data file");
-												
-											}
-											else {
-												msg += " ...missing file "+item_path+" ";
-											}
-										}
-										if (msg.length>0) res.session.error=msg;
-										//TODO: find out why this doesn't work: items = dat[section][selected_year][selected_month][selected_day];
-										//for (var key_i = 0; key_i < items.length; key_i++) {
-										//    console.log("    * "+items[key_i] (iterate object members)
-										//}
+									if (fsc[unit][section][category][table_name][selected_year][selected_month].hasOwnProperty(selected_day)) {
+										item_keys = Object.keys(fsc[unit][section][category][table_name][selected_year][selected_month][selected_day]);
+										items = fsc[unit][section][category][table_name][selected_year][selected_month][selected_day];
 									}
 									else {
-										if (req.session.selected_day) {
-											//stale selection
-											console.log("* cleared stale day selection ("+req.session.selected_day+") not in year "+selected_year+" month "+selected_month+" in "+section);
-											delete req.session.selected_day;
-										}
-										else console.log("WARNING: stale selected_day stuck from another section or month doesn't exist in this month in this section");
+										//stale selection
+										console.log("* cleared stale day selection ("+selected_day+") not in year "+selected_year+" month "+selected_month+" in /"+unit+"/"+section+"/"+category+"/transactions/"+table_name);
+										selected_day = null;
 									}
 								}//end if selected_day
 							}//end if selected_month
 						}
+						else {
+							req.session.error = "Selected invalid year " + selected_year;
+						}
+					}
+					//else did not select a year (probably there are no years in this table yet)
+				}
+				else {
+					if (unit !== null && section !== null && category !== null && table_name !== null) {
+						req.session.error = "Failed to find cached directory for unit:" +  unit + " section:" + section + " category:" + category + " table_name:" + table_name;
+					}
+					else {
+						var fails_msg = "";
+						if (unit===null) fails_msg += " unit"
+						if (section===null) fails_msg += " section"
+						if (category===null) fails_msg += " category"
+						if (table_name===null) fails_msg += " table_name"
+						req.session.error = "Failed to choose: " + fails_msg;
 					}
 				}
-				else req.session.error = "Failed to find directory for section transactions student";
 			}
 			else {
 				//NOTE: Actually displaying the data cached above is managed separately, so do not show security errors below.
@@ -4528,7 +4474,7 @@ app.get('/', function(req, res){
 app.get('/login', function(req, res){
 	load_permissions("showing login", req);
 	load_groups("showing login", req);
-	
+
 	res.render('login');
 	delete req.session.runme;
 });
@@ -4547,7 +4493,7 @@ app.post('/local-reg', passport.authenticate('local-signup', {
 
 var autofill_query_callback = function (err) {
 	if (err) {
-		return console.log("[ * ] saving entry by autofill..."+err);
+		return console.log("[ * ] finished saving entry by autofill..."+err);
 	}
 	//else console.log("[ * ] saving entry"+reason+"...OK");
 };
@@ -4557,95 +4503,82 @@ app.post('/autofill-query', function(req, res){
 	var sounds_path_then_slash = "sounds/";
 	var update_match_count = 0;
 	var update_saved_count = 0;
-	//TODO: asdf define unit
+	var unit = null;
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
-		var section = req.body.section;
-		if (section && req.body.selected_year && req.body.selected_month) {// && req.body.selected_field) {
-			if (user_has_section_permission(unit, req.user.username, section, "modify")) {
-				var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", "student", false);
-				if (table_path !== null) {
-					var y_path = table_path + "/" + req.body.selected_year;
-					var m_path = y_path + "/" + req.body.selected_month;
-					//if (fs.existsSync(m_path)) {
-					//if (autofill_requires.hasOwnProperty(section) && autofill_requires[section].hasOwnProperty(req.body.selected_field)) {
-					if (has_setting(unit, section+".autofill_requires")) {
-						//var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
-						var msg = 'Filled ';
-						var ok = false;
-						if (dat.hasOwnProperty(section)) {
-							if (dat[section].hasOwnProperty(req.body.selected_year)) {
-								if (dat[section][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
-									var days_len=dat[section][req.body.selected_year][req.body.selected_month].days.length;
+		if (req.body.unit) {
+			unit = req.body.unit;
+			var section = req.body.section;
+			if (section && req.body.selected_year && req.body.selected_month) {// && req.body.selected_field) {
+				if (user_has_section_permission(unit, req.user.username, section, "modify")) {
+					//get_table_info(unit, section, category, table_name)
+					var category = null;
+					var table_name = null;
+					if (req.body.category) category=req.body.category;
+					if (req.body.table_name) table_name=req.body.table_name;
+					var table_info = get_table_info(unit, section, category, table_name, false);
+					var table_path = null;
+					if (table_info.enable) {
+						table_path = table_info.table_path;
+					}
+					if (table_path !== null) {
+						var y_path = table_path + "/" + req.body.selected_year;
+						var m_path = y_path + "/" + req.body.selected_month;
+						//if (fs.existsSync(m_path)) {
+						//if (autofill_requires.hasOwnProperty(section) && autofill_requires[section].hasOwnProperty(req.body.selected_field)) {
+						if (has_setting(unit, section+".autofill_requires")) {
+							//var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
+							var msg = 'Filled ';
+							var ok = false;
+							if (fsc[unit][section][category][table_name].hasOwnProperty(req.body.selected_year)) {
+								if (fsc[unit][section][category][table_name][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
+									var days_len=fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month].length;
 									if (days_len>0) {
-										for (var day_i=0; day_i<days_len; day_i++) {
-											var day_key = dat[section][req.body.selected_year][req.body.selected_month].days[day_i];
+										for (var day_key in fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month]) {
+										//for (var day_i=0; day_i<days_len; day_i++) {
+											//var day_key = day_keys[day_i];
 											var d_path = m_path + "/" + day_key;
-											if (dat[section][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
-												if (dat[section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty("item_keys")) {
-													var items_len=dat[section][req.body.selected_year][req.body.selected_month][day_key].item_keys.length;
-													if (items_len>0) {
-														for (item_i=0; item_i<items_len; item_i++) {
-															var item_key = dat[section][req.body.selected_year][req.body.selected_month][day_key].item_keys[item_i];
+											if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
+												var items_len=fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key].length;
+												if (items_len>0) {
+													for (var item_key in fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key]) {
+														if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
 															var item_path = d_path + "/" + item_key;
-															if (fs.existsSync(item_path)) {
-																if (dat[section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
-																	var item = dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key];
-																	//var match_count=0;
-																	//for (var i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
-																	//	var key = _settings[section].autofill_requires[req.body.selected_field][i];
-																	//	var val = "";
-																	//	if (item.hasOwnProperty(key)) {
-																	//		var where_key = "where_"+key;
-																	//		if (req.body[where_key] && fun.is_not_blank(req.body[where_key])
-																	//			&& (req.body[where_key] == item[key]) ) {
-																	//			match_count++;
-																	//			//console.log("req.body[where_key]:"+req.body[where_key]+" is item[key]:"+item[key]);
-																	//		}
-																	//		//else console.log("req.body[where_key]:"+req.body[where_key]+" is not item[key]:"+item[key]);
-																	//	}
-																	//	//ret += "\n "+key+':<input type="text" name="where_'+key+'" id="'+key+'" value="'+val+'"/><br/>';
-																	//}
-																	var results = autofill(unit, section, item, true);
-																	if (results.filled_fields.length>0) {
-																	//if (match_count>0 && match_count==_settings[section].autofill_requires[req.body.selected_field].length) {
-																		//item[req.body.selected_field] = req.body.set_value;
-																		//item["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
-																		//item["modified_by"] = req.user.username;
-																		try {
-																			item.autofilled_by = req.user.username;
-																			item.autofilled_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
-																			if (item.hasOwnProperty("autofilled_fields")) {
-																				for (var k=0; k<results.filled_fields.length; k++) {
-																					if (!fun.array_contains(results.filled_fields[k])) {
-																						item.autofilled_fields.push(results.filled_fields[k]);
-																					}
-																				}
+															var item = fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key];
+															var results = autofill(unit, section, item, true);
+															if (results.filled_fields.length>0) {
+																//item["mtime"] = moment().format('YYYY-MM-DD HH:mm:ss Z');
+																//item["modified_by"] = req.user.username;
+																try {
+																	item.autofilled_by = req.user.username;
+																	item.autofilled_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
+																	if (item.hasOwnProperty("autofilled_fields")) {
+																		for (var k=0; k<results.filled_fields.length; k++) {
+																			if (!fun.array_contains(results.filled_fields[k])) {
+																				item.autofilled_fields.push(results.filled_fields[k]);
 																			}
-																			else item.autofilled_fields = results.filled_fields;
-																			//yaml.writeSync(item_path, item, "utf8");
-																			var reason = " in autofill-query";
-																			yaml.write(item_path, item, 'utf8', autofill_query_callback);
-																			update_saved_count++;
-																		}
-																		catch (err) {
-																			req.session.error = "\nCould not finish writing "+item_path+": "+err;
 																		}
 																	}
-																	update_match_count++;
-																	ok=true; //verified cache is ok either way
+																	else item.autofilled_fields = results.filled_fields;
+																	var reason = " in autofill-query";
+																	yaml.write(item_path, item, 'utf8', autofill_query_callback);  // yaml.writeSync(item_path, item, "utf8");
+																	update_saved_count++;
 																}
-																else console.log("[ _ ] Cache missed for item_key "+item_key);
+																catch (err) {
+																	req.session.error = "\nCould not finish writing "+item_path+": "+err;
+																}
 															}
-															else {
-																msg="Failed to modify since can't find file "+item_path;
-																console.log(msg);
-																req.session.error=msg;
-															}
+															update_match_count++;
+															ok=true; //verified cache is ok either way
+														}
+														else {
+															msg="Failed to modify since can't find file cache for "+item_path;
+															console.log(msg);
+															req.session.error=msg;
 														}
 													}
-													else console.log("[ _ ] Cache missed -- 0 item_keys for "+day_key);
 												}
-												else console.log("[ _ ] Cache missed for item_keys for "+day_key);
+												else console.log("[ _ ] Cache missed -- 0 item_keys for "+day_key);
+
 											}
 											else console.log("[ _ ] Cache missed for day "+day_key);
 										}//end of outermost for loop
@@ -4656,49 +4589,52 @@ app.post('/autofill-query', function(req, res){
 								else console.log("[ _ ] Cache missed for month "+req.body.selected_month);
 							}
 							else console.log("[ _ ] Cache missed for year "+req.body.selected_year);
+							if (!ok) req.session.error = "Cache failure in update query so skipped saving value for "+req.body.selected_field+"!";
 						}
 						else {
-							console.log("[ _ ] Cache missed for section "+section);
-							console.log("  only has:");
-							for (var key in dat) {
-								console.log("    "+key);
-							}
+							req.session.error = "Section "+section+" does not specify which information is needed to uniquely identify person (_settings["+section+"]['autofill_requires'] does not have a field list for "+req.body.selected_field+")";
 						}
-						if (!ok) req.session.error = "Cache failure in update query so skipped saving value for "+req.body.selected_field+"!";
 					}
 					else {
-						req.session.error = "Section "+section+" does not specify which information is needed to uniquely identify person (_settings["+section+"]['autofill_requires'] does not have a field list for "+req.body.selected_field+")";
+						//no data yet// req.session.error = "";
+						req.session.info = table_info.error;
 					}
 				}
-				//else no data yet// req.session.error = "";
+				else {
+					req.session.error = "not authorized to modify data for '" + section + "'";
+					if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
+					delete req.session.prefill.pin;
+				}
 			}
 			else {
-				req.session.error = "not authorized to modify data for '" + section + "'";
+				req.session.error = "section, selected_year, and selected_month are required but form is not complete";
 				if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
 				delete req.session.prefill.pin;
 			}
 		}
 		else {
-			req.session.error = "section, selected_year, and selected_month are required but form is not complete";
-			if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"security-warning.wav'); audio.play();"); //new Handlebars.SafeString
-			delete req.session.prefill.pin;
+			req.session.error = "form is missing unit";
 		}
 	}
-	
+
 	res.redirect(config.proxy_prefix_then_slash);
 }); //end autofill-query
 
 
 app.post('/update-query', function(req, res){
+	var category="transactions";
+	var table_name="student";
 	var sounds_path_then_slash = "sounds/";
 	var update_match_count = 0;
 	var update_saved_count = 0;
-	//TODO: asdf define unit
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
+		var unit = req.body.unit;
 		var section = req.body.section;
+		var category = req.body.category;
+		var table_name = req.body.table_name;
 		if (section && req.body.selected_field) {
 			if (user_has_section_permission(unit, req.user.username, section, "modify")) {
-				var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", "student", false);
+				var table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, false);
 				if (table_path !== null) {
 					var y_path = table_path + "/" + req.body.selected_year;
 					var m_path = y_path + "/" + req.body.selected_month;
@@ -4707,74 +4643,75 @@ app.post('/update-query', function(req, res){
 					if (has_setting(unit, section+".autofill_requires."+req.body.selected_field)) {
 						var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
 						var ok = false;
-						if (dat.hasOwnProperty(section)) {
-							if (dat[section].hasOwnProperty(req.body.selected_year)) {
-								if (dat[section][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
-									var days_len=dat[section][req.body.selected_year][req.body.selected_month].days.length;
+						var table_info = get_table_info(unit, section, category, table_name);
+						///TODO: eliminate years, months, days
+						if (table_info.enable) {
+							if (fsc[unit][section][category][table_name].hasOwnProperty(req.body.selected_year)) {
+								if (fsc[unit][section][category][table_name][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
+									var days_len=fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month].length;
 									if (days_len>0) {
-										for (var day_i=0; day_i<days_len; day_i++) {
-											var day_key = dat[section][req.body.selected_year][req.body.selected_month].days[day_i];
-											var d_path = m_path + "/" + day_key;
-											if (dat[section][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
-												if (dat[section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty("item_keys")) {
-													var items_len=dat[section][req.body.selected_year][req.body.selected_month][day_key].item_keys.length;
-													if (items_len>0) {
-														for (item_i=0; item_i<items_len; item_i++) {
-															var item_key = dat[section][req.body.selected_year][req.body.selected_month][day_key].item_keys[item_i];
-															var item_path = d_path + "/" + item_key;
-															if (fs.existsSync(item_path)) {
-																if (dat[section][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
-																	var item = dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key];
-																	match_count=0;
-																	for (var i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
-																		var key = _settings[section].autofill_requires[req.body.selected_field][i];
-																		var val = "";
-																		if (item.hasOwnProperty(key)) {
-																			var where_key = "where_"+key;
-																			if ( req.body[where_key] && fun.is_not_blank(req.body[where_key]) &&
-																				(req.body[where_key] == item[key]) ) {
-																				match_count++;
-																				//console.log("req.body[where_key]:"+req.body[where_key]+" is item[key]:"+item[key]);
-																			}
-																			//else console.log("req.body[where_key]:"+req.body[where_key]+" is not item[key]:"+item[key]);
+										for (var day_key in fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month]) {
+											if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
+												var d_path = m_path + "/" + day_key;
+												var items_len=fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key].length;
+												if (items_len>0) {
+													for (var item_key in fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key]) {
+														var item_path = d_path + "/" + item_key;
+														if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
+															if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
+																var item = fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key];
+																match_count=0;
+																//TODO: use autofill method instead of for loop:
+																for (var i=0; i<_settings[section].autofill_requires[req.body.selected_field].length; i++) {
+																	var key = _settings[section].autofill_requires[req.body.selected_field][i];
+																	var val = "";
+																	if (item.hasOwnProperty(key)) {
+																		var where_key = "where_"+key;
+																		if ( req.body[where_key] && fun.is_not_blank(req.body[where_key]) &&
+																			(req.body[where_key] == item[key]) ) {
+																			match_count++;
+																			//console.log("req.body[where_key]:"+req.body[where_key]+" is item[key]:"+item[key]);
 																		}
-																		//ret += "\n "+key+':<input type="text" name="where_'+key+'" id="'+key+'" value="'+val+'"/><br/>';
+																		//else console.log("req.body[where_key]:"+req.body[where_key]+" is not item[key]:"+item[key]);
 																	}
-																	if (match_count>0 && match_count==_settings[section].autofill_requires[req.body.selected_field].length) {
-																		dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key][req.body.selected_field] = req.body.set_value;
-																		dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key].mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-																		dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key].modified_by = req.user.username;
-																		try {
-																			yaml.writeSync(item_path, dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key], "utf8");
-																			var reason = " in update-query";
-																			//yaml.write(item_path, dat[section][req.body.selected_year][req.body.selected_month][day_key][item_key], 'utf8', function (err) {
-																			//	if (err) {
-																			//		return console.log("[ * ] saving entry"+reason+"..."+err);
-																			//	}
-																			//	//else console.log("[ * ] saving entry"+reason+"...OK");
-																			//});
-																			update_saved_count++;
-																		}
-																		catch (err) {
-																			req.session.error = "\nCould not finish writing "+item_path+": "+err;
-																		}
-																		update_match_count++;
-																	}
-																	ok=true; //verified cache is ok either way
+																	//ret += "\n "+key+':<input type="text" name="where_'+key+'" id="'+key+'" value="'+val+'"/><br/>';
 																}
-																else console.log("[ ] Cache missed for item_key "+item_key);
-																match_count = 0; //out of scope
+																if (match_count>0 && match_count==_settings[section].autofill_requires[req.body.selected_field].length) {
+																	fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key][req.body.selected_field] = req.body.set_value;
+																	fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key].mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+																	fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key].modified_by = req.user.username;
+																	try {
+																		//yaml.writeSync(item_path, fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key], "utf8");
+																		var reason = " in update-query";
+																		yaml.write(item_path, fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][day_key][item_key], 'utf8', function (err) {
+																			if (err) {
+																				//return console.log("[ * ] saving entry"+reason+"..."+err);
+																				return console.log("[ * ] saving entry...FAIL: "+err);
+																			}
+																			else console.log("[ * ] saving entry...OK");
+																			//else console.log("[ * ] saving entry"+reason+"...OK");
+																		});
+																		update_saved_count++;
+																	}
+																	catch (err) {
+																		req.session.error = "\nCould not finish writing "+item_path+": "+err;
+																	}
+																	update_match_count++;
+																}
+																ok=true; //verified cache is ok either way
 															}
-															else {
-																msg="Failed to modify since can't find file "+item_path;
-																console.log(msg);
-																req.session.error=msg;
-															}
+															else console.log("[ ] Cache missed for item_key "+item_key);
+															match_count = 0; //out of scope
+														}
+														else {
+															msg="Failed to modify since can't find cache for file "+item_path;
+															console.log(msg);
+															req.session.error=msg;
 														}
 													}
-													else console.log("[ ] Cache missed -- 0 item_keys for "+day_key);
 												}
-												else console.log("[ ] Cache missed for item_keys for "+day_key);
+												else console.log("[ ] Cache missed -- 0 item_keys for "+day_key);
+
 											}
 											else console.log("[ ] Cache missed for day "+day_key);
 										}//end of outermost for loop
@@ -4787,7 +4724,7 @@ app.post('/update-query', function(req, res){
 							else console.log("[ ] Cache missed for year "+req.body.selected_year);
 						}
 						else {
-							console.log("[ ] Cache missed for section "+section);
+							console.log("[ ] Cache missed for section "+section+": "+table_info.error);
 						}
 						if (!ok) req.session.error = "Cache failure in update query so skipped saving value for "+req.body.selected_field+"!";
 					}
@@ -4812,18 +4749,20 @@ app.post('/update-query', function(req, res){
 			delete req.session.prefill.pin;
 		}
 	}
-	
+
 	res.redirect(config.proxy_prefix_then_slash);
 }); //end update-query
 
 app.post('/change-microevent-field', function(req, res){
+	var category="transactions";
+	var table_name="student";
 	var sounds_path_then_slash = "sounds/";
 	var bookmark_enable = false;
 	//TODO: define unit
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(unit, req.user.username, section, "modify")) {
-			var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", "student", true);
+			var table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, true);
 			if (table_path !== null) {
 				var y_path = table_path + "/" + req.body.selected_year;
 				var m_path = y_path + "/" + req.body.selected_month;
@@ -4834,48 +4773,52 @@ app.post('/change-microevent-field', function(req, res){
 					bookmark_enable = true;
 					var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
 					var ok = false;
-					if (dat.hasOwnProperty(section)) {
-						if (dat[section].hasOwnProperty(req.body.selected_year)) {
-							if (dat[section][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
-								if (dat[section][req.body.selected_year][req.body.selected_month].hasOwnProperty(req.body.selected_day)) {
-									if (dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day].hasOwnProperty(req.body.selected_key)) {
-										
-										dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key][req.body.selected_field] = req.body.set_value;
-										dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-										
-										autofill(unit, section, dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], false);
+					var table_info = get_table_info(unit, section, category, table_name);
+					///TODO: eliminate years, months, days
+					if (table_info.enable) {
+						if (fsc[unit][section][category][table_name].hasOwnProperty(req.body.selected_year)) {
+							if (fsc[unit][section][category][table_name][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
+								if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month].hasOwnProperty(req.body.selected_day)) {
+									if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].hasOwnProperty(req.body.selected_key)) {
+
+										fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key][req.body.selected_field] = req.body.set_value;
+										fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+
+										autofill(unit, section, fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], false);
 										try {
-											
+
 											if ("duplicate_key" in req.body) {
-												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_key = req.body.duplicate_key;
+												fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_key = req.body.duplicate_key;
 											}
 											if ("duplicate_time" in req.body) {
-												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_time = req.body.duplicate_time;
+												fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_time = req.body.duplicate_time;
 											}
 											if ("duplicate_date" in req.body) {
-												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_date = req.body.duplicate_date;
+												fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].duplicate_of_date = req.body.duplicate_date;
 											}
 											if ("status_changed_by" in req.body) {
-												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].status_changed_by = req.body.status_changed_by;
-												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].status_changed_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
+												fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].status_changed_by = req.body.status_changed_by;
+												fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].status_changed_time = moment().format('YYYY-MM-DD HH:mm:ss Z');
 											}
 											else {
-												dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].modified_by = req.user.username;
+												fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key].modified_by = req.user.username;
 											}
-											yaml.writeSync(item_path, dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
-											//var reason = " in change-microevent-field";
-											//yaml.write(item_path, dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], 'utf8', function (err) {
-											//	if (err) {
-											//		return console.log("[ * ] saving entry"+reason+"..."+err);
-											//	}
-											//	//else console.log("[ * ] saving entry"+reason+"...OK");
-											//});
+											//yaml.writeSync(item_path, fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], "utf8");
+											var reason = " in change-microevent-field";
+											yaml.write(item_path, fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key], 'utf8', function (err) {
+												if (err) {
+													//return console.log("[ * ] saving entry"+reason+"..."+err);
+													return console.log("[ * ] saving entry...FAIL: "+err);
+												}
+												else console.log("[ * ] saving entry...OK");
+												//else console.log("[ * ] saving entry"+reason+"...OK");
+											});
 											req.session.success = msg;
 										}
 										catch (err) {
 											req.session.error = "\nCould not finish writing "+item_path+": "+err;
 										}
-										
+
 										ok=true; //verified cache is ok either way
 									}
 									else console.log("Cache missed for key "+req.body.selected_key);
@@ -4887,11 +4830,7 @@ app.post('/change-microevent-field', function(req, res){
 						else console.log("Cache missed for year "+req.body.selected_year);
 					}
 					else {
-						console.log("Cache missed for section "+section);
-						console.log("  only has:");
-						for (var key in dat) {
-							console.log("    "+key);
-						}
+						console.log("Cache missed for section "+section+": "+table_info.error);
 					}
 					if (!ok) req.session.error = "Cache failure in change-microevent-field so skipped saving value for "+req.body.selected_field+"!";
 				}
@@ -4907,7 +4846,7 @@ app.post('/change-microevent-field', function(req, res){
 			delete req.session.prefill.pin;
 		}
 	}
-	
+
 	var a_suffix = "";
 	if (fun.is_not_blank(req.body.scroll_to_named_a)) a_suffix = "#"+req.body.scroll_to_named_a;
 	else if (fun.is_not_blank(req.body.selected_key)) a_suffix = "#"+req.body.selected_key;
@@ -4924,6 +4863,8 @@ app.post('/add-end-dates-to-bill', function(req, res){
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(unit, req.user.username, section, "billing")) {
+			var category="tables";
+			var table_name="BillingCycle";
 			var count_added = 0;
 			var matching_vars_count = 0;
 			var dates = [];
@@ -4954,9 +4895,9 @@ app.post('/add-end-dates-to-bill', function(req, res){
 				//msg = "WARNING: This feature is not yet implemented.";
 				//console.log(msg);
 				//req.session.notice = msg;
-				//results = push_next_transaction(unit, section, category, ymd_array, record, as_username, autofill_enable)
-				//results = push_next_table_entry(unit, section, category, record, as_username, autofill_enable)
-				
+				//results = push_next_transaction(unit, section, table_name, ymd_array, record, as_username, autofill_enable)
+				//results = push_next_table_entry(unit, section, table_name, record, as_username, autofill_enable)
+
 				//FORM VARS: selected_year section mode new_cycle_name [and dates which were made into an array above]
 				var record = {};
 				//NOTE: this is just a billing cycle so don't add invoice_date here
@@ -4965,7 +4906,7 @@ app.post('/add-end-dates-to-bill', function(req, res){
 				record.end_dates = dates;
 				record.cycle_name = req.body.new_cycle_name;  // ok if blank
 				//NOTE: time, ctime, and tz_offset_mins are set by push (actually by write_record_without_validation indirectly)
-				var results = push_next_table_entry(unit, section, category, record, req.user.username, false);
+				var results = push_next_table_entry(unit, section, table_name, record, req.user.username, false);
 				if (results.hasOwnProperty('error')) req.session.error = results.error;
 			}
 		}
@@ -4976,7 +4917,7 @@ app.post('/add-end-dates-to-bill', function(req, res){
 			delete req.session.prefill.pin;
 		}
 	}
-	
+
 	res.redirect(config.proxy_prefix_then_slash+"?section="+req.body.section+"&mode="+req.body.mode+"&selected_year="+req.body.selected_year+"&selected_month=(none)" + ((bookmark_enable)?("#"+req.body.selected_key):"") );
 });
 
@@ -4994,7 +4935,9 @@ app.post('/split-entry', function(req, res){
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		var section = req.body.section;
 		if (user_has_section_permission(unit, req.user.username, section, "modify")) {
-			var table_path = get_table_path_if_exists_else_null(unit, section, "transactions", "student", false);
+			var category="transactions";
+			var table_name="student";
+			var table_path = get_table_path_if_exists_else_null(unit, section, category, table_name, false);
 			if (table_path !== null) {
 				var y_path = table_path + "/" + req.body.selected_year;
 				var m_path = y_path + "/" + req.body.selected_month;
@@ -5005,34 +4948,36 @@ app.post('/split-entry', function(req, res){
 					if (fun.is_not_blank(req.body.scroll_to_named_a)) bookmark_enable = true;
 					var msg = 'Changed value for '+req.body.selected_field+' to '+req.body.set_value;
 					var ok = false;
-					if (dat.hasOwnProperty(section)) {
-						if (dat[section].hasOwnProperty(req.body.selected_year)) {
-							if (dat[section][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
-								if (dat[section][req.body.selected_year][req.body.selected_month].hasOwnProperty(req.body.selected_day)) {
-									if (dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day].hasOwnProperty(req.body.selected_key)) {
+					var table_info = get_table_info(unit, section, category, table_name);
+					///TODO: eliminate years, months, days
+					if (table_info.enable) {
+						if (fsc[unit][section][category][table_name].hasOwnProperty(req.body.selected_year)) {
+							if (fsc[unit][section][category][table_name][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
+								if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month].hasOwnProperty(req.body.selected_day)) {
+									if (fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].hasOwnProperty(req.body.selected_key)) {
 										var hdv_item_splitter_name = null;
 										if (has_setting(unit, section+".list_implies_multiple_entries")) hdv_item_splitter_name = peek_setting(unit, section+".list_implies_multiple_entries");
 										if (hdv_item_splitter_name!==null) {
-											var original_item = dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key];
+											var original_item = fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key];
 											var subvalues = fun.get_human_delimited_values(original_item[hdv_item_splitter_name]);
-											
+
 											var hdv_paired_name = null;
 											if (has_setting(unit, section+".list_implies_multiple_entries_paired_with")) hdv_paired_name = peek_setting(unit, section+".list_implies_multiple_entries_paired_with");
 											var matching_pairs = null;
 											if (hdv_paired_name!==null) {
 												matching_pairs = fun.get_human_delimited_values(original_item[hdv_paired_name]);
 											}
-											
+
 											var hdv_or_single_name = null;
 											if (has_setting(unit, section+".list_implies_multiple_entries_paired_with_unless_has_one")) hdv_or_single_name = peek_setting(unit, section+".list_implies_multiple_entries_paired_with_unless_has_one");
 											var matching_pairs_else_single_value = null;
 											if (hdv_or_single_name!==null) {
 												matching_pairs_else_single_value = fun.get_human_delimited_values(original_item[hdv_or_single_name]);
 											}
-											
+
 											console.log("");
 											console.log("[ | ] Splitting...");
-											
+
 											console.log(indent+"subvalues: "+JSON.stringify(subvalues));
 											if ( (hdv_paired_name===null || (matching_pairs!==null&&matching_pairs.length===subvalues.length)) &&
 												(hdv_or_single_name===null || (matching_pairs_else_single_value!==null&&(matching_pairs_else_single_value.length===subvalues.length||matching_pairs_else_single_value.length==1)))
@@ -5080,12 +5025,12 @@ app.post('/split-entry', function(req, res){
 														//fields were already validated since using an existing entry
 														//fields were already autofilled above
 														//                             req_else_null, section, date_array_else_null, record, deepest_dir, as_username,     write_mode, custom_file_name_else_null, autofill_enable
-														var write_new_results = write_record_without_validation(req, unit, section, date_array,    null,       new_item, req.user.username, "create", new_key,                    false); 
+														var write_new_results = write_record_without_validation(req, unit, section, category, date_array,    null,       new_item, req.user.username, "create", new_key,                    false);
 														if (write_new_results.out_path && write_new_results.out_name) { //write_new_results.out_path is only set AFTER file is written so always check that
 															new_item.key = write_new_results.out_name;
-															dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][write_new_results.out_name] = new_item;
-															if (!fun.array_contains(dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys,write_new_results.out_name))
-																dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys.push(write_new_results.out_name);
+															fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][write_new_results.out_name] = new_item;
+															if (!fun.array_contains(fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys,write_new_results.out_name))
+																fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys.push(write_new_results.out_name);
 														}
 														if (write_new_results.notice) notice += "\n"+write_new_results.notice+" "; //+"<!--" + out_path + "-->.";
 														if (write_new_results.out_path) {
@@ -5109,10 +5054,10 @@ app.post('/split-entry', function(req, res){
 														error += tmp;
 														console.log(indent+tmp);
 													}
-													
+
 													if (fun.is_blank(error)) {
 														original_item.split_destination_field = req.body.selected_field;
-														
+
 														original_item.split_time = split_time;
 														//original_item["modified_by"] = req.user.username;
 														original_item.split_by = req.user.username;
@@ -5120,8 +5065,8 @@ app.post('/split-entry', function(req, res){
 														original_item.active = false; //no longer use the record, it has been split
 														original_item[req.body.selected_field] = original_field_value;
 														console.log(indent + "saving old record as deactivated: " + req.body.selected_key);
-														var results = write_record_without_validation(req, unit, section, date_array, null, original_item, req.user.username, "modify", req.body.selected_key, false);
-														//dat[section][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = original_item;
+														var results = write_record_without_validation(req, unit, section, category, date_array, null, original_item, req.user.username, "modify", req.body.selected_key, false);
+														//fsc[unit][section][category][table_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = original_item;
 														if (fun.is_blank(results.error)) {
 															if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
 														}
@@ -5156,11 +5101,7 @@ app.post('/split-entry', function(req, res){
 						else console.log("Cache missed for year "+req.body.selected_year);
 					}
 					else {
-						console.log("Cache missed for section "+section);
-						console.log("  only has:");
-						for (var key in dat) {
-							console.log("    "+key);
-						}
+						console.log("Cache missed for section "+section+": "+table_info.error);
 					}
 					//if (!ok) req.session.error = "Cache failure in split-entry so skipped saving value for "+req.body.selected_field+"!";
 				}
@@ -5211,7 +5152,7 @@ app.get('/save-status', function(req, res){
 					var category = "status";
 					var category_path = section_path + "/" + category;
 					if (!fs.existsSync(category_path)) fs.mkdirSync(category_path);
-					
+
 					for (var k_i=0; k_i<status_keys.length; k_i++) {
 						var primary_key = status_keys[k_i];
 						//item.tmp = {};
@@ -5220,7 +5161,7 @@ app.get('/save-status', function(req, res){
 						var table_name = primary_key;
 						var table_path = category_path + "/" + table_name; //table_name folder, such as "MAC" folder inside "status" folder
 						if (!fs.existsSync(table_path)) fs.mkdirSync(table_path);
-						
+
 						for (var id in fsc[unit][section][category][table_name]) {
 							if (fsc[unit][section][category][table_name].hasOwnProperty(id)) {
 								//tracked_count++;
@@ -5328,7 +5269,7 @@ app.post('/poke-settings', function(req, res) {
 			delete req.session.prefill.pin;
 		}
 	}
-		
+
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
@@ -5338,6 +5279,8 @@ function do_track(params) {
 	var results = {};
 	var unit = null;
 	var section = null;
+	var category = "status";
+	//NOTE: table_name is set to primary key(s) below
 	if (typeof params.hasOwnProperty !== 'function') {
 		results.error = "ERROR in do_track: params must be converted to object";
 		console.log(results.error);
@@ -5345,7 +5288,7 @@ function do_track(params) {
 	else {
 		var u_info = fun.param_info(params, "unit", fsc);
 		unit = u_info.value;
-		
+
 		if (u_info.hasOwnProperty("error")) results.error = u_info.error + "during do_track";
 		else {
 			var s_info = fun.param_info(params, "section", fsc[unit]);
@@ -5356,7 +5299,7 @@ function do_track(params) {
 	if ((unit!==null) && (section!==null)) {
 	//if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		//if (user_has_section_permission(unit, req.user.username, "admin", "poke-settings")) {
-	
+
 		if ("mode" in params) {
 			var mode = params.mode;
 			if (mode == "create") {
@@ -5367,57 +5310,69 @@ function do_track(params) {
 			}
 			if (has_setting(unit, section+".status_keys")) {
 				var status_keys = peek_setting(unit, section+".status_keys");
-				
-				if (!dat) dat = {};
-				if (!("units" in dat)) dat.units = {};
-				if (!(unit in dat.units)) dat.units[unit] = {};
-				if (!(section in dat.units[unit])) dat.units[unit][section] = {};
-				if (!("status" in dat.units[unit][section])) dat.units[unit][section].status = {};
-				var tracked_count = 0;
-				for (var k_i=0; k_i<status_keys.length; k_i++) {
-					var primary_key = status_keys[k_i];
-					if (primary_key in params) {
-						var id = params[primary_key];
-						//item.tmp = {};
-						var item = null; //start as null for each key, in case their are multiple tables (each with different primary key)
-						var modify_enable = false;
-						if ( (primary_key in dat.units[unit][section].status) &&
-							 (id in dat.units[unit][section].status[primary_key])
-						) {
-							item = dat.units[unit][section].status[primary_key][id];
-							modify_enable = true;
+
+				if (unit in fsc) {
+					var unit_path = storage_path+"/units/"+unit;
+					if (section in fsc[unit]) {
+						var section_path=unit_path+"/"+section;
+						if (!(category in fsc[unit][section])) {
+							fsc[unit][section][category] = {};
+							fs.mkdirSync(storage_path);
 						}
-						if (item === null) item = {};
-						
-						//TODO: if modify_enable (if record existed), mark whatever changed and store old value in audit entry
-						for (var field_name in params) {
-							item[field_name] = params[field_name];
+						var tracked_count = 0;
+						for (var k_i=0; k_i<status_keys.length; k_i++) {
+							var primary_key = status_keys[k_i];
+							var table_name = primary_key;
+							if (primary_key in params) {
+								var id = params[primary_key];
+								//item.tmp = {};
+								var item = null; //start as null for each key, in case their are multiple tables (each with different primary key)
+								var modify_enable = false;
+								if ( (primary_key in fsc[unit][section][category]) &&
+									 (id in fsc[unit][section][category][primary_key])
+								) {
+									item = fsc[unit][section][category][primary_key][id];
+									modify_enable = true;
+								}
+								if (item === null) item = {};
+
+								//TODO: if modify_enable (if record existed), mark whatever changed and store old value in audit entry
+								for (var field_name in params) {
+									item[field_name] = params[field_name];
+								}
+
+								if (item.hasOwnProperty(primary_key)) {
+									//item.tmp.key = item[primary_key];
+									item.key_name = primary_key;
+									var local_time_zone = null;
+									//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting(unit, "unit.local_time_zone")) local_time_zone = peek_setting(unit, "unit.local_time_zone");
+									//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
+									if (local_time_zone !== null) item.tz = local_time_zone;
+									if (!("tz_offset_mins" in item)) item.tz_offset_mins = moment().utcOffset();
+									if (!("ctime" in item)) item.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+									else item.mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
+									var local_now = moment();
+
+									if (!(primary_key in fsc[unit][section][category])) fsc[unit][section][category][primary_key] = {}; //such as "MAC" folder inside "status" folder
+									if (!(id in fsc[unit][section][category][primary_key]))
+										fsc[unit][section][category][primary_key][id] = item;
+									//else is already up to date since item is a reference to it
+
+									results.success = "tracking: "+JSON.stringify(item);
+									tracked_count++;
+								}
+							}
 						}
-						
-						if (item.hasOwnProperty(primary_key)) {
-							//item.tmp.key = item[primary_key];
-							item.key_name = primary_key;
-							var local_time_zone = null;
-							//this isn't guaranteed (user must set for individual server bios time if using linux): if (has_setting(unit, "unit.local_time_zone")) local_time_zone = peek_setting(unit, "unit.local_time_zone");
-							//if (Date.format("HH:mm:ss") > Date.parse("15:05:00"))
-							if (local_time_zone !== null) item.tz = local_time_zone;
-							if (!("tz_offset_mins" in item)) item.tz_offset_mins = moment().utcOffset();
-							if (!("ctime" in item)) item.ctime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-							else item.mtime = moment().format('YYYY-MM-DD HH:mm:ss Z');
-							var local_now = moment();
-							
-							if (!(primary_key in dat.units[unit][section].status)) dat.units[unit][section].status[primary_key] = {}; //such as "MAC" folder inside "status" folder
-							if (!(id in dat.units[unit][section].status[primary_key]))
-								dat.units[unit][section].status[primary_key][id] = item;
-							//else is already up to date since item is a reference to it
-								
-							results.success = "tracking: "+JSON.stringify(item);
-							tracked_count++;
+						if (tracked_count<1) {
+							results.error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
 						}
 					}
+					else {
+						results.error = "invalid section "+section;
+					}
 				}
-				if (tracked_count<1) {
-					results.error = "nothing tracked since no key exists for any of the status_keys: "+JSON.stringify(status_keys);
+				else {
+					results.error = "invalid unit "+unit;
 				}
 			}
 			else {
@@ -5428,7 +5383,7 @@ function do_track(params) {
 			results.error = "missing mode param";
 		}
 	}
-	//}	
+	//}
 	return results;
 }//end do_track
 
@@ -5444,7 +5399,7 @@ app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see al
 	//msg += "settings:"+"\n"; //NOTE: iedup will resave settings each time if any are present (if below, if indented under "settings:")
 	//force iedup to use POST:
 	//msg += "  ping_host: " + req.get('host') + "/tp" + "\n"; //NOTE: this gets localhost
-	//msg += "  form_method: POST" + "\n"; 
+	//msg += "  form_method: POST" + "\n";
 	res.send(msg);//res.write(msg);
 });
 
@@ -5508,12 +5463,12 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	var msg = "";
 	var section = "tm";
 	var unit = null;
-	
+
 	if (params_dict.hasOwnProperty("unit")) {
 		// TODO: validate request so they can only get unit
 		// --such as use computer name and MAC combination for machine authentication, where MAC is obtained via
 		// MAC=`cat /sys/class/net/enp0s25/address`
-		// where enp0s25 is any interface in /sys/class/net other than lo (usually is enp0s25 for: Fedora 27, Ubuntu Xenial, and Antergos ~ 2018 Jan) 
+		// where enp0s25 is any interface in /sys/class/net other than lo (usually is enp0s25 for: Fedora 27, Ubuntu Xenial, and Antergos ~ 2018 Jan)
 		// there is also MAC=`ip addr | grep link/ether | awk '{print $2}'`  (tested on Antergos)
 		// IP Address: based on the above, you can a list of all of them (starting with 127.0.0.1 like:)
 		// IP=`ip addr | grep "inet " | awk '{print $2}'`
@@ -5603,7 +5558,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 						fs.readFileSync(script_path).toString().split("\n").forEach(function(line, index, arr) {
 						  if (index === arr.length - 1 && line === "") { return; }
 						  lines.push(line);
-						});				
+						});
 						ptcache[script_path] = lines;
 					}
 					for (var l_i=0; l_i<lines.length; l_i++) {
@@ -5692,7 +5647,7 @@ app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see 
 	//msg += "settings:"+"\n"; //NOTE: iedup will resave settings each time if any are present (if below, if indented under "settings:")
 	//force iedup to use POST:
 	//msg += "  ping_host: " + req.get('host') + "/tp" + "\n"; //NOTE: this gets localhost for some reason (perhaps only certain network situations?)
-	//msg += "  form_method: POST" + "\n"; 
+	//msg += "  form_method: POST" + "\n";
 	res.send(msg);//res.write(msg);
 }); //end "/tp"
 
@@ -5704,7 +5659,7 @@ app.get('/change-selection', function (req, res) {
 		if (user_has_section_permission(unit, req.user.username, section, "read")) {
 			//if (req.query.selected_field) {
 			//	req.session.selected_field = req.query.selected_field;
-			//	console.log("Changed req.session.selected_field to "+req.session.selected_field); 
+			//	console.log("Changed req.session.selected_field to "+req.session.selected_field);
 			//}
 			var val;
 			if (req.query.change_section_report_edit_field) {
@@ -5753,7 +5708,7 @@ app.get('/change-selection', function (req, res) {
 		}
 	}
 	else console.log("ERROR in change-selection: user not logged in");
-		
+
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
@@ -5814,13 +5769,13 @@ app.post('/student-microevent', function(req, res){
 			delete req.session.prefill.stated_time;
 		}
 		//else req.session.prefill.stated_time = moment().format("HH:mm:ss");
-		
+
 		if (fun.is_not_blank(req.body.stated_date)) req.session.prefill.stated_date = req.body.stated_date.trim();
 		else {
 			delete req.session.prefill.stated_date;
 		}
 		//else req.session.prefill.stated_date = moment().format("YYYY-MM-DD");
-		
+
 		//if (("family_id" in req.body) ) req.session.prefill.family_id = req.body.family_id.trim();
 		//if ("first_name" in req.body) req.session.prefill.first_name = req.body.first_name.trim();
 		//if ("last_name" in req.body) req.session.prefill.last_name = req.body.last_name.trim();
@@ -5831,7 +5786,7 @@ app.post('/student-microevent', function(req, res){
 		var custom_error = null;
 		var missing_msg = "";
 		req.session.missing_fields = [];
-		
+
 		req.session.section = req.body.section;
 		var section = req.body.section;
 		req.session.mode = req.body.mode;
@@ -5888,17 +5843,17 @@ app.post('/student-microevent', function(req, res){
 			console.log("WARNING: no required fields are specified for section '" + section + "'.");
 			custom_error = "no required fields are specified for section '" + section + "'";
 		}
-		
+
 		//console.log(req.body.family_id);
 		if (!custom_error) {
-			
+
 			//already done above?
 			//for (var indexer in req.session.prefill) {
 			//	if (req.session.prefill.hasOwnProperty(indexer)) {
 			//		record[indexer] = req.session.prefill[indexer];
 			//	}
 			//}
-			
+
 			//if already done above, why was this code here before the loop was (NOTE: commented code updated for non-global prefill data as writing this comment)?
 			//if (req.session.prefill.hasOwnProperty("name")) record.name=req.session.prefill.name;
 			//if (req.session.prefill.hasOwnProperty("first_name")) record.first_name=req.session.prefill.first_name;
@@ -5984,8 +5939,8 @@ app.post('/student-microevent', function(req, res){
 					var ymd_array;
 					if (stated_date_enable) ymd_array = record.stated_date.split("-");  //ok since already validated or conformed
 					else ymd_array = moment().format("YYYY-MM-DD").split("-");
-					            //write_record_without_validation(req_else_null, unit, section, date_array_else_null, deepest_dir_else_null, record, as_username,  write_mode,  custom_file_name_else_null, autofill_enable) {
-					var results = write_record_without_validation(req,           unit, section, ymd_array,            null,                  record, req.user.username, "create", null,                      true); //already validated above
+					            //write_record_without_validation(req_else_null, unit, section, category, date_array_else_null, deepest_dir_else_null, record, as_username,  write_mode,  custom_file_name_else_null, autofill_enable) {
+					var results = write_record_without_validation(req,           unit, section, category, ymd_array,            null,                  record, req.user.username, "create", null,                      true); //already validated above
 					if (results.notice) req.session.notice = results.notice; //+"<!--" + out_path + "-->.";
 					if (fun.is_blank(results.error)) {
 						if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
@@ -6026,7 +5981,7 @@ app.post('/student-microevent', function(req, res){
 				}
 			}
 			else {//formatting error
-				
+
 				req.session.error = custom_error;//+ "<script>var Speech = require('speak-tts'); Speech.init({'onVoicesLoaded': (data) => {console.log('voices', data.voices)},'lang': 'en-US','volume': 0.5,'rate': 0.8,'pitch': 0.8});"+'Speech.speak({text: "'+custom_error+'" })</script>';
 				if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"missing-information.wav'); audio.play();"); //new Handlebars.SafeString
 				delete req.session.prefill.pin;

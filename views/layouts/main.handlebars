@@ -14,11 +14,11 @@
   <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   <style>
   .alert-fixed {
-    position:fixed; 
-    top: 2em; 
-    left: 0em; 
+    position:fixed;
+    top: 2em;
+    left: 0em;
     width: 10%;
-    z-index:-1; 
+    z-index:-1;
     border-radius:0px;
     opacity: 0.5;
     filter: alpha(opacity=50); /* For IE8 and earlier */
@@ -51,7 +51,7 @@
 			{{#each sections}}
 			{{#if_eq this @root.section}}
 			<li class="nav-item active"><p class="navbar-text">
-			{{friendlySectionName this}}
+			{{friendlySectionName @root.unit this}}
 			{{#is_after_school @root.unit @root.section}}
 			- After
 			{{/is_after_school}}
@@ -61,38 +61,38 @@
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
+			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&category={{get_primary_category @root.unit @root.section}}&table_name={{get_primary_table_name @root.unit @root.section}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
-			
+
 			<li><p class="navbar-text">:
 			</li>
-			
+
 			{{#each user_selectable_modes}}
 			{{#if_eq this @root.mode}}
 			<li class="nav-item active"><p class="navbar-text">
-			{{friendlyModeName this}}
+			{{friendlyModeName @root.unit this}}
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{@root.section}}&mode={{this}}">{{friendlyModeName @root.unit this}}</a>
+			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{@root.section}}&category={{@root.category}}&table_name={{@root.table_name}}&mode={{this}}">{{friendlyModeName @root.unit this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
-			
+
 			{{#groupContains "admin" @root.user.username}}
 			{{#if_eq @root.mode "settings"}}
 			<li class="nav-item"><p class="navbar-text">Settings
 			{{else}}
-			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{@root.section}}&mode=settings">Settings</a>
+			<li class="nav-item"><p class="navbar-text"><a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{@root.section}}&category={{@root.category}}&table_name={{@root.table_name}}&mode=settings">Settings</a>
 			{{/if_eq}}
 			</p>
-			</li>			
+			</li>
 			{{/groupContains}}
-			
+
 		</ul>
-                
+
 		<ul class="nav navbar-nav navbar-right">
 		<li class="navbar-text">
 		{{user.username}}
@@ -112,7 +112,7 @@
     </nav>
     <!--where our other templates will insert-->
     {{{body}}}
-    
+
     {{#if error}}
       <p class="alert alert-warning alert-fixed" style="top:9em">{{error}}</p>
     {{/if}}

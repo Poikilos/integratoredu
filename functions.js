@@ -20,7 +20,7 @@ var MongoClient = require('mongodb').MongoClient;
 
 
 //used in local-signup strategy
-exports.localReg = function (username, password) { 
+exports.localReg = function (username, password) {
   var deferred = Q.defer();
   if (username) {
     if (password) {
@@ -198,15 +198,33 @@ exports.getFiles = function(path) {
 };
 //versions below ignore if starting with "."
 exports.getVisibleDirectories = function(path) {
-	return fs.readdirSync(path).filter(function (file) {
-		return fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
+	//return fs.readdirSync(path).filter(function (file) {
+		//return fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
+	//});
+	//see <https://gist.github.com/kethinov/6658166#gistcomment-1603591>
+	var files = fs.readdirSync(path);
+	var filelist = [];
+	files.forEach(function(file) {
+		if (fs.statSync(path + '/' + file).isDirectory() && !file.startsWith(".")) {
+			filelist.push(file);
+		}
 	});
+	return filelist;
 };
 
 exports.getVisibleFiles = function(path) {
-	return fs.readdirSync(path).filter(function (file) {
-		return !fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
+	//return fs.readdirSync(path).filter(function (file) {
+		//return !fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
+	//});
+	//see <https://gist.github.com/kethinov/6658166#gistcomment-1603591>
+	var files = fs.readdirSync(path);
+	var filelist = [];
+	files.forEach(function(file) {
+		if (fs.statSync(path + '/' + file).isFile() && !file.startsWith(".")) {
+			filelist.push(file);
+		}
 	});
+	return filelist;
 };
 
 exports.contains = function(haystack, needle) {
@@ -323,7 +341,7 @@ exports.splitext = function(path) {
 
 
 /*
-//function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017. 
+//function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017.
 //var array_contains = function(needle) {
 exports.array_contains = function(needle) {
     // Per spec, the way to identify NaN is that it is not equal to itself
@@ -599,7 +617,7 @@ exports.is_blank = function (str) {
 	//regarding non-string tests below, see similar topic: https://stackoverflow.com/questions/19839952/all-falsey-values-in-javascript
 	//                                                                                                to check for NaN, MUST DO (str!==str)
 	return (   ( (typeof(str)=="string") && str.trim()==="" )   ||   (  (!str) && (str!==false) && (str!==0) && (str!==-0) && (!(str!==str))  )   );
-	//return str===null  ||  str.trim  &&  (  || (str.trim()==="") ); //|| (str===undefined) || (str===null) || (str==="") 
+	//return str===null  ||  str.trim  &&  (  || (str.trim()==="") ); //|| (str===undefined) || (str===null) || (str==="")
 	//if (typeof(str)=="string") console.log("[ verbose message ] is string:");
 	//else console.log("[ verbose message ] is not string:");
 	//if (result) console.log("  [ verbose message ] is blank: "+str);

@@ -4,7 +4,7 @@
 	{{#if section}}
         {{#createGroupContains unit section user.username}}
         {{#if_is_any_form_mode unit mode}}
-        {{get_section_form unit section mode user.username prefill missing_fields}}
+        {{get_section_form unit section category table_name mode user.username prefill missing_fields}}
         {{/if_is_any_form_mode}}
         {{/createGroupContains}}
 		{{#readGroupContains unit section user.username}}
@@ -29,11 +29,13 @@
 			<br/>
 			<br/>
 			<br/>
-			<div>Year: 
+			<div>Year:
 			{{#each years}}
 			<form action="{{get_proxy_prefix_then_slash}}" method="get">
 			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+			<input type="hidden" name="table_name" id="table_name" value="{{@root.table_name}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
 			<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
@@ -44,7 +46,7 @@
 			<input class="btn btn-default" type="submit" value="{{this}}" />
 			{{/if_eq}}
 			</form>
-			
+
 			{{/each}}
 			</div>
 			<div>Month:
@@ -52,6 +54,8 @@
 			<form action="{{get_proxy_prefix_then_slash}}" method="get">
 			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+			<input type="hidden" name="table_name" id="table_name" value="{{@root.table_name}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
 			<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
@@ -69,6 +73,8 @@
 			<form action="{{get_proxy_prefix_then_slash}}" method="get">
 			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+			<input type="hidden" name="table_name" id="table_name" value="{{@root.table_name}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
 			<input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
@@ -81,7 +87,7 @@
 			</form>
 			{{/each}}
 			</div>
-			
+
 		</div><!--end col-sm-->
 		<div class="col-sm-10" align="center">
 			<br/>
@@ -106,7 +112,7 @@
 			{{/if}}
 			</div>
 			{{show_history unit section objects}}
-			
+
 		</div><!--end col-sm-->
 	</div><!--end row-->
 	<div class="row">
@@ -119,15 +125,15 @@
 	{{show_reports "false" unit section category table_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
 	{{show_billing_cycle_preview unit section user.username selected_number}}
 	{{/if_eq}} {{!--end if mode is reports--}}
-	
+
 	{{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
 	{{show_settings unit section user.username selected_setting}}
 	{{/if_eq}} {{!--end if mode is settings--}}
-		
+
 		<br/>
 		</div>
 	</div><!--end row-->
-	
+
 {{else}}
 <div class="jumbotron">
 	<h1>IntegratorEdu</h1>

@@ -1,5 +1,109 @@
 # Deprecated code
 
+* Deprecated (from end of write_record_without_validation--replaced by code that instead updates fsc):
+```javascript
+//write cache
+//NOTE: dat will not exist yet if no user with read priv has loaded a page (even if a user with create/modify loaded a page)
+/*
+if (dat) {
+	if (!dat.hasOwnProperty(section)) {
+		console.log(indent+"ERROR: section "+section+" is not in cache");
+		dat[section]={};
+	}
+	if (fun.is_not_blank(y_dir_name)) {
+		if (!dat[section].hasOwnProperty(y_dir_name))
+			dat[section][y_dir_name]={};
+		if (!dat[section].hasOwnProperty("years"))
+			dat[section].years = [];
+		if (!fun.array_contains(dat[section].years, y_dir_name))
+			dat[section].years.push(y_dir_name);
+
+
+		if (!dat[section][y_dir_name].hasOwnProperty(m_dir_name))
+			dat[section][y_dir_name][m_dir_name]={};
+		if (!dat[section][y_dir_name].hasOwnProperty("months"))
+			dat[section][y_dir_name].months = [];
+		if (!fun.array_contains(dat[section][y_dir_name].months, m_dir_name))
+			dat[section][y_dir_name].months.push(m_dir_name);
+
+		if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty(d_dir_name))
+			dat[section][y_dir_name][m_dir_name][d_dir_name] = {};
+		if (!dat[section][y_dir_name][m_dir_name].hasOwnProperty("days"))
+			dat[section][y_dir_name][m_dir_name].days = [];
+		if (!fun.array_contains(dat[section][y_dir_name][m_dir_name].days, d_dir_name))
+			dat[section][y_dir_name][m_dir_name].days.push(d_dir_name);
+
+		dat[section][y_dir_name][m_dir_name][d_dir_name][results.out_name] = record;
+		if (!dat[section][y_dir_name][m_dir_name][d_dir_name].hasOwnProperty("item_keys"))
+			dat[section][y_dir_name][m_dir_name][d_dir_name].item_keys = [];
+		if (!fun.array_contains(dat[section][y_dir_name][m_dir_name][d_dir_name].item_keys, results.out_name))
+			dat[section][y_dir_name][m_dir_name][d_dir_name].item_keys.push(results.out_name);
+		//console.log(indent+"CACHE was updated for section "+section+" by adding entry "+results.out_name+" to date "+y_dir_name+"-"+m_dir_name+"-"+d_dir_name);
+	}
+	//else //is not a transaction table so has no dates.
+		//TODO: cache it a different way
+}
+//else doesn't matter since cache will be loaded from drive and then be fresh
+*/
+```
+
+* Deprecated (switched to fully preloaded fsc)--from `if (selected_day)` case in '/' route:
+```javascript
+var msg = "";
+for (var item_key_i in item_keys) {
+	var item_key = item_keys[item_key_i];
+	var item_path = d_path + "/" + item_key;
+	//console.log("  - "+item_key);
+	dat[section][selected_year][selected_month][selected_day][item_key] = {};
+	if (fs.statSync(item_path).isFile()) {
+		if (item_path.endsWith(".yml")) {
+			try {
+				var errors = "";
+				dat[section][selected_year][selected_month][selected_day][item_key] = yaml.readSync(item_path, "utf8");
+
+				dat[section][selected_year][selected_month][selected_day][item_key].key = item_key;
+				//dat[section][selected_year][selected_month][selected_day][this_item] = yaml.readSync(item_path, "utf8");
+				var this_item = dat[section][selected_year][selected_month][selected_day][item_key];
+				this_item.tmp = {};
+				this_item.tmp.time = fun.get_time_or_stated_time(this_item);
+				if (this_item.tmp.time===null) {
+					var name_as_time = fun.splitext(item_key)[0];
+					if (name_as_time.length>=6) {
+						this_item.tmp.time = item_key.substring(0,2)+":"+item_key.substring(0,4)+":"+item_key.substring(4,6);
+					}
+					else {
+						errors+='cannot derive time for '+item_path+" \n";
+					}
+				}
+				this_item.tmp.date = fun.get_date_or_stated_date(this_item, "saving "+item_key+" to cache");
+				if (this_item.tmp.date===null) this_item.tmp.date = selected_year + "-" + selected_month + "-" + selected_day;
+				items.push(this_item);
+				//for (var field_key in this_item) {
+					//if (this_item.hasOwnProperty(field_key)) {
+						//var val = this_item[field_key];
+						//var val = items[field_key];
+						//console.log("    " + field_key + ": " + val);
+					//}
+				//}
+				if (errors.length>0) req.session.error = errors;
+			}
+			catch (err) {
+				req.session.error = "\nCould not finish reading "+item_path+": "+err;
+			}
+		}
+		else console.log("\nSkipped "+item_path+": not a data file");
+
+	}
+	else {
+		msg += " ...missing file "+item_path+" ";
+	}
+}
+if (msg.length>0) res.session.error=msg;
+//TODO: find out why this doesn't work: items = dat[section][selected_year][selected_month][selected_day];
+//for (var key_i = 0; key_i < items.length; key_i++) {
+//    console.log("    * "+items[key_i] (iterate object members)
+//}
+```
 
 * Deprecated (was not being used)
 ```javascript
@@ -146,7 +250,7 @@ function get_year_buttons_from_cache(unit, section, table, username) {
 			if (contains.call(_pinless_custom_time_groups_by_section[section], username)) {
 				result = true;
 			}
-		}	
+		}
 	}
 	```
 
