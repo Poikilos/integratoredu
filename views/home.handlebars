@@ -4,7 +4,7 @@
 	{{#if section}}
         {{#createGroupContains unit section user.username}}
         {{#if_is_any_form_mode unit mode}}
-        {{get_section_form unit section category table_name mode user.username prefill missing_fields}}
+        {{get_section_form unit section category dataset_name mode user.username prefill missing_fields}}
         {{/if_is_any_form_mode}}
         {{/createGroupContains}}
 		{{#readGroupContains unit section user.username}}
@@ -35,7 +35,8 @@
 			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
-			<input type="hidden" name="table_name" id="table_name" value="{{@root.table_name}}"/>
+			<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
+			<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
 			<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
@@ -55,7 +56,8 @@
 			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
-			<input type="hidden" name="table_name" id="table_name" value="{{@root.table_name}}"/>
+			<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+			<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
 			<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
@@ -74,7 +76,8 @@
 			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
 			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
 			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
-			<input type="hidden" name="table_name" id="table_name" value="{{@root.table_name}}"/>
+			<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+			<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
 			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
 			<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
 			<input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
@@ -112,7 +115,6 @@
 			{{/if}}
 			</div>
 			{{show_history unit section objects}}
-
 		</div><!--end col-sm-->
 	</div><!--end row-->
 	<div class="row">
@@ -122,7 +124,7 @@
 	{{/if_eq}} {{!--end if mode is read--}}
 
 	{{#if_eq mode "reports"}}
-	{{show_reports "false" unit section category table_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
+	{{show_reports "false" unit section category dataset_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
 	{{show_billing_cycle_preview unit section user.username selected_number}}
 	{{/if_eq}} {{!--end if mode is reports--}}
 

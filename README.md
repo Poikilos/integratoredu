@@ -146,6 +146,23 @@ tm:
   If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
+(2018-04-10)
+* clarify use of the word "table"--not every dataset is in "table" format so change wording to dataset where applicable:
+  primary_table_name to primary_dataset_name
+  get_table_info to get_dataset_info
+  table_name to dataset_name
+  table_path to dataset_path
+  get_primary_table_name to get_primary_dataset_name
+  get_table_path_if_exists_else_null to get_dataset_path_if_exists_else_null
+* create _set_table_cache_entry method to fill cache in tables (tables have millions/thousands/ folder structure), for use by _write_record_as_is when writing record in "tables" category.
+* rename write_record_without_validation to _write_record_as_is
+
+(2018-04-09)
+* always set tmp.date to fun.get_date_or_stated_date and tmp.time to fun.get_time_or_stated_time
+(2018-04-05)
+* continuing migration to fsc (changed array looping to `for (item_key in items)` or similar since now keyed by filename instead of number)
+* add category...selected_year, selected_month, selected_day, selected_number to get_billing_cycle_selector params
+* get passed unit field (req.body.unit for post or req.query.unit for get) to define unit in: change-microevent-field, add-end-dates-to-bill, split-entry, save-status, poke-settings, change-selection, change-section-settings, change-section-settings, student-microevent
 (2018-03-11)
 * continuing migration from dat cache to fsc cache
 * removing uses of `req.session` for storing navigation variables (section, selected_year, selected_month. selected_day)
@@ -158,17 +175,17 @@ var listed_day_on_date = null;
 ```
 * fix instances of "define unit" comment
   * autofill-query form should specify all navigation variables
-* account for new structure unit/section/category/table_name such as in
+* account for new structure unit/section/category/dataset_name such as in
   (tables or transactions is implied category in all below which contain
   one of those in the name of the method or in parenthesis):
-  * get_table_path_if_exists_else_null
+  * get_dataset_path_if_exists_else_null
   * get_table_entry
   * get_table_entry_parent_path
   * get_table_entry_paths
   * get_table_entry_numbers
   * push_next_table_entry
   * push_next_transaction
-  * write_record_without_validation (transaction)
+  * _write_record_as_is (transaction)
   * get_year_month_select_buttons (transaction)
 (2018-02-09)
 * eliminated: requested_unit, _default_unit
@@ -179,7 +196,7 @@ var listed_day_on_date = null;
   * autofill (done except checks)
   * get_filtered_form_fields_html (done except checking)
   * get_care_time_info (done)
-  * get_table_path_if_exists_else_null (done)
+  * get_dataset_path_if_exists_else_null (done)
   * get_next_transaction_index (done)
   * get_next_table_index (done)
   * get_table_entry_parent_path (done)
@@ -192,7 +209,7 @@ var listed_day_on_date = null;
   * get_cpf_plain_text (done)
   * /change-section-settings (fixed except checks)
   * see all instances of `name="section"` (including in HANDLEBARS; must have maching unit field; change name AND id to unit)
-  * helpers are easy since handlebars files can get unit (and category and table_name) from the render call since `/` route and its render call is already fixed
+  * helpers are easy since handlebars files can get unit (and category and dataset_name) from the render call since `/` route and its render call is already fixed
   * handlebars helpers: show_history (updated), show_status (updated), show_reports (updated), show_billing_cycle_preview (updated), show_settings (updated), get_section_form (updated), friendlySectionName, friendlyModeName, long_description
     * get_year_month_select_buttons (updated) used by show_reports helper
     * /add-end-dates-to-bill url emitted by show_reports helper
@@ -254,7 +271,7 @@ var listed_day_on_date = null;
 * (2017-11-16) created repair script moveit.py (place it in a day folder and run it: it will move file to correct dated folder, and remove redundant stated_date [same as date from ctime])
 * (2017-11-16) skip files without .yml extension in data folders
 * (2017-11-16) improved behavior of "create" write_mode (fails if file exists already [although push_next_* methods try again with new index], unless custom_file_name_else_null is null, in which case add hyphen and number)
-* (2017-11-16) in case of invalid stated_date in record during write_record_without_validation, added error checking and console message and reversion to current year, month, and/or day directory.
+* (2017-11-16) in case of invalid stated_date in record during _write_record_as_is, added error checking and console message and reversion to current year, month, and/or day directory.
 * (2017-11-16) (fixed not finding friendly name during missing field message generation--see "member that is same of a variable name" in regression tests) show friendly name in missing fields error
 * (2017-11-16) (removed redundant calls) (~) get_care_time_info runs multiple times per entry during month report
 * (2017-11-15) cleaned up time counting code for billing reports (multi-week list now can display values since subtotal logic [see use of key_totals_by_end_date] is corrected)
@@ -382,10 +399,12 @@ var listed_day_on_date = null;
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
-* reduce use of get_table_path_if_exists_else_null in favor of get_table_info
-* (!) add category and table_name to get_year_month_select_buttons
-* (!) add category and table_name to get_section_form
-* (?) add category and table_name to get_billing_cycle_selector, add-end-dates-to-bill, show_billing_cycle_preview, update_query
+* (!) _write_record_as_is should handle deepest_dir_else_null properly, or the param should be eliminated in favor of category-specific path generation code
+* change route name to include `-student-` or pass dataset_name (transactions category is assumed by nature of the routes though) in routes above (see 'get passed unit field' under 2018-04-05 changes) where not already clear to assume dataset_name is student (see `dataset_name = "student"` in code)
+* reduce use of get_dataset_path_if_exists_else_null in favor of get_table_info
+* (!) add category and dataset_name to get_year_month_select_buttons
+* (!) add category and dataset_name to get_section_form
+* (?) add category and dataset_name to get_billing_cycle_selector, add-end-dates-to-bill, show_billing_cycle_preview, update_query
 
 * (!) cache per-unit settings (see _selected_unit)
 * (!) cache per-unit autofill (see _selected_unit)
@@ -520,7 +539,7 @@ see LICENSE file for license
 ## Developer Notes
 * To add a new section would be a fork--I please submit an issue. However, if you fork, you should add a new folder in the unit where the name of the folder is the new section name, then give some group one or more type of permission to it.
 * run `chmod +x ./etc/quality && ./etc/quality` in terminal to check the code quality--it will give instructions if missing outputinspector or kate (optional) or code quality tool
-* To write a record, call write_record_without_validation after validating the form by any means necessary.
+* To write a record, call _write_record_as_is after validating the form by any means necessary.
 * as of 2017-10-08 make sure folder structure remains compatible with my php app MoneyForesight (so MoneyForesight's features can be eventually merged into IntegratorEdu)
   as per the following documentation:
   ```

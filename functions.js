@@ -483,6 +483,37 @@ exports.good_time_string = function(human_written_time_string) {
 	return result;
 };
 
+exports.safe_equals_ci = function(par1, par2) {
+	if ((par1!==null)&&(par2!==null)&&(par1!==undefined)&&(par2!==undefined)&&(par1===par1)&&(par2===par2)) { ///=== to ensure is not NaN
+		if ((typeof par1)!="string") par1 = ""+par1;
+		if ((typeof par2)!="string") par2 = ""+par2;
+		par1=par1.trim().toLowerCase();
+		par2=par2.trim().toLowerCase();
+		return par1==par2;
+	}
+	return false;
+};
+
+exports.single_level_copy = function(src) {
+	result = {};
+	for (var index in src) {
+		if ( ((typeof src[index])!=="undefined") ){
+			if ((typeof src[index]) == "object") {
+				if (src[index]===null) result[index]=null;
+				else result[index] = JSON.parse(JSON.stringify(src[index]));
+			}
+			else if ((typeof src[index]) == "boolean") result[index] = src[index];
+			else if ((typeof src[index]) == "number") result[index] = src[index];
+			else if ((typeof src[index]) == "string") result[index] = src[index];
+			else if ((typeof src[index]) == "boolean") result[index] = src[index];
+			else if ((typeof src[index]) == "symbol") result[index] = src[index];
+			else if ((typeof src[index]) == "function") result[index] = src[index];
+		}
+	}
+	return result;
+};
+
+
 exports.get_date_or_stated_date = function(record, debug_msg) {
 	var stated_date_enable = false;
 	var stated_date = null;
@@ -530,37 +561,7 @@ exports.get_date_or_stated_date = function(record, debug_msg) {
 	return result;
 };
 
-exports.safe_equals_ci = function(par1, par2) {
-	if ((par1!==null)&&(par2!==null)&&(par1!==undefined)&&(par2!==undefined)&&(par1===par1)&&(par2===par2)) { ///=== to ensure is not NaN
-		if ((typeof par1)!="string") par1 = ""+par1;
-		if ((typeof par2)!="string") par2 = ""+par2;
-		par1=par1.trim().toLowerCase();
-		par2=par2.trim().toLowerCase();
-		return par1==par2;
-	}
-	return false;
-};
-
-exports.single_level_copy = function(src) {
-	result = {};
-	for (var index in src) {
-		if ( ((typeof src[index])!=="undefined") ){
-			if ((typeof src[index]) == "object") {
-				if (src[index]===null) result[index]=null;
-				else result[index] = JSON.parse(JSON.stringify(src[index]));
-			}
-			else if ((typeof src[index]) == "boolean") result[index] = src[index];
-			else if ((typeof src[index]) == "number") result[index] = src[index];
-			else if ((typeof src[index]) == "string") result[index] = src[index];
-			else if ((typeof src[index]) == "boolean") result[index] = src[index];
-			else if ((typeof src[index]) == "symbol") result[index] = src[index];
-			else if ((typeof src[index]) == "function") result[index] = src[index];
-		}
-	}
-	return result;
-};
-
-exports.get_time_or_stated_time = function(record) {
+exports.get_time_or_stated_time = function(record, debug_msg) {
 	var result = null;
 	if ("stated_time" in record) {
 		var good_time = exports.good_time_string(record.stated_time);
@@ -574,7 +575,7 @@ exports.get_time_or_stated_time = function(record) {
 			//	result = moment().format("YYYY-MM-DD") + " " + good_time;
 			//}
 		}
-		else console.log("WARNING: ignored bad stated_time "+record.stated_time+" in "+get_time_or_stated_time);
+		else console.log("WARNING: ignored bad stated_time "+record.stated_time+" in "+get_time_or_stated_time+" for "+debug_msg);
 	}
 	var NaN_warning_enable = true;
 	if ((result===null) || (result.indexOf("NaN")>-1)) {
@@ -586,12 +587,12 @@ exports.get_time_or_stated_time = function(record) {
 			if ("stated_date" in record) key_msg += " stated_date:"+record.key;
 			else if ("ctime" in record) key_msg += " date():"+record.ctime.substring(0,10);
 			if (key_msg.length===0) key_msg = JSON.stringify(record);
-			console.log("WARNING: got NaN in get_time_or_stated_time for stated_time in record "+key_msg);
+			console.log("WARNING: got NaN in get_time_or_stated_time for stated_time in record "+key_msg+" for "+debug_msg);
 			NaN_warning_enable = false;
 		}
 		if ("time" in record) {
 			result = record.time;
-			if (result.indexOf("NaN")>-1) console.log("WARNING: got NaN in get_time_or_stated_time for time in record "+JSON.stringify(record));
+			if (result.indexOf("NaN")>-1) console.log("WARNING: got NaN in get_time_or_stated_time for time in record "+JSON.stringify(record)+" for "+debug_msg);
 		}
 	}
 	//if (result !== null) {
