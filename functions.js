@@ -1,13 +1,13 @@
 var bcrypt = require('bcryptjs'),
-    Q = require('q'),
-    config = require('./data/config.js'); //config file contains all tokens and other private info
+		Q = require('q'),
+		config = require('./data/config.js'); //config file contains all tokens and other private info
 fs = require('fs');
 
 ////// POLYFILLS //////
 
 String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
-    return target.split(search).join(replacement);
+		var target = this;
+		return target.split(search).join(replacement);
 };
 
 ////// PASSPORT //////
@@ -17,15 +17,13 @@ if (!config.mongodbHost) config.mongodbHost = "127.0.0.1";
 var mongodbUrl = 'mongodb://' + config.mongodbHost + ':27017/users';
 var MongoClient = require('mongodb').MongoClient;
 
-
-
 //used in local-signup strategy
 exports.localReg = function (username, password) {
-  var deferred = Q.defer();
-  if (username) {
-    if (password) {
-        username = username.toLowerCase();
-        MongoClient.connect(mongodbUrl, function (err, db) {
+	var deferred = Q.defer();
+	if (username) {
+		if (password) {
+				username = username.toLowerCase();
+				MongoClient.connect(mongodbUrl, function (err, db) {
 		if (db) {
 			var collection = db.collection('localUsers');
 			//check if username is already assigned in our database
@@ -35,8 +33,8 @@ exports.localReg = function (username, password) {
 					console.log("USERNAME ALREADY EXISTS:", result.username);
 					//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead--removing the collection removes all users)
 					//if (result.username=="attendance") {
-					//    console.log("DELETING attendance");
-					//    collection.remove(); //removes all users!
+					//		console.log("DELETING attendance");
+					//		collection.remove(); //removes all users!
 					//}
 					deferred.resolve(false); // username exists
 				}
@@ -65,54 +63,62 @@ exports.localReg = function (username, password) {
 			console.log("localReg CANNOT CONNECT TO DATABASE: " + user.error);
 			deferred.resolve(user);
 		}
-        });
-    }
-    else {
-        console.log("localReg: MISSING PASSWORD");
-        deferred.resolve(false);
-    }
-  }
-  else {
-    console.log("localReg: MISSING USERNAME");
-    deferred.resolve(false);
-  }
+				});
+		}
+		else {
+				console.log("localReg: MISSING PASSWORD");
+				deferred.resolve(false);
+		}
+	}
+	else {
+		console.log("localReg: MISSING USERNAME");
+		deferred.resolve(false);
+	}
 
-  return deferred.promise;
+	return deferred.promise;
 };
 
 //check if user exists
-    //if user exists check if passwords match (use bcrypt.compareSync(password, hash); // true where 'hash' is password in DB)
-      //if password matches take into website
-  //if user doesn't exist or password doesn't match tell them it failed
+		//if user exists check if passwords match (use bcrypt.compareSync(password, hash); // true where 'hash' is password in DB)
+			//if password matches take into website
+	//if user doesn't exist or password doesn't match tell them it failed
 exports.localAuth = function (username, password) {
-  var deferred = Q.defer();
-  MongoClient.connect(mongodbUrl, function (err, db) {
-    var collection = db.collection('localUsers');
-    if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
-    collection.findOne({'username' : username})
-      .then(function (result) {
-        if (null === result) {
-          console.log("USERNAME NOT FOUND:", username);
-
-          deferred.resolve(false);
-        }
-        else {
-          var hash = result.password;
-
-          console.log("FOUND USER: " + result.username);
-
-          if (bcrypt.compareSync(password, hash)) {
-            deferred.resolve(result);
-          } else {
-            console.log("AUTHENTICATION FAILED");
-            deferred.resolve(false);
-          }
-        }
-
-        db.close();
-      });
-  });
-  return deferred.promise;
+	var deferred = Q.defer();
+	MongoClient.connect(mongodbUrl, function (err, db) {
+		if (db) {
+			var collection = db.collection('localUsers');
+			if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
+			collection.findOne({'username' : username})
+				.then(function (result) {
+					if (null === result) {
+						console.log("USERNAME NOT FOUND:", username);
+						deferred.resolve(false);
+					}
+					else {
+						var hash = result.password;
+						console.log("FOUND USER: " + result.username);
+						if (bcrypt.compareSync(password, hash)) {
+							deferred.resolve(result);
+						} else {
+							console.log("AUTHENTICATION FAILED");
+							deferred.resolve(false);
+						}
+					}
+					db.close();
+				});
+		}
+		else {
+			//var result = {};
+			//console.log("")
+			console.log("ERROR: Database connection failed. Make sure mongodb-server package is installed and mongod is running: systemctl start mongod && systemctl status mongod");
+			var msg = "Database connection failed. Error details were saved to server console.";
+			//err.body = msg;
+			//deferred.reject(err);  // also works, but Error object is recommended by q
+			//see
+			deferred.reject(new Error(msg));
+		}
+	});
+	return deferred.promise;
 };
 
 
@@ -152,27 +158,27 @@ exports.param_info = function(params, name, source) {
 //from mtomis on <https://stackoverflow.com/questions/6831918/node-js-read-a-text-file-into-an-array-each-line-an-item-in-the-array> edited May 22 '12 at 11:42. 30 Jan 2018.
 //(func can be a function that does nothing, or a callback)
 function readLines(input, func) {
-  var remaining = '';
+	var remaining = '';
 
-  input.on('data', function(data) {
-    remaining += data;
-    var index = remaining.indexOf('\n');
-    var last  = 0;
-    while (index > -1) {
-      var line = remaining.substring(last, index);
-      last = index + 1;
-      func(line);
-      index = remaining.indexOf('\n', last);
-    }
+	input.on('data', function(data) {
+		remaining += data;
+		var index = remaining.indexOf('\n');
+		var last	= 0;
+		while (index > -1) {
+			var line = remaining.substring(last, index);
+			last = index + 1;
+			func(line);
+			index = remaining.indexOf('\n', last);
+		}
 
-    remaining = remaining.substring(last);
-  });
+		remaining = remaining.substring(last);
+	});
 
-  input.on('end', function() {
-    if (remaining.length > 0) {
-      func(remaining);
-    }
-  });
+	input.on('end', function() {
+		if (remaining.length > 0) {
+			func(remaining);
+		}
+	});
 }
 
 exports.to_object = function(body) {
@@ -344,30 +350,30 @@ exports.splitext = function(path) {
 //function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017.
 //var array_contains = function(needle) {
 exports.array_contains = function(needle) {
-    // Per spec, the way to identify NaN is that it is not equal to itself
-    var findNaN = needle !== needle;
-    var indexOf;
+		// Per spec, the way to identify NaN is that it is not equal to itself
+		var findNaN = needle !== needle;
+		var indexOf;
 
-    if(!findNaN && typeof Array.prototype.indexOf === 'function') {
-        indexOf = Array.prototype.indexOf;
-    } else {
-        indexOf = function(needle) {
-            var i = -1, index = -1;
+		if(!findNaN && typeof Array.prototype.indexOf === 'function') {
+				indexOf = Array.prototype.indexOf;
+		} else {
+				indexOf = function(needle) {
+						var i = -1, index = -1;
 
-            for(i = 0; i < this.length; i++) {
-                var item = this[i];
+						for(i = 0; i < this.length; i++) {
+								var item = this[i];
 
-                if((findNaN && item !== item) || item === needle) {
-                    index = i;
-                    break;
-                }
-            }
+								if((findNaN && item !== item) || item === needle) {
+										index = i;
+										break;
+								}
+						}
 
-            return index;
-        };
-    }
+						return index;
+				};
+		}
 
-    return indexOf.call(this, needle) > -1;
+		return indexOf.call(this, needle) > -1;
 };
 //used like:
 //fun = require('./functions.js');
@@ -388,7 +394,7 @@ exports.get_human_delimited_values = function(input_string) {
 			//console.log("[ get_human_delimited_values ] removed:");
 			while (exports.contains(input_string,",,")) {
 				input_string = input_string.replaceAll(",,", ",");
-				//console.log("  * ',,'");
+				//console.log("	* ',,'");
 			}
 			if ((input_string.substring(input_string.length-1)==",")) input_string = input_string.substring(0,input_string.length-1);
 			if (input_string.substring(0,1)==",") input_string = input_string.substring(1);
@@ -460,15 +466,15 @@ exports.good_time_string = function(human_written_time_string) {
 					minute = parseInt(input_lower.substring(2));
 				}
 			}
-			else {  //if (input_lower.length==1 || input_lower.length==2) {
+			else {	//if (input_lower.length==1 || input_lower.length==2) {
 				hour = n;
 				minute = 0;
 			}
 		}
 		if (hour !== null) {
 			if (hour==12) {
-				if (hour_adder==12) hour_adder=0;  // 12pm is 12 not 24
-				else hour_adder = -12;  // 12am is 0 not 12
+				if (hour_adder==12) hour_adder=0;	// 12pm is 12 not 24
+				else hour_adder = -12;	// 12am is 0 not 12
 			}
 			hour += hour_adder;
 			var h_str = hour.toString();
@@ -532,7 +538,7 @@ exports.get_date_or_stated_date = function(record, debug_msg) {
 					var original_stated_date = stated_date;
 					stated_date = stated_date.substring(6) + "-" + stated_date.substring(0,2) + "-" + stated_date.substring(3,5);
 					stated_date_enable = true;
-					console.log("  * NOTE: ("+debug_msg+") converted date " + original_stated_date + " to " + stated_date);
+					console.log("	* NOTE: ("+debug_msg+") converted date " + original_stated_date + " to " + stated_date);
 				}
 				else if ( stated_date.substring(4,5)=="-" &&
 							stated_date.substring(7,8)=="-" &&
@@ -542,9 +548,9 @@ exports.get_date_or_stated_date = function(record, debug_msg) {
 					) {
 					stated_date_enable = true;
 					//if ((!("ctime" in record)) || (record.ctime.substring(0,10)!=stated_date.trim())) //commented for debug only
-						console.log("  * NOTE: ("+debug_msg+") using stated_date " + stated_date + " for " + (("ctime" in record)?record.ctime+" ":"") + record.key);
+						console.log("	* NOTE: ("+debug_msg+") using stated_date " + stated_date + " for " + (("ctime" in record)?record.ctime+" ":"") + record.key);
 				}
-				else console.log("  * WARNING: ("+debug_msg+") skipped bad stated_date "+stated_date+" in get_date_or_stated_date");
+				else console.log("	* WARNING: ("+debug_msg+") skipped bad stated_date "+stated_date+" in get_date_or_stated_date");
 			}
 		}
 	}
@@ -555,7 +561,7 @@ exports.get_date_or_stated_date = function(record, debug_msg) {
 				 (record.ctime.substring(7,8)=="-") ) {
 				result = record.ctime.substring(0,10);
 			}
-			else console.log("  * WARNING: skipped custom ctime "+record.ctime+" in get_date_or_stated_date");
+			else console.log("	* WARNING: skipped custom ctime "+record.ctime+" in get_date_or_stated_date");
 		}
 	}
 	return result;
@@ -616,13 +622,13 @@ exports.is_blank = function (str) {
 	//if trimmed to a blank string, then is blank
 	//not equal to self implies value is NaN in str!==str below--NaN is considered not blank.
 	//regarding non-string tests below, see similar topic: https://stackoverflow.com/questions/19839952/all-falsey-values-in-javascript
-	//                                                                                                to check for NaN, MUST DO (str!==str)
-	return (   ( (typeof(str)=="string") && str.trim()==="" )   ||   (  (!str) && (str!==false) && (str!==0) && (str!==-0) && (!(str!==str))  )   );
-	//return str===null  ||  str.trim  &&  (  || (str.trim()==="") ); //|| (str===undefined) || (str===null) || (str==="")
+	//																																																to check for NaN, MUST DO (str!==str)
+	return (	 ( (typeof(str)=="string") && str.trim()==="" )	 ||	 (	(!str) && (str!==false) && (str!==0) && (str!==-0) && (!(str!==str))	)	 );
+	//return str===null	||	str.trim	&&	(	|| (str.trim()==="") ); //|| (str===undefined) || (str===null) || (str==="")
 	//if (typeof(str)=="string") console.log("[ verbose message ] is string:");
 	//else console.log("[ verbose message ] is not string:");
-	//if (result) console.log("  [ verbose message ] is blank: "+str);
-	//else console.log("  [ verbose message ] is not blank: "+str);
+	//if (result) console.log("	[ verbose message ] is blank: "+str);
+	//else console.log("	[ verbose message ] is not blank: "+str);
 	//return result;
 };
 
@@ -643,7 +649,7 @@ else if (!exports.is_true(config.visual_debug_enable)) console.log("visual_debug
 
 exports.is_not_blank = function (str) {
 	//return str && str.trim();
-    return !exports.is_blank(str);
+	return !exports.is_blank(str);
 };
 
 exports.to_ecmascript_value = function (val) {

@@ -1,6 +1,6 @@
 # IntegratorEdu
 Tracker for learning community micro events (changes or interactions that occur more frequently than once a day)
-http://github.com/expertmm/integratoredu
+http://github.com/poikilos/integratoredu
 
 This web app is under heavy development. Please use a release version (releases are, however, not production ready) by clicking "release(s)" above.
 For release notes, see a release or the "etc" folder.
@@ -32,7 +32,7 @@ chmod +x ./etc/startiedu  # this only has to be done once
 ./etc/startiedu
 ```
 * install mongodb
-* mongodb may not start automatically, in which case you must start the service. `chmod +x ./etc/mongo-start && ./etc/mongo-start` may or may not work for you depending on your linux distro. Run the command again after restart or enable mongodb to run on startup using your services tool for your operating system.
+* mongodb may not start automatically, in which case you must start the service. `bash ./etc/mongo-start` may or may not work for you depending on your linux distro. Run the command again after restart or enable mongodb to run on startup using your services tool for your operating system.
 
 ### Universal post-install steps (required)
 * make a data folder in same folder as app.js
@@ -90,7 +90,7 @@ module.exports = {
 				* print the page for your records (Ctrl P, then choose a printer, or for PDF, choose Print to PDF and save it)--this is your report, so like with any report, it should be printed or saved for your financial records. Each Invoice (per family id) will appear on a separate page.
 				* The last page will list remaining issues:
 					* manually-entered times are converted to 24-hr time. You may need to verify these, but this is not a problem unless you suspect that manual entries were abused or entered incorrectly. If the manually entered date (+12 if PM) differs from the 24-hr date, please create an issue on the
-					developer's website: <http://www.github.com/expertmm/integratoredu> (if doesn't already appear in the "Issues" tab).
+					developer's website: <https://github.com/poikilos/integratoredu/issues> (if issue doesn't already appear in the "Issues" tab--if appears after clicking Closed, then update your copy such as using `git pull` in integratoredu directory).
 		* If you find a bug:
 			* go to <http://www.github.com/expertmm/integratoredu>
 			* before entering an issue, search for the issue under "Known Issues" in the README.md and see if the problem is considered minor (is preceded by "(~)") and if so there is no need to report the issue--long-term requests will be considered at a future date.

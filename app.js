@@ -1,4 +1,13 @@
 //index.js/
+try {
+    var express_path = require.resolve("express");
+} catch(e) {
+    console.error("express is not found");
+    console.error("make sure npm is installed");
+    console.error("then run `npm install` from the project directory")
+    console.error("to install required packages")
+    process.exit(e.code);
+}
 var express = require('express'),
 	exphbs = require('express-handlebars'),
 	logger = require('morgan'),
@@ -861,19 +870,29 @@ passport.use('local-login', new LocalStrategy(
 	function(req, username, password, done) {
 		fun.localAuth(username, password)
 		.then(function (user) {
+			//if (user && user.error) {
+				//req.session.error = user.error;
+				//done(null, null);
+			//}
+			//else if (user) {
 			if (user) {
 				console.log("* LOGGED IN AS: " + user.username);
 				//req.session.success = 'You are successfully logged in ' + user.username + '!';
 				done(null, user);
 			}
-			if (!user) {
+			else {
 				console.log("* COULD NOT LOG IN");
-				req.session.error = 'Could not log user in. Please try again.'; //inform user could not log them in
+				req.session.error = 'Username or password incorrect.'; //inform user could not log them in
 				done(null, user);
 			}
 		})
 		.fail(function (err){
-			console.log("* FAILED during login: " + err.body);
+			console.log("* FAILED during login: ", err);  // shows everything including stack trace
+			// console.log("* FAILED during login: " + err.message);  // see https://github.com/kriskowal/q/issues/238
+			console.log("")
+			console.log("")
+			req.session.error = err.message;  // use .message (not .body) since err is Error object (deferred.reject in functions.js)
+			done(null, null)
 		});
 	}
 ));
@@ -1747,7 +1766,7 @@ function _write_record_as_is(req_else_null, unit, section, category, dataset_nam
 					if (!fsc[unit][section][category].hasOwnProperty(dataset_name))
 						fsc[unit][section][category][dataset_name] = {};
 					var msg = "Saved entry for "+out_time_string.substring(0,2) + ":" + out_time_string.substring(2,4) + ":" + out_time_string.substring(4,6);
-					
+
 					if (fun.is_not_blank(y_dir_name)) {
 						if (!fsc[unit][section][category][dataset_name].hasOwnProperty(y_dir_name)) {
 							fsc[unit][section][category][dataset_name][y_dir_name] = {};
@@ -1905,7 +1924,7 @@ function get_billing_cycle_selector(unit, section, category, dataset_name, selec
 			if (cen!=selected_number) ret += '<a href="'+config.proxy_prefix_then_slash+'?'+
 				'unit='+unit+
 				'&section='+section+
-				'&category=transactions'+ //NOTE: specify transactions since value of category variable is "tables" now since showing the BillingCycle table 
+				'&category=transactions'+ //NOTE: specify transactions since value of category variable is "tables" now since showing the BillingCycle table
 				'&selected_year='+selected_year+
 				'&selected_month=(none)'+
 				'&selected_day=(none)'+
@@ -2855,7 +2874,7 @@ var hbs = exphbs.create({
 															if (ctime!==null) original_item.tmp["=get_origin_date()"] = ctime;
 														}
 													}
-													
+
 													if (!original_item.tmp.hasOwnProperty("date")) {
 														original_item.tmp.date = fun.get_date_or_stated_date(original_item, item_key+" in month view");
 														if (original_item.tmp.date===null) original_item.tmp.date = selected_year + "-" + selected_month + "-" + this_day; //pre-0.1.0 where date wasn't saved
@@ -2883,7 +2902,7 @@ var hbs = exphbs.create({
 																this_item.tmp.year = year; // padded version same for whole method
 																this_item.tmp.month = month; // padded version same for whole method
 																this_item.tmp.day = this_day; // padded version from loop (since unlike this_day, day is same for whole method)
-																console.log("(debug only in show_reports) CACHED .year "+year+" .month "+month+" .day "+this_day+" for "+item_key); 
+																console.log("(debug only in show_reports) CACHED .year "+year+" .month "+month+" .day "+this_day+" for "+item_key);
 															}
 															else console.log("ERROR in show_reports: bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
 														}
@@ -3036,7 +3055,7 @@ var hbs = exphbs.create({
 									}
 									d_path = m_path+"/"+item.tmp.day;
 									if (fun.is_blank(item.tmp.day)) {
-										console.log("[   ] cache ERROR in show_reports: tmp.day is "+item.tmp.day+" for "+item_key); 
+										console.log("[   ] cache ERROR in show_reports: tmp.day is "+item.tmp.day+" for "+item_key);
 									}
 									item_path = d_path+"/"+item.key;
 									//console.log();
@@ -4085,7 +4104,7 @@ var hbs = exphbs.create({
 						if (force_date_enable) {
 							ret += "<td>"+i_date+"</td>\n";
 						}
-						for (field_i=0; field_i<f_len; field_i++) { 
+						for (field_i=0; field_i<f_len; field_i++) {
 							field_key = fields[field_i];
 							ret += "<td>"+"\n";
 							if (field_key.substring(0,1)=="=") {
@@ -4266,7 +4285,7 @@ app.get('/', function(req, res){
 	check_settings();
 	if (req.method=='PUT' || req.method=='POST') {
 		console.log("ERROR: bad method " + req.method + " in route /");
-	}	
+	}
 
 	var user_sections = [];
 	var user_modes_by_section = {};
@@ -5017,9 +5036,9 @@ app.post('/change-microevent-field', function(req, res){
 				}
 				else {
 					var msg = 'Skipping change to field since '+item_path+' does not exist.';
-					console.log(msg); 
+					console.log(msg);
 					//if (!req.body.selected_year) {
-						console.log("(debug only in /change-microevent-field) req.body: " + JSON.stringify(req.body)); 
+						console.log("(debug only in /change-microevent-field) req.body: " + JSON.stringify(req.body));
 					//}
 					req.session.error = msg;
 				}
@@ -5668,7 +5687,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 		//maybe body (not derived from object so no hasOwnProperty)
 		unit = params_dict.unit;
 	}
-	
+
 	var file_key = null;
 	var script_msg = "";
 	var attributes = [];
