@@ -77,36 +77,91 @@ exports.localReg = function (username, password) {
 	return deferred.promise;
 };
 
-exports.userExists = function(username) {
-	var deferred = Q.defer();
-	MongoClient.connect(mongodbUrl, function (err, db) {
-		if (err) {
-			console.log("ERROR in userExists: db connect said: ", err);
-		}
-		if (db) {
-			var collection = db.collection('localUsers');
-			if (username!==null && username!==undefined && username.length>0) {
-				username = username.toLowerCase();
-				collection.findOne({'username' : username})
-				.then(function (result) {
-					if (null === result) {
-						deferred.resolve({username:username, found:false});
-					}
-					else {
-						deferred.resolve({found:true});
-					}
-					db.close();
-				});
+// Display list of all users.
+// see <https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/Displaying_data/Author_list_page#Controller>
+//exports.userList = function(req, res, next) {
+// [uses a mongoose Schema]
+  //Author.find()
+    //.sort([['family_name', 'ascending']])
+    //.exec(function (err, list_authors) {
+      //if (err) { return next(err); }
+      ////Successful, so render
+      //res.render('author_list', { title: 'Author List', author_list: list_authors });
+    //});
+
+//};
+exports.userExistsJSON = function(req, res, username) {
+	MongoClient.connect(
+		mongodbUrl,
+		function (err, db) {
+			var results = {};
+			results.error = "did not finish";
+			if (db) {
+				if (username!==null && username!==undefined && username.length>0) {
+					var collection = db.collection('localUsers');
+					username = username.toLowerCase();
+					collection.findOne({'username' : username})
+					.then(function (result) {
+						if (null === result) {
+							results.message = "not present";
+							delete results.error;
+						}
+						else {
+							results.message = "present"; //present
+							delete results.error;
+						}
+						results.username = username;
+						return res.send(JSON.stringify(results));
+					});
+				}
+				else {
+					results.error = "blank username";
+					results.username = username;
+					return res.send(JSON.stringify(results));
+				}
 			}
 			else {
-				console.log("ERROR in userExists: blank username");
-				deferred.resolve({username:username, found:false, error:'blank username'});
+				results.error = "database connection failed";
+				results.username = username;
+				return res.send(JSON.stringify(results));
 			}
 		}
-		else {
-			deferred.reject(new Error('database connection failed'));
+	)
+}
+
+exports.userExists = function(username) {
+	var deferred = Q.defer();
+	MongoClient.connect(
+		mongodbUrl,
+		function (err, db) {
+			if (err) {
+				console.log("ERROR in userExists: db connect said: ", err);
+			}
+			if (db) {
+				var collection = db.collection('localUsers');
+				if (username!==null && username!==undefined && username.length>0) {
+					username = username.toLowerCase();
+					collection.findOne({'username' : username})
+					.then(function (result) {
+						if (null === result) {
+							deferred.resolve({username:username, found:false});
+						}
+						else {
+							deferred.resolve({found:true});
+						}
+					});
+				}
+				else {
+					console.log("ERROR in userExists: blank username");
+					deferred.resolve({username:username, found:false, error:'blank username'});
+				}
+				db.close();
+			}
+			else {
+				deferred.reject(new Error('database connection failed'));
+			}
 		}
-	});
+	);
 	return deferred.promise;
 };
 
@@ -151,13 +206,13 @@ exports.localAuth = function (username, password) {
 						deferred.resolve({error:'bad password'});
 					}
 				}
-				db.close();
 			});
 			// below causes exception: fail is not a function
 			//.fail(function (result, result2) {
 			//	console.log("DATABASE FAILED (findOne fail)");
 			//	deferred.reject(new Error('bad password'));
 			//});
+			db.close();
 		}
 		else {
 			//var result = {};

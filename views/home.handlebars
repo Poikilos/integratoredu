@@ -8,17 +8,129 @@
         {{/if_is_any_form_mode}}
         {{/createGroupContains}}
 		{{#readGroupContains unit section user.username}}
-		{{#isOnlyEmployeeReadSection section}}
-		<div style="size:.8em; color:darkgray">Permission to view {{section}} history should only be given to employees.
-		</div>
-		{{/isOnlyEmployeeReadSection}}
-	{{else}}
-		{{#modifyGroupContains section user.username}}
-		{{#isOnlyEmployeeModifySection section}}
-		<div style="size:.8em; color:darkgray">Permission to modify {{section}} should only be given to employees.
-		</div>
-		{{/isOnlyEmployeeModifySection}}
-		{{/modifyGroupContains}}
+		  {{#groupContains "admin" @root.user.username}}
+		    {{#if permitted_users}}
+		    <p id="permitted_user_status"></p>
+		    Permitted users (must always exist, unless groups.yml is changed to exclude them):
+		    <ul>
+			{{#each permitted_users}}
+			<li name="permitted_user_{{@index}}" id="permitted_user_{{@index}}">{{this}}</li>
+			{{/each}}
+			</ul>
+			<script>
+				var element = true;
+				var i = 0;
+				var users = {};
+				while (element) {
+					var id = "permitted_user_" + i;
+					element = document.getElementById(id);
+					if (element) {
+						var user = {doc_id:id, doc_i:i, username:element.innerHTML};
+						users[user.username] = user;
+						var request = new XMLHttpRequest();
+						// do NOT start relative path with '/' (see <https://stackoverflow.com/questions/5092352/relative-path-problems-in-javascript-ajax-call>)
+						request.open('GET', "userExists?username="+user.username, true);
+						console.log("creating request for user " + user.username);
+						request.onload = function() {
+							var ret="";
+							if (request.status >= 200 && request.status < 400) {
+								//"AJAJ" is harder to say than AJAX, but use json as the data format:
+								var status_element = document.getElementById("permitted_user_status");
+								//status_element.innerHTML = "parsing: " + String(request.responseText);
+								var data_enable = false;
+								try {
+									//next line results in: `JSON.parse: unexpected end of data at line 1 column 1 of the JSON data`
+									var results = JSON.parse(request.responseText);
+									//adddlert("Welcome guest!");
+									data_enable = true;
+									console.log("(verbose message) parsed responseText '" + String(request.responseText) + "': " + err.message);
+								}
+								catch(err) {
+									//document.getElementById("demo").innerHTML = err.message;
+									if (err) {
+										console.log("ERROR while processing responseText '" + String(request.responseText) + "': " + String(err.message));
+									}
+									else console.log("ERROR while processing responseText '" + String(request.responseText) + "': (no error)");
+								}
+								//var results = request.responseText;
+								// element is not available anymore since we are in a callback, so get it again:
+								if (data_enable) {
+									var user_element = null;
+									if (results.username) {
+										if (users) {
+											console.log("loading element for user " + results.username);
+											user_element = document.getElementById(users[results.username].doc_id);
+											//if (results.error) {
+											//	user_element.innerHTML = results.error;
+											//}
+											//else {
+											//	user_element.innerHTML = results.message;
+											//}
+											//var status_element = document.getElementById("permitted_user_status");
+											//status_element.innerHTML = "read user " + results.username;
+										}
+										else {
+											console.log("users is not available while checking user " + results.username);
+										}
+									}
+									if (user_element) {
+										if (results.error) {
+											user_element.innerHTML += " (" + results.error + ")";
+										}
+										else {
+											user_element.innerHTML += " (" + results.message + ")";
+										}
+									}
+									else {
+										console.log("user_element is not available while checking user " + String(results.username));
+									}
+								}
+								//else error logged to browser already
+							}
+							else {
+								//var status_element = document.getElementById("permitted_user_status");
+								console.log("server did not respond with data: " + JSON.stringify(request));
+							}
+						}
+						request.onerror = function() {
+							//element is not available anymore since we are in a callback, so get it again:
+							var element = null;
+							if (results.username) {
+								if (users) {
+									element = document.getElementById(users[results.username].doc_id);
+								}
+								else {
+									var status_element = document.getElementById("permitted_user_status");
+									status_element.innerHTML = "users is not available";
+								}
+							}
+							if (element) {
+								element.innerHTML += " (could not reach server)";
+							}
+							else {
+								var status_element = document.getElementById("permitted_user_status");
+								status_element.innerHTML = "element is not available";
+							}
+						}
+						request.send();
+						//element.innerHTML += " (not created yet)";
+					}
+					i++;
+				}
+			</script>
+			{{/if}}
+		  {{/groupContains}}
+		  {{#isOnlyEmployeeReadSection section}}
+		  <div style="size:.8em; color:darkgray">Permission to view {{section}} history should only be given to employees.
+		  </div>
+		  {{/isOnlyEmployeeReadSection}}
+	    {{else}}
+		  {{#modifyGroupContains section user.username}}
+		  {{#isOnlyEmployeeModifySection section}}
+		  <div style="size:.8em; color:darkgray">Permission to modify {{section}} should only be given to employees.
+		  </div>
+		  {{/isOnlyEmployeeModifySection}}
+		  {{/modifyGroupContains}}
 		{{/readGroupContains}}
 	{{/if}}
 	{{#if_eq mode "read"}}

@@ -1004,10 +1004,14 @@ app.use(function(req, res, next){
 		success = req.session.success,
 		setup_banner = req.session.setup_banner,
 		missing_users = req.session.missing_users;
-
+	var missing_users_length = null;
+	if (missing_users) {
+		missing_users_length = missing_users.length;
+	}
+	console.log("(verbose message in message middleware) req.session.missing_users.length:", missing_users_length);
 	delete req.session.error;
 	delete req.session.setup_banner;
-	delete req.session.missing_users;
+	//delete req.session.missing_users;
 	delete req.session.success;
 	delete req.session.notice;
 
@@ -2610,6 +2614,9 @@ var hbs = exphbs.create({
 			}
 			var table_info = get_dataset_info(unit, section, category, dataset_name);
 			///TODO: eliminate years, months, days
+			if (section == 'admin') {
+				ret += '<p>ERROR: show_reports should not have been called (This is the admin section--there is no data to be displayed)</p>';
+			}
 			if (table_info.enable) {
 				if (user_has_section_permission(unit, username, section, mode)) {
 					if (has_setting(unit, section+".sheet_fields")) {
@@ -4704,7 +4711,7 @@ app.get('/', function(req, res){
 	if (req.session.runme) console.log("runme: "+req.session.runme);
 	var user_selectable_modes = null;
 	if (section && user_modes_by_section && user_modes_by_section.hasOwnProperty(section)) user_selectable_modes = user_modes_by_section[section];
-	res.render('home', {user: req.user, unit: unit, section: section, category: category, dataset_name: dataset_name, runme: req.session.runme, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_number: selected_number, section_report_edit_field: req.session.section_report_edit_field, selected_item_key: selected_item_key, sections: user_sections, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	res.render('home', {user: req.user, unit: unit, section: section, permitted_users: get_all_permitted_users(), category: category, dataset_name: dataset_name, runme: req.session.runme, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_number: selected_number, section_report_edit_field: req.session.section_report_edit_field, selected_item_key: selected_item_key, sections: user_sections, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
 	delete req.session.runme;
 });
 
@@ -4763,7 +4770,7 @@ app.post('/autofill-query', function(req, res){
 						console.log(msg);
 						req.session.error=msg;
 					}
-					if (dataset_path !== null) { //asdf dataset_path is undefined
+					if (dataset_path !== null) { //TODO: asdf dataset_path is undefined
 						var y_path = dataset_path + "/" + req.body.selected_year;
 						var m_path = y_path + "/" + req.body.selected_month;
 						//if (fs.existsSync(m_path)) {
@@ -5459,7 +5466,7 @@ app.get('/reload-settings', function(req, res){
 	if (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username)) {
 		ptcache = {};
 		var pt_msg = "; and emptied plain text file cache";
-		//if (req.query.asdf=="reload-settings") {
+		//TODO: ? if (req.query. ???? =="reload-settings") {
 		if (fs.existsSync(settings_path)) {
 			_settings = yaml.readSync(settings_path, "utf8");
 			var time_msg = moment().format("HH:mm:ss");
@@ -5639,6 +5646,15 @@ function do_track(params) {
 	return results;
 }//end do_track
 
+app.get('/userExists', function(req, res) {
+	//equivalent in php that works: header('Content-Type: application/json; charset=utf-8');
+	res.type('application/json');  //or text/plain
+	//res.type('text/plain');
+	// res.setHeader("content-type", "text/plain");
+	fun.userExistsJSON(req, res, req.query.username); //MUST call res.send
+});
+
+//TODO: change to JSON
 app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see also show_status helper
 	var results = do_track(req.query);
 	res.type('text/plain');  // res.setHeader("content-type", "text/plain");
@@ -6329,7 +6345,7 @@ app.post('/login', function(req, res, next) {
 				req.session.missing_users = [];
 				//req.session.missing_users.push('admin');
 				all_users = get_all_permitted_users();
-
+				//this only happens if admin doesn't exist--done again in case admin logs in (see further down)
 				//for (var this_username in all_users) {
 				for (var user_i=0; user_i<all_users.length; user_i++) {
 					var this_username = all_users[user_i];
@@ -6337,8 +6353,11 @@ app.post('/login', function(req, res, next) {
 					fun.userExists(this_username)
 					.then(function(result) {
 						if (!result.found) {
-							console.log("WARNING: need to create user which already has permissions: ", result.username);
+							console.log("WARNING in bad username case: need to create user which already has permissions: ", result.username);
 							//TODO: the following fails since it is set later than the page loads (create a json route so an XMLHttpRequest can check this list, and remove the list from the messaging middleware so it isn't erased):
+							if (!req.session.missing_users) {
+								console.log("  (missing users list was not present)");
+							}
 							if (req.session.missing_users.indexOf(result.username) < 0) {
 								req.session.missing_users.push(result.username);
 							}
@@ -6364,6 +6383,49 @@ app.post('/login', function(req, res, next) {
 			console.log("")
 			console.log("")
 			return next(err);
+		}
+		// else login SUCCESS
+		if (user.username=='admin') {
+			// admin login SUCCESS
+			all_users = get_all_permitted_users();
+			req.session.missing_users = [];
+			for (var user_i=0; user_i<all_users.length; user_i++) {
+				var this_username = all_users[user_i];
+				//if (all_users.hasOwnProperty(this_username)) {
+				fun.userExists(this_username)
+				.then(function(result) {
+					if (!result.found) {
+						console.log("WARNING in admin login success case: need to create user which already has permissions: ", result.username);
+						//TODO: the following fails since it is set later than the page loads (create a json route so an XMLHttpRequest can check this list, and remove the list from the messaging middleware so it isn't erased):
+						//req.session.missing_users becomes res.locals.missing_users via middleware (see above)
+						//if (result.hasOwnProperty('req')) {
+							//var req = result.req;
+							if (!req) {
+								console.log("  (missing req)");
+							}
+							else if (!req.session) {
+								console.log("  (missing session)");
+							}
+							else if (!req.session.missing_users) {
+								console.log("  (missing missing_users list)");
+							}
+							else {
+								console.log("  (detected missing_users list)");
+							}
+							if (req.session.missing_users.indexOf(result.username) < 0) {
+								req.session.missing_users.push(result.username);
+							}
+						//}
+						//else console.log("  (no req returned)");
+
+					}
+				})
+				.fail(function(result) {
+					console.log("ERROR: userExists failed", result);
+				});
+				//}
+			}
+
 		}
 		console.log("(/login) (logIn)")
 		console.log("")

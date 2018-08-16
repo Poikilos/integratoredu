@@ -61,7 +61,8 @@
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&category={{get_primary_category @root.unit @root.section}}&dataset_name={{get_primary_dataset_name @root.unit @root.section}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
+			    {{!-- normally do not add &dataset_name={{get_primary_dataset_name @root.unit @root.section}} when changing sections below  --}}
+			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&category={{get_primary_category @root.unit @root.section}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
@@ -80,7 +81,7 @@
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
-
+			{{!--
 			{{#groupContains "admin" @root.user.username}}
 			{{#if_eq @root.mode "settings"}}
 			<li class="nav-item"><p class="navbar-text">Settings
@@ -90,6 +91,7 @@
 			</p>
 			</li>
 			{{/groupContains}}
+			--}}
 
 		</ul>
 
