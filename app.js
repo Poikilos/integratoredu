@@ -6338,7 +6338,7 @@ app.post('/login', function(req, res, next) {
 					.then(function(result) {
 						if (!result.found) {
 							console.log("WARNING: need to create user which already has permissions: ", result.username);
-							//TODO: the following fails since it is set later than the page loads (create a json route to check this list, and remove it from the messaging middleware so it isn't erased):
+							//TODO: the following fails since it is set later than the page loads (create a json route so an XMLHttpRequest can check this list, and remove the list from the messaging middleware so it isn't erased):
 							if (req.session.missing_users.indexOf(result.username) < 0) {
 								req.session.missing_users.push(result.username);
 							}
