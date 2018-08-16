@@ -1,6 +1,10 @@
 #!/bin/sh
 project_dir_name=integratoredu
-if [ -d ~/Applications/$project_dir_name ]; then
+flag_name=app.js
+if [ -f $flag_name ]; then
+  # echo "detected $flag_name"
+  echo
+elif [ -d ~/Applications/$project_dir_name ]; then
   cd ~/Applications/$project_dir_name
 elif [ -d ~/GitHub/$project_dir_name ]; then
   cd ~/GitHub/$project_dir_name

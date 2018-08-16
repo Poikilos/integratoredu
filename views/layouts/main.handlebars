@@ -110,6 +110,21 @@
         </div>{{!--end navbar-collapse--}}
       </div>{{!--end container-fluid--}}
     </nav>
+
+    {{#if setup_banner}}
+      <p class="alert alert-warning">{{setup_banner}}</p>
+    {{/if}}
+
+    {{#if missing_users}}
+	<p>You must create the following users which already are in groups in data/groups.yml:
+	<ul>
+	{{#each missing_users}}
+	    <li>{{this}}</li>
+	{{/each}}
+	</ul>
+	</p>
+    {{/if}}
+
     <!--where our other templates will insert-->
     {{{body}}}
 

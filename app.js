@@ -17,7 +17,7 @@ var express = require('express'),
 	methodOverride = require('method-override'),
 	session = require('express-session'),
 	passport = require('passport'),
-	LocalStrategy = require('passport-local'),
+	LocalStrategy = require('passport-local'), // TODO: ? add .Strategy to return of require as per <http://www.passportjs.org/docs/>
 	yaml = require("node-yaml"),
 	util = require('util'),
 	fs = require('fs');
@@ -424,6 +424,24 @@ function load_permissions(reason, req) {
 			//req.session.notice = "WARNING: "+permissions_path+" could not be read in /reload-permissions-and-groups, so loaded then saved defaults there instead.";
 		}
 	}
+}
+
+function get_all_permitted_users() {
+	ret = [];
+	for (var group_name in _groups) {
+		if (_groups.hasOwnProperty(group_name)) {
+			group = _groups[group_name];
+			for (var user_i=0; user_i<group.length; user_i++) {
+				username = group[user_i];
+				if (ret.indexOf(username) < 0) {
+					//avoid dups (person in more than one group)
+					ret.push(username);
+					// console.log("get_all_permitted_users: (group "+group_name+")" + username);
+				}
+			}
+		}
+	}
+	return ret;
 }
 
 function load_groups(reason, req) {
@@ -855,44 +873,61 @@ function user_has_pinless_time(unit, section, username) {
 
 // Passport session setup.
 passport.serializeUser(function(user, done) {
-	console.log("* passport serializing " + user.username);
-	done(null, user);
+	console.log("* passport serializing ", user);
+	done(null, user);  // TODO: should be user.id as per <http://www.passportjs.org/docs/>
 });
 
-passport.deserializeUser(function(obj, done) {
-	console.log("* passport deserializing " + obj);
-	done(null, obj);
+passport.deserializeUser(function(id, done) {
+	console.log("* passport deserializing ", id);
+	done(null, id);
+	//changed to id and above removed and below added, as per <http://www.passportjs.org/docs/>
+	//"The serialization and deserialization logic is supplied by the application, allowing the application to choose an appropriate database and/or object mapper, without imposition by the authentication layer."
+	//TODO: ? deserialize manually
+	//User.findById(id, function(err, user) {
+	//	done(err, user);
+	//});
 });
 
 // Use the LocalStrategy within Passport to login/"signin" users.
-passport.use('local-login', new LocalStrategy(
-	{passReqToCallback : true}, //allows us to pass back the request to the callback
-	function(req, username, password, done) {
+// NOTE: 'info' can be set by the strategy's verify callback
+// if string param before strategy is not set (such as 'local-login') then strategy.name is used (such as 'local' in the case of LocalStrategy)--see ./node_modules/passport/lib/authenticator.js
+passport.use(new LocalStrategy(
+	{passReqToCallback: true,
+	 usernameField: 'username',
+	 passwordField:'password'}, //see ./node_modules/passport-local/lib/strategy.js
+	function(req, username, password, verified) { //verified formerly done--see passport-local/lib/strategy.js
+		//(all logging is made available to the /login route, otherwise the promise chain is incomplete)
+		// added return before verified as per <http://www.passportjs.org/docs/>
+		//strategy.js notes:
+		//* only sends req if `passReqToCallback: true`
+		//* verified(err, user, info):
+		//  if (err) { return self.error(err); }
+		//  if (!user) { return self.fail(info); }
+		//  self.success(user, info);
+
+		// results of below logging (behavior defined by passport-local/lib/strategy.js):
+		// * missing username/password: then(false, undefined)
+		// * incorrect username/password: then(false, undefined); however, deferred.resolve(false, 'bad username'); must have been called due to logging above it
+		//console.log("(verbose message in use('local-login')) calling fun.localAuth...");
 		fun.localAuth(username, password)
 		.then(function (user) {
-			//if (user && user.error) {
-				//req.session.error = user.error;
-				//done(null, null);
-			//}
-			//else if (user) {
-			if (user) {
-				console.log("* LOGGED IN AS: " + user.username);
-				//req.session.success = 'You are successfully logged in ' + user.username + '!';
-				done(null, user);
+			// deferred can only return one value (see `resolve` in localAuth; Q's defer uses callbacks as promises), so MANUALLY check if it is a real user object or an error:
+			if (user.hasOwnProperty('error')) {
+				// console.log("* COULD NOT LOG IN: " + user.error);
+				req.session.error = 'Username or password incorrect.'; //inform user could not log them in
+				// only return first param if it is an Error object (from reject)
+				return verified(null, user, {message: 'username or password failed'});
 			}
 			else {
-				console.log("* COULD NOT LOG IN");
-				req.session.error = 'Username or password incorrect.'; //inform user could not log them in
-				done(null, user);
+				// console.log("* LOGGED IN AS: " + user.username);
+				// req.session.success = 'You are successfully logged in ' + user.username + '!';
+				return verified(null, user, {message: 'success'});
 			}
 		})
 		.fail(function (err){
-			console.log("* FAILED during login: ", err);  // shows everything including stack trace
-			// console.log("* FAILED during login: " + err.message);  // see https://github.com/kriskowal/q/issues/238
-			console.log("")
-			console.log("")
-			req.session.error = err.message;  // use .message (not .body) since err is Error object (deferred.reject in functions.js)
-			done(null, null)
+			// called if deferred uses reject
+			// console.log("* FAILED during login: ", err);  // shows everything including stack trace
+			return verified(new Error("database connection failed"));  // standard node style is to return error if exception occurred
 		});
 	}
 ));
@@ -906,11 +941,10 @@ passport.use('local-signup', new LocalStrategy(
 					fun.localReg(username, password)
 					.then(function (user) {
 						if (!user) {
-							console.log("* COULD NOT REGISTER");
 							req.session.error = 'That username is already in use, please try a different one.'; //inform user could not log them in
 							done(null, user);
 						}
-						else {//if (user) {
+						else {
 							if (user.error) {
 								req.session.error = user.error;
 								done(null, null); //2nd param null means don't log in!
@@ -924,8 +958,14 @@ passport.use('local-signup', new LocalStrategy(
 					})
 					.fail(function (err){
 						console.log("* FAILED during register:");
-						console.log("  " + err.body);
-						req.session.error = err.body;
+						console.log(" ", err);
+						if (err.body) {
+							req.session.error = err.body;
+						}
+						else {
+							//this should never happen if reject is programmed correctly
+							req.session.error = "localReg failed but did not return an error.";
+						}
 						done(null, null);
 					});
 				}
@@ -948,6 +988,7 @@ passport.use('local-signup', new LocalStrategy(
 
 //===============EXPRESS================
 // Configure Express
+//app.configure(function() {  // removed in express 4
 app.use(logger('combined'));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -956,20 +997,25 @@ app.use(methodOverride('X-HTTP-Method-Override'));
 app.use(session({secret: 'supernova', saveUninitialized: true, resave: true}));
 app.use(passport.initialize());
 app.use(passport.session());
-
 // Session-persisted message middleware
 app.use(function(req, res, next){
 	var err = req.session.error,
 		msg = req.session.notice,
-		success = req.session.success;
+		success = req.session.success,
+		setup_banner = req.session.setup_banner,
+		missing_users = req.session.missing_users;
 
 	delete req.session.error;
+	delete req.session.setup_banner;
+	delete req.session.missing_users;
 	delete req.session.success;
 	delete req.session.notice;
 
 	if (err) res.locals.error = err;
 	if (msg) res.locals.notice = msg;
 	if (success) res.locals.success = success;
+	if (setup_banner) res.locals.setup_banner = setup_banner;
+	if (missing_users) res.locals.missing_users = missing_users;
 
 	next();
 });
@@ -4702,7 +4748,7 @@ app.post('/autofill-query', function(req, res){
 			var section = req.body.section;
 			if (section && req.body.selected_year && req.body.selected_month) {// && req.body.selected_field) {
 				if (user_has_section_permission(unit, req.user.username, section, "modify")) {
-					//get_dataset_info(unit, section, category, dataset_name)
+					// get_dataset_info(unit, section, category, dataset_name)
 					var category = null;
 					var dataset_name = null;
 					if (req.body.category) category=req.body.category;
@@ -6225,11 +6271,107 @@ app.post('/student-microevent', function(req, res){
 });
 
 //sends the request through our local login/signin strategy, and if successful takes user to homepage, otherwise returns then to signin page
-app.post('/login', passport.authenticate('local-login', {
-	successRedirect: config.proxy_prefix_then_slash,
-	failureRedirect: config.proxy_prefix_then_slash + 'login'
-	})
-);
+//app.post('/login', passport.authenticate('local-login', {
+//	successRedirect: config.proxy_prefix_then_slash,
+//	failureRedirect: config.proxy_prefix_then_slash + 'login'
+//	})
+//);
+//above also works, but has no way to do custom output
+//see <http://www.passportjs.org/docs/> under Custom Callback:
+app.post('/login', function(req, res, next) {
+	//req.body for post, req.query for get
+  passport.authenticate('local', function(err, user, info) {
+	// err,user,info: from `new LocalStrategy`'s callback, which calls this function as the verified function--see `verified(`)
+	// (NOT  function as the resolve/reject function--see `resolve` and `reject` in exports.localAuth )
+	req.session.setup_banner = null;
+	req.session.missing_users = null;
+	//console.log("(/login) err: ", err)
+	//console.log("(/login) user: ", user)
+	//console.log("(/login) info: ", info)
+    if (err) {
+		//then there is only 1 param and it was an Error object
+		if (err.body.includes('atabase connection')) {
+			console.log("(/login) (err) missing database");
+			console.log("");
+			var admin_msg = "";
+			if (req.body.username == 'admin') {
+				console.log("ERROR connecting to database");
+				console.log("  Make sure mongod service is running (see README.md)");
+				console.log("");
+				console.log("");
+				admin_msg = " (error information has been written to server console)"
+			}
+			req.session.setup_banner = 'Database connection failed' + admin_msg + '.';
+		}
+		else {
+			console.log("(/login) (err) info: ", info);
+		}
+		console.log("")
+		console.log("")
+		//return next(err);  //just shows user error on white background
+		return res.redirect(config.proxy_prefix_then_slash + 'login');
+	}
+	if (!user) {
+		// info.message is ALWAYS "Missing credentials" if user or
+		// password was blank (it does NOT call verify, so custom error
+		// (as received by next `else if` case) cannot be set--
+		// see passport-local/lib/strategy.js)
+		req.session.error = "Please enter a username and password";
+		return res.redirect(config.proxy_prefix_then_slash + 'login');
+	}
+    else if (user.hasOwnProperty('error')) {
+		// 'error' is ALWAYS defined by my LocalStrategy's callback when
+		// err is null and login fails for non-database reason
+		if (req.body.username == 'admin') {
+			if (user.error.includes("username")) {
+				//admin wasn't created, so get some more info for admin:
+				req.session.setup_banner = 'Your server is not setup yet. You must first click "I need to make an account" and make a user named "admin".';
+				req.session.missing_users = [];
+				//req.session.missing_users.push('admin');
+				all_users = get_all_permitted_users();
+
+				//for (var this_username in all_users) {
+				for (var user_i=0; user_i<all_users.length; user_i++) {
+					var this_username = all_users[user_i];
+					//if (all_users.hasOwnProperty(this_username)) {
+					fun.userExists(this_username)
+					.then(function(result) {
+						if (!result.found) {
+							console.log("WARNING: need to create user which already has permissions: ", result.username);
+							//TODO: the following fails since it is set later than the page loads (create a json route to check this list, and remove it from the messaging middleware so it isn't erased):
+							if (req.session.missing_users.indexOf(result.username) < 0) {
+								req.session.missing_users.push(result.username);
+							}
+						}
+					})
+					.fail(function(result) {
+						console.log("ERROR: userExists failed");
+					});
+					//}
+				}
+				console.log("all users with permissions: " + JSON.stringify(all_users));
+			}
+			else {
+				console.log("(/login) user.error: (admin) " + user.error);
+			}
+		}
+		else console.log("(/login) user.error: " + user.error);
+		return res.redirect(config.proxy_prefix_then_slash + 'login');
+	}
+    req.logIn(user, function(err) {
+		if (err) {
+			console.log("(/login) (logIn err): ", err)
+			console.log("")
+			console.log("")
+			return next(err);
+		}
+		console.log("(/login) (logIn)")
+		console.log("")
+		console.log("")
+		return res.redirect(config.proxy_prefix_then_slash);
+    });
+  })(req, res, next);
+});
 
 //logs user out of site, deleting them from the session, and returns to homepage
 app.get('/logout', function(req, res){

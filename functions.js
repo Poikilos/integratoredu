@@ -22,59 +22,91 @@ exports.localReg = function (username, password) {
 	var deferred = Q.defer();
 	if (username) {
 		if (password) {
-				username = username.toLowerCase();
-				MongoClient.connect(mongodbUrl, function (err, db) {
-		if (db) {
-			var collection = db.collection('localUsers');
-			//check if username is already assigned in our database
-			collection.findOne({'username' : username})
-			.then(function (result) {
-				if (result !== null) {
-					console.log("USERNAME ALREADY EXISTS:", result.username);
-					//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead--removing the collection removes all users)
-					//if (result.username=="attendance") {
-					//		console.log("DELETING attendance");
-					//		collection.remove(); //removes all users!
-					//}
-					deferred.resolve(false); // username exists
+			username = username.toLowerCase();
+			MongoClient.connect(mongodbUrl, function (err, db) {
+				if (db) {
+					var collection = db.collection('localUsers');
+					//check if username is already assigned in our database
+					collection.findOne({'username' : username})
+					.then(function (result) {
+						if (result !== null) {
+							console.log("USERNAME ALREADY EXISTS:", result.username);
+							//This is how to change the password by deleting the user--it will say already exists, but then after that they can sign up again (but don't use this code--modify the collection instead--removing the collection removes all users)
+							//if (result.username=="attendance") {
+							//		console.log("DELETING attendance");
+							//		collection.remove(); //removes all users!
+							//}
+							deferred.resolve(false, 'username already exists'); // username exists
+						}
+						else {
+							var hash = bcrypt.hashSync(password, 8);
+							var user = {
+								"username": username,
+								"password": hash
+								//"avatar": "sign/users/profilepics/" + username + ".jpg"
+							};
+
+							console.log("CREATING USER:", username);
+
+							collection.insert(user)
+							.then(function () {
+							db.close();
+							deferred.resolve(user);
+							});
+						}
+					});
 				}
 				else {
-					var hash = bcrypt.hashSync(password, 8);
-					var user = {
-						"username": username,
-						"password": hash
-						//"avatar": "sign/users/profilepics/" + username + ".jpg"
-					};
-
-				console.log("CREATING USER:", username);
-
-					collection.insert(user)
-					.then(function () {
-					db.close();
+					user = {};
+					if (err) user.error = err;
+					else user.error = "Database connection failed (database did not reply with error).";
 					deferred.resolve(user);
-					});
 				}
 			});
 		}
 		else {
-			user = {};
-			if (err) user.error = err;
-			else user.error = "Cannot connect to database (database did not reply with error).";
-			console.log("localReg CANNOT CONNECT TO DATABASE: " + user.error);
-			deferred.resolve(user);
-		}
-				});
-		}
-		else {
-				console.log("localReg: MISSING PASSWORD");
-				deferred.resolve(false);
+				user = {error: 'missing password'};
+				deferred.resolve(user);
 		}
 	}
 	else {
-		console.log("localReg: MISSING USERNAME");
-		deferred.resolve(false);
+		user = {error: 'missing password'};
+		deferred.resolve(user);
 	}
 
+	return deferred.promise;
+};
+
+exports.userExists = function(username) {
+	var deferred = Q.defer();
+	MongoClient.connect(mongodbUrl, function (err, db) {
+		if (err) {
+			console.log("ERROR in userExists: db connect said: ", err);
+		}
+		if (db) {
+			var collection = db.collection('localUsers');
+			if (username!==null && username!==undefined && username.length>0) {
+				username = username.toLowerCase();
+				collection.findOne({'username' : username})
+				.then(function (result) {
+					if (null === result) {
+						deferred.resolve({username:username, found:false});
+					}
+					else {
+						deferred.resolve({found:true});
+					}
+					db.close();
+				});
+			}
+			else {
+				console.log("ERROR in userExists: blank username");
+				deferred.resolve({username:username, found:false, error:'blank username'});
+			}
+		}
+		else {
+			deferred.reject(new Error('database connection failed'));
+		}
+	});
 	return deferred.promise;
 };
 
@@ -84,28 +116,48 @@ exports.localReg = function (username, password) {
 	//if user doesn't exist or password doesn't match tell them it failed
 exports.localAuth = function (username, password) {
 	var deferred = Q.defer();
+	// Q's defer uses callbacks as promises
+	// console.log("(verbose message in localAuth) connecting...");
 	MongoClient.connect(mongodbUrl, function (err, db) {
+		if (err) {
+			console.log("ERROR in localAuth: db connect said: ", err);
+		}
 		if (db) {
+			//console.log("(verbose message in localAuth) found db...");
 			var collection = db.collection('localUsers');
 			if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
-			collection.findOne({'username' : username})
-				.then(function (result) {
-					if (null === result) {
-						console.log("USERNAME NOT FOUND:", username);
-						deferred.resolve(false);
+			collection.findOne({'username' : username}//,
+			//second param (callback function) can be added [instead of then] as per <http://www.passportjs.org/docs/>
+				//function (err, user) {
+					//if (err) {
+						//console.log("(peeking at findOne callback) err:", err);
+					//}
+					//console.log("(peeking at findOne callback) user:", user);
+				//}
+			)
+			.then(function (result) {  // if callback is specified above, then will not exist, resulting in exception
+				if (null === result) {
+					//console.log("USERNAME NOT FOUND:", username);
+					deferred.resolve({error:'bad username'});
+				}
+				else {
+					var hash = result.password;
+					//console.log("FOUND USER: " + result.username);
+					if (bcrypt.compareSync(password, hash)) {
+						//console.log("AUTHENTICATION SUCCESS");
+						deferred.resolve(result);
+					} else {
+						//console.log("AUTHENTICATION FAILED");
+						deferred.resolve({error:'bad password'});
 					}
-					else {
-						var hash = result.password;
-						console.log("FOUND USER: " + result.username);
-						if (bcrypt.compareSync(password, hash)) {
-							deferred.resolve(result);
-						} else {
-							console.log("AUTHENTICATION FAILED");
-							deferred.resolve(false);
-						}
-					}
-					db.close();
-				});
+				}
+				db.close();
+			});
+			// below causes exception: fail is not a function
+			//.fail(function (result, result2) {
+			//	console.log("DATABASE FAILED (findOne fail)");
+			//	deferred.reject(new Error('bad password'));
+			//});
 		}
 		else {
 			//var result = {};
@@ -114,7 +166,7 @@ exports.localAuth = function (username, password) {
 			var msg = "Database connection failed. Error details were saved to server console.";
 			//err.body = msg;
 			//deferred.reject(err);  // also works, but Error object is recommended by q
-			//see
+			//deferred.reject(false, 'missing database connection');
 			deferred.reject(new Error(msg));
 		}
 	});
@@ -234,6 +286,7 @@ exports.getVisibleFiles = function(path) {
 };
 
 exports.contains = function(haystack, needle) {
+	console.log("contains is deprecated--use builtin haystack.includes(needle) instead");
 	return haystack.indexOf(needle) > -1;
 };
 
@@ -392,7 +445,8 @@ exports.get_human_delimited_values = function(input_string) {
 			input_string = input_string.replaceAll("&", ",");
 			input_string = input_string.replaceAll("+", ",");
 			//console.log("[ get_human_delimited_values ] removed:");
-			while (exports.contains(input_string,",,")) {
+			//while (exports.contains(input_string,",,")) {
+			while (input_string.includes(",,")) {
 				input_string = input_string.replaceAll(",,", ",");
 				//console.log("	* ',,'");
 			}
