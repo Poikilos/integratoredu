@@ -399,6 +399,7 @@ var listed_day_on_date = null;
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* (!) should use passport-next since development is stagnant at jaredhanson's passport on GitHub (`npm install @passport-next/passport-openid; see <https://github.com/jaredhanson/passport-openid/issues/35> and <https://github.com/passport-next/passport-openid>)
 * (!) _write_record_as_is should handle deepest_dir_else_null properly, or the param should be eliminated in favor of category-specific path generation code
 * change route name to include `-student-` or pass dataset_name (transactions category is assumed by nature of the routes though) in routes above (see 'get passed unit field' under 2018-04-05 changes) where not already clear to assume dataset_name is student (see `dataset_name = "student"` in code)
 * reduce use of get_dataset_path_if_exists_else_null in favor of get_table_info
