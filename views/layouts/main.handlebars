@@ -61,8 +61,9 @@
 			</p></li>
 			{{else}}
 			<li class="nav-item"><p class="navbar-text">
-			    {{!-- normally do not add &dataset_name={{get_primary_dataset_name @root.unit @root.section}} when changing sections below  --}}
-			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&category={{get_primary_category @root.unit @root.section}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
+			    {{!-- normally do not add &category={{get_primary_category @root.unit @root.section}}&dataset_name={{get_primary_dataset_name @root.unit @root.section}} when changing sections below,
+				because different sections have different categories and datasets, and current section's primary ones may not be!--}}
+			<a href="{{get_proxy_prefix_then_slash}}?unit={{@root.unit}}&section={{this}}&clear_selection=true">{{friendlySectionName @root.unit this}}</a>
 			</p></li>
 			{{/if_eq}}
 			{{/each}}
@@ -117,16 +118,6 @@
       <p class="alert alert-warning">{{setup_banner}}</p>
     {{/if}}
 
-    {{#if missing_users}}
-	<p>You must create the following users which already are in groups in data/groups.yml:
-	<ul>
-	{{#each missing_users}}
-	    <li>{{this}}</li>
-	{{/each}}
-	</ul>
-	</p>
-    {{/if}}
-
     <!--where our other templates will insert-->
     {{{body}}}
 
@@ -153,5 +144,11 @@
 
     <!-- Latest compiled and minified JavaScript -->
   <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+<!-- Latest compiled and minified CSS [selectpicker]-->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
+
+  <!-- Latest compiled and minified JavaScript [selectpicker]-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
 </body>
 </html>

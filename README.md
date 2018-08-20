@@ -146,6 +146,12 @@ tm:
   If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
+(2018-08-19)
+* complete the AJAX for users with permissions but no account list
+* add forms section to enabled_sections, remove po
+* add separate handlebars for forms and admin
+* update calls to _write_record_as_is to match new params
+* (remove instances of `_len>0` in usages of fsc (is made up of objects, not old dat-style cache lists)) fix "Autofill all" button in history (read mode in care section)
 (2018-04-10)
 * clarify use of the word "table"--not every dataset is in "table" format so change wording to dataset where applicable:
   primary_table_name to primary_dataset_name
@@ -399,6 +405,8 @@ var listed_day_on_date = null;
 !=high-priority
 ~=low-priority
 ?=needs verification in current git version
+* (!) care reports needs to be fixed to show running totals again considering new caching system
+* (!) existsSync should be replaced with calling hasOwnProperty on fsc members whenever possible
 * (!) should use passport-next since development is stagnant at jaredhanson's passport on GitHub (`npm install @passport-next/passport-openid; see <https://github.com/jaredhanson/passport-openid/issues/35> and <https://github.com/passport-next/passport-openid>)
 * (!) _write_record_as_is should handle deepest_dir_else_null properly, or the param should be eliminated in favor of category-specific path generation code
 * change route name to include `-student-` or pass dataset_name (transactions category is assumed by nature of the routes though) in routes above (see 'get passed unit field' under 2018-04-05 changes) where not already clear to assume dataset_name is student (see `dataset_name = "student"` in code)
@@ -406,7 +414,7 @@ var listed_day_on_date = null;
 * (!) add category and dataset_name to get_year_month_select_buttons
 * (!) add category and dataset_name to get_section_form
 * (?) add category and dataset_name to get_billing_cycle_selector, add-end-dates-to-bill, show_billing_cycle_preview, update_query
-
+* implement selecting name for commute history (see partial implementation in comment containing `selectpicker` in home.handlebars)
 * (!) cache per-unit settings (see _selected_unit)
 * (!) cache per-unit autofill (see _selected_unit)
 * (!) eliminate change-selection
@@ -539,6 +547,7 @@ see LICENSE file for license
 
 ## Developer Notes
 * To add a new section would be a fork--I please submit an issue. However, if you fork, you should add a new folder in the unit where the name of the folder is the new section name, then give some group one or more type of permission to it.
+  Section list comes from `preload_dataset_names = peek_setting(unit, "unit.enabled_sections");`, so `enabled_sections` in unit.yml must be updated to include your new section, but ultimately only the sections where the user has permissions (`user_sections`) will be listed at the top of the page.
 * run `chmod +x ./etc/quality && ./etc/quality` in terminal to check the code quality--it will give instructions if missing outputinspector or kate (optional) or code quality tool
 * To write a record, call _write_record_as_is after validating the form by any means necessary.
 * as of 2017-10-08 make sure folder structure remains compatible with my php app MoneyForesight (so MoneyForesight's features can be eventually merged into IntegratorEdu)
@@ -563,7 +572,11 @@ see LICENSE file for license
 * Uses JSON.parse(JSON.stringify(x)) to copy object x and ensure no references to properties are copied to the new object
 
 ### Caching
-"dat" is the cache object. It contains named year objects.
+`fsc` is the filesystem cache object.
+* It is a one-to-one replica of the data folder (each folder is an object containing folder(s) and/or file object(s), and each file object contains the object(s) represented by the file).
+
+#### FORMERLY
+`dat` is the cache object. It contains named year objects.
 * each year object contains named month objects.
   Month object contains:
 	* array named "day" containing day names

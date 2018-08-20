@@ -1,263 +1,333 @@
 <!-- views/home.handlebars -->
 <!--this whole handlebars object is already in a container-->
 {{#if user}}
-	{{#if section}}
+    {{#if section}}
         {{#createGroupContains unit section user.username}}
         {{#if_is_any_form_mode unit mode}}
         {{get_section_form unit section category dataset_name mode user.username prefill missing_fields}}
         {{/if_is_any_form_mode}}
         {{/createGroupContains}}
-		{{#readGroupContains unit section user.username}}
-		  {{#groupContains "admin" @root.user.username}}
-		    {{#if permitted_users}}
-		    <p id="permitted_user_status"></p>
-		    Permitted users (must always exist, unless groups.yml is changed to exclude them):
-		    <ul>
-			{{#each permitted_users}}
-			<li name="permitted_user_{{@index}}" id="permitted_user_{{@index}}">{{this}}</li>
-			{{/each}}
-			</ul>
-			<script>
-				var element = true;
-				var i = 0;
-				var users = {};
-				while (element) {
-					var id = "permitted_user_" + i;
-					element = document.getElementById(id);
-					if (element) {
-						var user = {doc_id:id, doc_i:i, username:element.innerHTML};
-						users[user.username] = user;
-						var request = new XMLHttpRequest();
-						// do NOT start relative path with '/' (see <https://stackoverflow.com/questions/5092352/relative-path-problems-in-javascript-ajax-call>)
-						request.open('GET', "userExists?username="+user.username, true);
-						console.log("creating request for user " + user.username);
-						request.onload = function() {
-							var ret="";
-							if (request.status >= 200 && request.status < 400) {
-								//"AJAJ" is harder to say than AJAX, but use json as the data format:
-								var status_element = document.getElementById("permitted_user_status");
-								//status_element.innerHTML = "parsing: " + String(request.responseText);
-								var data_enable = false;
-								try {
-									//next line results in: `JSON.parse: unexpected end of data at line 1 column 1 of the JSON data`
-									var results = JSON.parse(request.responseText);
-									//adddlert("Welcome guest!");
-									data_enable = true;
-									console.log("(verbose message) parsed responseText '" + String(request.responseText) + "': " + err.message);
-								}
-								catch(err) {
-									//document.getElementById("demo").innerHTML = err.message;
-									if (err) {
-										console.log("ERROR while processing responseText '" + String(request.responseText) + "': " + String(err.message));
-									}
-									else console.log("ERROR while processing responseText '" + String(request.responseText) + "': (no error)");
-								}
-								//var results = request.responseText;
-								// element is not available anymore since we are in a callback, so get it again:
-								if (data_enable) {
-									var user_element = null;
-									if (results.username) {
-										if (users) {
-											console.log("loading element for user " + results.username);
-											user_element = document.getElementById(users[results.username].doc_id);
-											//if (results.error) {
-											//	user_element.innerHTML = results.error;
-											//}
-											//else {
-											//	user_element.innerHTML = results.message;
-											//}
-											//var status_element = document.getElementById("permitted_user_status");
-											//status_element.innerHTML = "read user " + results.username;
-										}
-										else {
-											console.log("users is not available while checking user " + results.username);
-										}
-									}
-									if (user_element) {
-										if (results.error) {
-											user_element.innerHTML += " (" + results.error + ")";
-										}
-										else {
-											user_element.innerHTML += " (" + results.message + ")";
-										}
-									}
-									else {
-										console.log("user_element is not available while checking user " + String(results.username));
-									}
-								}
-								//else error logged to browser already
-							}
-							else {
-								//var status_element = document.getElementById("permitted_user_status");
-								console.log("server did not respond with data: " + JSON.stringify(request));
-							}
-						}
-						request.onerror = function() {
-							//element is not available anymore since we are in a callback, so get it again:
-							var element = null;
-							if (results.username) {
-								if (users) {
-									element = document.getElementById(users[results.username].doc_id);
-								}
-								else {
-									var status_element = document.getElementById("permitted_user_status");
-									status_element.innerHTML = "users is not available";
-								}
-							}
-							if (element) {
-								element.innerHTML += " (could not reach server)";
-							}
-							else {
-								var status_element = document.getElementById("permitted_user_status");
-								status_element.innerHTML = "element is not available";
-							}
-						}
-						request.send();
-						//element.innerHTML += " (not created yet)";
-					}
-					i++;
-				}
-			</script>
-			{{/if}}
-		  {{/groupContains}}
-		  {{#isOnlyEmployeeReadSection section}}
-		  <div style="size:.8em; color:darkgray">Permission to view {{section}} history should only be given to employees.
-		  </div>
-		  {{/isOnlyEmployeeReadSection}}
-	    {{else}}
-		  {{#modifyGroupContains section user.username}}
-		  {{#isOnlyEmployeeModifySection section}}
-		  <div style="size:.8em; color:darkgray">Permission to modify {{section}} should only be given to employees.
-		  </div>
-		  {{/isOnlyEmployeeModifySection}}
-		  {{/modifyGroupContains}}
-		{{/readGroupContains}}
-	{{/if}}
-	{{#if_eq mode "read"}}
-	<div class="row">
-		{{!--hidden-print is only in bootstrap versions before  4.0.0--use d-print-none for later--}}
-		<div class="col-sm-2 d-print-none hidden-print">
-			<br/>
-			<br/>
-			<br/>
-			<br/>
-			<div>Year:
-			{{#each years}}
-			<form action="{{get_proxy_prefix_then_slash}}" method="get">
-			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
-			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
-			<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
-			<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
-			<input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
-			<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
-			<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
-			<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
-			{{#if_eq this @root.selected_year}}
-			<input class="btn" type="submit" value="{{this}}" />
-			{{else}}
-			<input class="btn btn-default" type="submit" value="{{this}}" />
-			{{/if_eq}}
-			</form>
+        {{#readGroupContains unit section user.username}}
+          {{#groupContains "admin" @root.user.username}}
+            {{#if permitted_users}}
+            <div id="permitted_user_status"></div>
+            <div id="permitted_user_heading"></div>
+            {{!--
+            <div id="permitted_user_heading">Permitted users (must always exist, unless groups.yml is changed to exclude them):</div>
+            --}}
+            <ul>
+            {{#each permitted_users}}
+            <li name="permitted_user_{{@index}}" id="permitted_user_{{@index}}">{{this}}</li>
+            {{/each}}
+            </ul>
+            <script>
+                var element = true;
+                var i = 0;
+                var users = {};
+                var requests = [];
+                var readyStates = ['UNSENT', 'OPENED', 'HEADERS_RECEIVED', 'LOADING', 'DONE'];
+                var missing_enable = false;
+                while (element) {
+                    var id = "permitted_user_" + i;
+                    element = document.getElementById(id);
+                    if (element) {
+                        var user = {doc_id:id, doc_i:i, username:element.innerHTML};
+                        users[user.username] = user;
+                        requests.push(new XMLHttpRequest());
+                        // do NOT start relative path with '/' (see <https://stackoverflow.com/questions/5092352/relative-path-problems-in-javascript-ajax-call>)
+                        requests[i].open('GET', "userExists?username=" + user.username, true);
+                        // requests[i].open('GET', "http://localhost:8080/userExists?username=" + user.username, true);
+                        // console.log("creating request for user " + user.username);
+                        // requests[i].onload = function() {
+                            //readystate is always 4 in onload (and in onerror)
+                        requests[i].onreadystatechange = function() {
+                            var ret="";
+                            if (this.readyState === 4) {
+                            //if (this.status >= 200 && this.status < 400) {
+                                if (this.status === 200) {
+                                    // console.log("* server responded: " + JSON.stringify(this.responseText));
+                                    //"AJAJ" is harder to say than AJAX, but use json as the data format:
+                                    var status_element = document.getElementById("permitted_user_status");
+                                    //status_element.innerHTML = "parsing: " + String(this.responseText);
+                                    var data_enable = false;
+                                    var results = null;
+                                    try {
+                                        //next line results in: `JSON.parse: unexpected end of data at line 1 column 1 of the JSON data`
+                                        results = JSON.parse(this.responseText);
+                                        //adddlert("Welcome guest!");
+                                        data_enable = true;
+                                        if (results.hasOwnProperty('error')) {
+                                            console.log("(verbose message) parsed responseText '" + String(this.responseText) + "': " + results.error);
+                                        }
+                                        // else {
+                                            // console.log("(verbose message) parsed responseText '" + String(this.responseText) + "': (no error)");
+                                        // }
+                                    }
+                                    catch(err) {
+                                        //document.getElementById("demo").innerHTML = err.message;
+                                        if (err) {
+                                            console.log("ERROR while processing responseText '" + String(this.responseText) + "': " + String(err.message));
+                                        }
+                                        else console.log("ERROR while processing responseText '" + String(this.responseText) + "': (no error)");
+                                    }
+                                    //var results = this.responseText;
+                                    // element is not available anymore since we are in a callback, so get it again:
+                                    if (data_enable) {
+                                        var user_element = null;
+                                        if (results.username) {
+                                            if (users) {
+                                                // console.log("loading element for user " + results.username);
+                                                user_element = document.getElementById(users[results.username].doc_id);
+                                                //if (results.error) {
+                                                //    user_element.innerHTML = results.error;
+                                                //}
+                                                //else {
+                                                //    user_element.innerHTML = results.message;
+                                                //}
+                                                //var status_element = document.getElementById("permitted_user_status");
+                                                //status_element.innerHTML = "read user " + results.username;
+                                            }
+                                            else {
+                                                console.log("users is not available while checking user " + results.username);
+                                            }
+                                        }
+                                        if (user_element) {
+                                            if (results.error) {
+                                                user_element.innerHTML += " (" + results.error + ")";
+                                            }
+                                            else {
+                                                var opening = "<span>";
+                                                var closing = "</span>";
+                                                var p_u_heading_element = document.getElementById("permitted_user_heading");
+                                                if (results.message.includes("not ")) {
+                                                    var sep = ", ";
+                                                    opening = '<span style="font-weight:bold">';
+                                                    if (!missing_enable) {
+                                                        sep = "";
+                                                        p_u_heading_element.innerHTML = "Configuration is not complete--missing users (<i>groups.yml already permits these users, so they must be created to avoid security holes from users creating them</i>): ";
+                                                        missing_enable = true;
+                                                        p_u_heading_element.setAttribute("class", "alert alert-warning");
+                                                    }
+                                                    p_u_heading_element.innerHTML += sep + opening + results.username + closing;
+                                                }
+                                                //user_element.innerHTML += " (" + opening + results.message + closing + ")";
+                                            }
+                                        }
+                                        else {
+                                            console.log("user_element is not available while checking user " + String(results.username));
+                                        }
+                                    }
+                                }
+                                else {
+                                    console.log("Error", this.statusText);
+                                }
+                            }
+                            //else {
+                                //var status_element = document.getElementById("permitted_user_status");
+                                //    console.log("* server did not respond with data: " + JSON.stringify(this));
+                                //console.log("...this readyState is " + readyStates[this.readyState]);
+                            //}
+                        }
+                        //requests[i].onerror = function() {
+                        var dummy = function() {
+                            //element is not available anymore since we are in a callback, so get it again:
+                            var element = null;
+                            if (results.username) {
+                                if (users) {
+                                    element = document.getElementById(users[results.username].doc_id);
+                                }
+                                else {
+                                    var status_element = document.getElementById("permitted_user_status");
+                                    status_element.innerHTML = "users is not available";
+                                }
+                            }
+                            if (element) {
+                                element.innerHTML += " (could not reach server)";
+                            }
+                            else {
+                                var status_element = document.getElementById("permitted_user_status");
+                                status_element.innerHTML = "element is not available";
+                            }
+                        }
+                        requests[i].send();
+                        //element.innerHTML += " (not created yet)";
+                        element.setAttribute("style", "display:none;");
+                    }
+                    i++;
+                }
+            </script>
+            {{/if}}
+          {{/groupContains}}
+          {{#isOnlyEmployeeReadSection section}}
+          <div style="size:.8em; color:darkgray">Permission to view {{section}} history should only be given to employees.
+          </div>
+          {{/isOnlyEmployeeReadSection}}
+        {{else}}
+          {{#modifyGroupContains section user.username}}
+          {{#isOnlyEmployeeModifySection section}}
+          <div style="size:.8em; color:darkgray">Permission to modify {{section}} should only be given to employees.
+          </div>
+          {{/isOnlyEmployeeModifySection}}
+          {{/modifyGroupContains}}
+        {{/readGroupContains}}
+    {{/if}}
+    {{#if_eq mode "read"}}
+    <div class="row">
+        {{!--hidden-print is only in bootstrap versions before  4.0.0--use d-print-none for later--}}
+        <div class="col-sm-2 d-print-none hidden-print">
+            <br/>
+            <br/>
+            <br/>
+            <br/>
+            <div>Year:
+            {{#each years}}
+            <form action="{{get_proxy_prefix_then_slash}}" method="get">
+            <input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
+            <input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+            <input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+            <input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
+            <input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+            <input type="hidden" name="selected_year" id="selected_year" value="{{this}}" />
+            <input type="hidden" name="selected_month" id="selected_month" value="(none)" />
+            <input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+            <input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+            {{#if_eq this @root.selected_year}}
+            <input class="btn" type="submit" value="{{this}}" />
+            {{else}}
+            <input class="btn btn-default" type="submit" value="{{this}}" />
+            {{/if_eq}}
+            </form>
 
-			{{/each}}
-			</div>
-			<div>Month:
-			{{#each months}}
-			<form action="{{get_proxy_prefix_then_slash}}" method="get">
-			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
-			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
-			<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
-			<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
-			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
-			<input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
-			<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
-			<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
-			{{#if_eq this @root.selected_month}}
-			<input class="btn" type="submit" value="{{this}}" />
-			{{else}}
-			<input class="btn btn-default" type="submit" value="{{this}}" />
-			{{/if_eq}}
-			</form>
-			{{/each}}
-			</div>
-			<div>Day:
-			{{#each days}}
-			<form action="{{get_proxy_prefix_then_slash}}" method="get">
-			<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
-			<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
-			<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
-			<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
-			<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
-			<input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
-			<input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
-			<input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
-			<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
-			{{#if_eq this @root.selected_day}}
-			<input class="btn" type="submit" value="{{this}}" />
-			{{else}}
-			<input class="btn btn-default" type="submit" value="{{this}}" />
-			{{/if_eq}}
-			</form>
-			{{/each}}
-			</div>
+            {{/each}}
+            </div>
+            <div>Month:
+            {{#each months}}
+            <form action="{{get_proxy_prefix_then_slash}}" method="get">
+            <input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
+            <input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+            <input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+            <input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+            <input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
+            <input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+            <input type="hidden" name="selected_month" id="selected_month" value="{{this}}" />
+            <input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+            <input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+            {{#if_eq this @root.selected_month}}
+            <input class="btn" type="submit" value="{{this}}" />
+            {{else}}
+            <input class="btn btn-default" type="submit" value="{{this}}" />
+            {{/if_eq}}
+            </form>
+            {{/each}}
+            </div>
+            <div>Day:
+            {{#each days}}
+            <form action="{{get_proxy_prefix_then_slash}}" method="get">
+            <input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
+            <input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+            <input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+            <input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+            <input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
+            <input type="hidden" name="selected_year" id="selected_year" value="{{@root.selected_year}}" />
+            <input type="hidden" name="selected_month" id="selected_month" value="{{@root.selected_month}}" />
+            <input type="hidden" name="selected_day" id="selected_day" value="{{this}}" />
+            <input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+            {{#if_eq this @root.selected_day}}
+            <input class="btn" type="submit" value="{{this}}" />
+            {{else}}
+            <input class="btn btn-default" type="submit" value="{{this}}" />
+            {{/if_eq}}
+            </form>
+            {{/each}}
+            </div>
+			{{!--
+            <div>
+				Name:
+				<form action="{{get_proxy_prefix_then_slash}}" method="get">
+					<input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
+					<input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+					<input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+					<input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+					<input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
+					<input type="hidden" name="selected_year" id="selected_year" value="(none)" />
+					<input type="hidden" name="selected_month" id="selected_month" value="(none)" />
+					<input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+					<input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+					<select class="selectpicker" data-live-search="true" data-show-subtext="true" id="selected_name" name="selected_name">
+						<option value="">(Choose a Name)</option>
+						<option value="0" data-subtext="(0)">Jake Gustafson</option>
+						<option value="1" data-subtext="(1)">Mr. Tester</option>
+					</select>
+				</form>
+            </div>
+			--}}
+        </div><!--end col-sm-->
+        <div class="col-sm-10" align="center">
+            <br/>
+            <div>{{show_status unit section "student"}}</div> {{!--no date needs to be selected for tracking data, since status tables are by primary key such as MAC address--}}
+            <div style="font-weight:bold">
+            <span> {{selected_year}}</span>
+            <span> {{selected_month}}</span>
+            <span> {{selected_day}}</span>
+            {{#if selected_day}}
+            {{else}}
+                {{#if_eq section "commute"}}
+                    {{#if selected_month}}
+                    &nbsp;(select a day)
+                    {{else}}
+                    &nbsp;(select a month)
+                    {{/if}}
+                {{else}}
+                    {{!--#if_eq section "care"--}}
+                    {{!--/if_eq--}}
+                    <!--(choose a day)-->
+                {{/if_eq}}
+            {{/if}}
+            </div>
+            {{show_history unit section objects}}
+        </div><!--end col-sm-->
+    </div><!--end row-->
+    <div class="row">
+        <div class="col-sm-2">
+    {{!--end read area which has two columns: selectors in left, data in right--}}
+            <!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
+    {{/if_eq}} {{!--end if mode is read--}}
 
-		</div><!--end col-sm-->
-		<div class="col-sm-10" align="center">
-			<br/>
-			<div>{{show_status unit section "student"}}</div> {{!--no date needs to be selected for tracking data, since status tables are by primary key such as MAC address--}}
-			<div style="font-weight:bold">
-			<span> {{selected_year}}</span>
-			<span> {{selected_month}}</span>
-			<span> {{selected_day}}</span>
-			{{#if selected_day}}
-			{{else}}
-				{{#if_eq section "commute"}}
-					{{#if selected_month}}
-					&nbsp;(select a day)
-					{{else}}
-					&nbsp;(select a month)
-					{{/if}}
+    {{#if_eq section "forms"}}
+        <p class="alert alert-danger">{{section}} handlebars should be used for {{section}} section</p>
+    {{else}}
+        {{#if_eq section "admin"}}
+            <p class="alert alert-danger">{{section}} handlebars should be used for {{section}} section</p>
+        {{else}}
+            {{#if_eq mode "reports"}}
+				{{#if_eq category "transactions"}}
+				{{show_reports "false" unit section category dataset_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
+				{{show_billing_cycle_preview unit section user.username selected_number}}
 				{{else}}
-					{{!--#if_eq section "care"--}}
-					{{!--/if_eq--}}
-					<!--(choose a day)-->
+				<!--reports are only for transations category.-->
 				{{/if_eq}}
-			{{/if}}
-			</div>
-			{{show_history unit section objects}}
-		</div><!--end col-sm-->
-	</div><!--end row-->
-	<div class="row">
-		<div class="col-sm-2">
-	{{!--end read area which has two columns: selectors in left, data in right--}}
-			<!--<p>Avatar: <img src="{{user.avatar}}"/></p>-->
-	{{/if_eq}} {{!--end if mode is read--}}
+            {{/if_eq}} {{!--end if mode is reports--}}
+        {{/if_eq}}
+    {{/if_eq}}
 
-	{{#if_eq mode "reports"}}
-	{{show_reports "false" unit section category dataset_name user.username years months days selected_year selected_month selected_day selected_number section_report_edit_field}}
-	{{show_billing_cycle_preview unit section user.username selected_number}}
-	{{/if_eq}} {{!--end if mode is reports--}}
+    {{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
+    {{show_settings unit section user.username selected_setting}}
+    {{/if_eq}} {{!--end if mode is settings--}}
 
-	{{#if_eq mode "settings"}}<strong>Settings:</strong><br/>
-	{{show_settings unit section user.username selected_setting}}
-	{{/if_eq}} {{!--end if mode is settings--}}
-
-		<br/>
-		</div>
-	</div><!--end row-->
+        <br/>
+        </div>
+    </div><!--end row-->
 
 {{else}}
 <div class="jumbotron">
-	<h1>IntegratorEdu</h1>
-	<p>Log in as known user to view and add information.</p>
-	<p>
-		<a href="{{get_proxy_prefix_then_slash}}login" class="btn btn-primary btn-lg" role="button">
-		<span class="glyphicon glyphicon-user"></span>
-		Log In
-		</a>
-	</p>
+    <h1>IntegratorEdu</h1>
+    <p>Log in as known user to view and add information.</p>
+    <p>
+        <a href="{{get_proxy_prefix_then_slash}}login" class="btn btn-primary btn-lg" role="button">
+        <span class="glyphicon glyphicon-user"></span>
+        Log In
+        </a>
+    </p>
 </div>
 {{/if}}
 <!--this whole handlebars object is already in a container-->

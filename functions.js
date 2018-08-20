@@ -96,6 +96,7 @@ exports.userExistsJSON = function(req, res, username) {
 		function (err, db) {
 			var results = {};
 			results.error = "did not finish";
+			// console.log("(verbose message in userExistsJSON) username: " + username);
 			if (db) {
 				if (username!==null && username!==undefined && username.length>0) {
 					var collection = db.collection('localUsers');
@@ -107,10 +108,11 @@ exports.userExistsJSON = function(req, res, username) {
 							delete results.error;
 						}
 						else {
-							results.message = "present"; //present
+							results.message = "present";
 							delete results.error;
 						}
 						results.username = username;
+						// console.log("  (verbose message in userExistsJSON) sending results: " + JSON.stringify(results));
 						return res.send(JSON.stringify(results));
 					});
 				}
@@ -127,6 +129,23 @@ exports.userExistsJSON = function(req, res, username) {
 			}
 		}
 	)
+}
+
+exports.cache_date = function(this_item, traceback_func_name) {
+	if (this_item.hasOwnProperty('tmp')) {
+		if (this_item.tmp.hasOwnProperty('date')) {
+			ymd_array = this_item.tmp.date.split("-");
+			if ((ymd_array!==null) && (ymd_array.length==3)) {
+				if (!this_item.tmp.hasOwnProperty('year')) this_item.tmp.year = ymd_array[0];  // padded version same for whole method
+				if (!this_item.tmp.hasOwnProperty('month')) this_item.tmp.month = ymd_array[1];  // padded version same for whole method
+				if (!this_item.tmp.hasOwnProperty('day')) this_item.tmp.day = ymd_array[2];  // padded version from loop (since unlike this_day, day is same for whole method)
+				// console.log("(debug only in show_reports) CACHED .year "+year+" .month "+month+" .day "+this_day+" for "+item_key);
+			}
+			else console.log("ERROR in "+traceback_func_name+": bad year,month,day array from splitting =get_date_or_stated_date() " + this_item.tmp.date);
+		}
+		else console.log("ERROR in "+traceback_func_name+": missing this_item.date for " + JSON.stringify(this_item));
+	}
+	else console.log("ERROR in "+traceback_func_name+": missing tmp for " + JSON.stringify(this_item));
 }
 
 exports.userExists = function(username) {

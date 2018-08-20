@@ -180,11 +180,15 @@ var settings_path = storage_path + "/units/" + _selected_unit + "/unit.yml";
 var _settings_default = {};
 _settings_default.unit = {};  // settings for current unit
 _settings_default.unit.name = "Campus";
-_settings_default.unit.enabled_sections = ["care", "commute", "admin", "track", "po"];
+_settings_default.unit.enabled_sections = ["care", "commute", "forms", "track", "admin"];  //TODO: reimplement `"po", ` in forms
 _settings_default.unit.selectable_modes = ["create", "read", "settings", "reports"];
 _settings_default.unit.local_time_zone = "America/New_York";
 _settings_default.admin = {};
 _settings_default.admin.display_name = "Advanced";
+_settings_default.forms = {};
+_settings_default.forms.display_name = "Forms";
+_settings_default.forms.primary_category = "transactions";
+_settings_default.forms.primary_dataset_name = "employee";
 _settings_default.care = {};
 _settings_default.care.primary_category = "transactions";
 _settings_default.care.primary_dataset_name = "student";
@@ -310,6 +314,7 @@ _default_permissions.admin.admin = ["create", "read", "modify", "reports", "sett
 _default_permissions.admin.care = ["create", "read", "modify", "reports", "customtime", "settings", "change-section-settings", "billing"];
 _default_permissions.admin.commute = ["create", "read", "modify", "reports", "billing"];
 _default_permissions.admin.track = ["create", "read", "modify", "reports"];
+_default_permissions.admin.forms = ["create", "read", "modify", "reports"];
 _default_permissions.care = {};
 _default_permissions.care.care = ["create", "read", "customtime"];
 _default_permissions.accounting = {};
@@ -362,6 +367,8 @@ function regenerate_cache() {
 			var unit = units[u_i];
 			fsc[unit] = {};
 			var unit_path = units_path + "/" + unit;
+			// var sections = peek_setting(unit, "unit.enabled_sections");
+			// do NOT use settings, use actual directories since regenerate_cache
 			var sections = fun.getVisibleDirectories(unit_path);
 			for (var s_i = 0; s_i < sections.length; s_i++) {
 				var section = sections[s_i];
@@ -873,12 +880,15 @@ function user_has_pinless_time(unit, section, username) {
 
 // Passport session setup.
 passport.serializeUser(function(user, done) {
-	console.log("* passport serializing ", user);
+	// console.log("* passport serializing ", user);
+	// user object has _id, username, password (hash)
+	//TODO: ? serialize manually
 	done(null, user);  // TODO: should be user.id as per <http://www.passportjs.org/docs/>
 });
 
 passport.deserializeUser(function(id, done) {
-	console.log("* passport deserializing ", id);
+	// console.log("* passport deserializing ", id);
+	// user object has _id, username, password (hash)
 	done(null, id);
 	//changed to id and above removed and below added, as per <http://www.passportjs.org/docs/>
 	//"The serialization and deserialization logic is supplied by the application, allowing the application to choose an appropriate database and/or object mapper, without imposition by the authentication layer."
@@ -1002,16 +1012,9 @@ app.use(function(req, res, next){
 	var err = req.session.error,
 		msg = req.session.notice,
 		success = req.session.success,
-		setup_banner = req.session.setup_banner,
-		missing_users = req.session.missing_users;
-	var missing_users_length = null;
-	if (missing_users) {
-		missing_users_length = missing_users.length;
-	}
-	console.log("(verbose message in message middleware) req.session.missing_users.length:", missing_users_length);
+		setup_banner = req.session.setup_banner;
 	delete req.session.error;
 	delete req.session.setup_banner;
-	//delete req.session.missing_users;
 	delete req.session.success;
 	delete req.session.notice;
 
@@ -1019,7 +1022,6 @@ app.use(function(req, res, next){
 	if (msg) res.locals.notice = msg;
 	if (success) res.locals.success = success;
 	if (setup_banner) res.locals.setup_banner = setup_banner;
-	if (missing_users) res.locals.missing_users = missing_users;
 
 	next();
 });
@@ -1432,6 +1434,13 @@ function get_table_entry(unit, section, dataset_name, number) {
 		(category in fsc[unit][section]) &&
 		(dataset_name in fsc[unit][section][category])
 	   ) {
+
+		var units_path = storage_path + "/units";
+		var unit_path = units_path + "/" + unit;
+		var section_path = unit_path + "/" + section;
+		var cat_path = section_path + "/" + category;
+		var dataset_path=cat_path+"/"+dataset_name;
+
 		var million_count = Math.trunc(number/1000000);
 		var million_path = dataset_path + "/" + million_count;
 		var thousands_remainder = number - (1000000*million_count);
@@ -1446,8 +1455,9 @@ function get_table_entry(unit, section, dataset_name, number) {
 			result = fsc[unit][section][category][dataset_name][million_count][thousand_count][result_key];
 			if (!("tmp" in result)) {
 				result.tmp = {};
-				result.tmp.date = fun.get_date_or_stated_date(this_item, number+" in get_table_entry");
-				result.tmp.time = fun.get_time_or_stated_time(this_item, number+" in get_table_entry");
+				result.tmp.date = fun.get_date_or_stated_date(result, number+" in get_table_entry");
+				result.tmp.time = fun.get_time_or_stated_time(result, number+" in get_table_entry");
+				//TODO: set .tmp.year, .tmp.month, .tmp.day
 				result.key = result_key;
 			}
 		}
@@ -1609,16 +1619,18 @@ function get_next_table_index(unit, section, dataset_name, increment_after_getti
 
 //returns object which only includes out_path if file was written
 function push_next_transaction(unit, section, dataset_name, ymd_array, item, as_username, autofill_enable) {
-	var category="transactions";
+	var category = "transactions";
 	var this_index = get_next_transaction_index(unit, section, dataset_name, ymd_array, true);
 	var dataset_path = get_dataset_path_if_exists_else_null(unit, section, "transactions", dataset_name, true);
 	var results = null;
 	if (dataset_path !== null) {
-		results = _write_record_as_is(null, unit, section, category, dataset_name, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
+		//        _write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable)
+		results = _write_record_as_is(null,          unit, section, category, dataset_name, ymd_array,            null,                  item,   as_username, "create",   this_index+".yml",          autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_transaction had to try again since '"+results.error+"'");
 			this_index = get_next_transaction_index(unit, section, dataset_name, ymd_array, true);
-			results = _write_record_as_is(null, unit, section, category, dataset_name, ymd_array, null, item, as_username, "create", this_index+".yml", autofill_enable);
+			//        _write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable)
+			results = _write_record_as_is(null,          unit, section, category, dataset_name, ymd_array,            null,                  item,   as_username, "create",   this_index+".yml",          autofill_enable);
 		}
 	}
 	else {
@@ -1634,11 +1646,13 @@ function push_next_table_entry(unit, section, dataset_name, item, as_username, a
 	var deepest_path = get_table_entry_parent_path(unit, section, dataset_name, this_index, true);
 	var results = null;
 	if (deepest_path !== null) {
-		results = _write_record_as_is(null, unit, section, category, dataset_name, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
+		//        _write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null,  autofill_enable)
+		results = _write_record_as_is(null,          unit, section, category, dataset_name, null,                 deepest_path,          item,   as_username, "create",   parseInt(this_index)+".yml", autofill_enable);
 		if (results.hasOwnProperty("error") && (results.error.indexOf("exist")>-1)) { //check for "already exists" error due to race condition in case that's possible
 			console.log("WARNING: push_next_table_entry had to try again since '"+results.error+"'");
 			this_index = get_next_table_index(unit, section, dataset_name, true);
-			results = _write_record_as_is(null, unit, section, category, dataset_name, null, deepest_path, item, as_username, "create", parseInt(this_index)+".yml", autofill_enable);
+			//        _write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable)
+			results = _write_record_as_is(null,          unit, section, category, dataset_name, null,                 deepest_path,          item,   as_username, "create",   parseInt(this_index)+".yml", autofill_enable);
 		}
 	}
 	return results;
@@ -1796,13 +1810,15 @@ function _write_record_as_is(req_else_null, unit, section, category, dataset_nam
 
 			console.log(indent+"* WRITING "+out_path);
 			var byte_count = yaml.writeSync(out_path, record, "utf8");
-			if (byte_count > 0) {
+			//NOTE: byte_count is undefined
+			if (fs.existsSync(out_path)) {
+			//if (byte_count > 0) {
 				results.out_path = out_path;
 				console.log(indent+"  done.");
 				if (category=="tables") {
-					cache_results = _set_table_cache_entry(unit, section, dataset_name, key, record);
+					cache_results = _set_table_cache_entry(unit, section, dataset_name, results.out_name, record);
 					if (cache_results.hasOwnProperty("error")) {
-						results.error = "ERROR saving cache via _write_record_as_is: "+cache_results.error;
+						results.error = "ERROR saving cache via _write_record_as_is while _set_table_cache_entry: "+cache_results.error;
 					}
 				}
 				else {
@@ -1842,7 +1858,8 @@ function _write_record_as_is(req_else_null, unit, section, category, dataset_nam
 			}
 			else {
 				console.log(indent+"  FAILED to save "+out_path);
-				results.error = "ERROR: 0 bytes written to " + out_path;
+				//results.error = "ERROR: "+JSON.stringify(byte_count)+" bytes written to " + out_path;
+				results.error = "ERROR: " + out_path + " was not written";
 			}
 		}
 	}
@@ -2615,7 +2632,7 @@ var hbs = exphbs.create({
 			var table_info = get_dataset_info(unit, section, category, dataset_name);
 			///TODO: eliminate years, months, days
 			if (section == 'admin') {
-				ret += '<p>ERROR: show_reports should not have been called (This is the admin section--there is no data to be displayed)</p>';
+				ret += '<p class="text-primary">There are no reports for the admin section.</p>';
 			}
 			if (table_info.enable) {
 				if (user_has_section_permission(unit, username, section, mode)) {
@@ -2859,9 +2876,12 @@ var hbs = exphbs.create({
 									}
 								}
 								if (override_key===null) override_key = key;
-								var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+override_key; //asdf url_params is missing unit, category, dataset_name
-								if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) ret += name;
-								else ret += '<a href="'+href+'">'+name+'</a>';
+								//TODO: eliminate change-selection
+								//var href = config.proxy_prefix_then_slash+"change-selection"+url_params+"change_section_report_edit_field="+override_key; //asdf url_params is missing unit, category, dataset_name
+								//if (selected_field==key || key.startsWith("=")|| key.endsWith("_by")) {
+									ret += name;
+								//}
+								//else ret += '<a href="'+href+'">'+name+'</a>';
 								ret += '</small></th>';
 							}
 							ret += '    </tr>' + "\n";
@@ -2910,7 +2930,7 @@ var hbs = exphbs.create({
 													original_item.tmp["=get_date_from_path()"] = selected_year + "-" + selected_month + "-" + this_day;
 													//original_item.tmp["=get_origin_date()"] = null;
 													if (!original_item.tmp.hasOwnProperty("=get_origin_date()")) {
-														console.log("caching '=get_origin_date()' for "+item_path);
+														// console.log("(debug only in show_reports) caching '=get_origin_date()' for "+item_path);
 														if (original_item.hasOwnProperty("date"))
 															original_item.tmp["=get_origin_date()"] = original_item.date;
 														else if (original_item.hasOwnProperty("ctime"))
@@ -2946,32 +2966,33 @@ var hbs = exphbs.create({
 													items_by_date[original_item.tmp["=get_date_from_path()"]].push(original_item);
 													//dat[section][selected_year][selected_month][this_day][this_item] = yaml.readSync(item_path, "utf8");
 													//var this_item = original_item;
-													var this_item = JSON.parse(JSON.stringify(original_item));
 													var ymd_array = null;
-													if (!this_item.tmp.year) {  // if (!this_item.tmp.hasOwnProperty("year")) {
+													//var this_item = JSON.parse(JSON.stringify(original_item));  // TODO: ? why was this used??
+													var this_item = original_item;
+													if ((!this_item.tmp.year) || (!this_item.tmp.month) || (!this_item.tmp.day)) {  // if (!this_item.tmp.hasOwnProperty("year")) {
 														if (this_item.tmp.date) {
 															ymd_array = this_item.tmp.date.split("-");
 															if ((ymd_array!==null) && (ymd_array.length==3)) {
-																this_item.tmp.year = year; // padded version same for whole method
-																this_item.tmp.month = month; // padded version same for whole method
-																this_item.tmp.day = this_day; // padded version from loop (since unlike this_day, day is same for whole method)
-																console.log("(debug only in show_reports) CACHED .year "+year+" .month "+month+" .day "+this_day+" for "+item_key);
+																if (!this_item.tmp.year) this_item.tmp.year = year;  // padded version same for whole method
+																if (!this_item.tmp.month) this_item.tmp.month = month;  // padded version same for whole method
+																if (!this_item.tmp.day) this_item.tmp.day = this_day;  // padded version from loop (since unlike this_day, day is same for whole method)
+																// console.log("(debug only in show_reports) CACHED .year "+year+" .month "+month+" .day "+this_day+" for "+item_key);
 															}
 															else console.log("ERROR in show_reports: bad year,month,day array from splitting =get_date_or_stated_date() " + original_item.tmp.date);
 														}
 														else console.log("ERROR in show_reports: missing this_item.date for " + original_item.tmp.tui);
 													}
-													else console.log("(debug only in show_reports) already cached year for " + original_item.tmp.tui);
+													//else console.log("(debug only in show_reports) already cached tmp.year, tmp.month, tmp.day for " + original_item.tmp.tui);
 													var span_info = null;
 													span_info = get_care_time_info(this_item, unit, section);
 													if (span_info.hasOwnProperty("error")) {
-														//TODO: ? or later when warning is shown
+														// TODO: ? or later when warning is shown
 													}
 													// process only section sheet fields, since only they can be processed accurately:
 													for (ssf_i=0; ssf_i<ssf_len; ssf_i++) {
-														//ret += '      <td>' + "\n";
+														// ret += '      <td>' + "\n";
 														var this_sff = section_sheet_fields[ssf_i];
-														//NOTE: intentionally gets desired fields only
+														// NOTE: intentionally gets desired fields only
 														if (this_sff.substring(0,1)=="=") {
 															var ender_i = this_sff.indexOf("(");
 															if (ender_i>-1) {
@@ -2985,7 +3006,7 @@ var hbs = exphbs.create({
 																			console.log("WARNING: " + span_info.seconds + " sec times qty " + this_item.qty + " (parsed as '"+parseInt(this_item.qty)+"') was lower than "+span_info.seconds+", so reverted to non-qty value!");
 																			qty_times_seconds = span_info.seconds;
 																		}
-																		//else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
+																		// else console.log("[ ] verbose message: qty_times_seconds is "+qty_times_seconds);
 																	}
 																}
 																if (op == "careprice") {
@@ -3009,19 +3030,19 @@ var hbs = exphbs.create({
 																	}
 																}
 																else if (op == "caretime") {
-																	//span_info = get_care_time_info(this_item, unit, section);
+																	// span_info = get_care_time_info(this_item, unit, section);
 																	if (span_info.hasOwnProperty("seconds")) {
 																		this_item.tmp["=caretime()"] = qty_times_seconds;
 																	}
 																}
 																else if (op == "caretime_m") {
-																	//span_info = get_care_time_info(this_item, unit, section);
+																	// span_info = get_care_time_info(this_item, unit, section);
 																	if (span_info.hasOwnProperty("seconds")) {
 																		this_item.tmp["=caretime_m()"] = qty_times_seconds/60.0;
 																	}
 																}
 																else if (op == "caretime_h") {
-																	//span_info = get_care_time_info(this_item, unit, section);
+																	// span_info = get_care_time_info(this_item, unit, section);
 																	if (span_info.hasOwnProperty("seconds")) {
 																		this_item.tmp["=caretime_h()"] = (qty_times_seconds/60.0/60.0).toFixed(3); ////NOTE: toFixed returns a STRING
 																	}
@@ -3098,17 +3119,50 @@ var hbs = exphbs.create({
 								else console.log("WARNING: <section name>.autofill_requires does not exist in settings, so duplicate detection won't work.");
 
 								var debug_stack = [];
+
 								//for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
+								//for (var item_i=0; item_i<items_by_date.length; item_i++) {
+								//for (var date_key in items_by_date) {  // items
 								for (var item_key in items) {
+									//var date_items = items_by_date[item_key];  // items
+									//for (var item_key in date_items) {
+										//var item = date_items[item_key]
+									//var item = items_by_date[item_i];
 									var item = items[item_key];
+									//if (!item.hasOwnProperty("tmp")) {
+									//}
+									//else if (!item.tmp.hasOwnProperty("month")) {
+									//}
 									var key_as_identifier = item_key;
 									var ender_i = key_as_identifier.indexOf(".");
 									if (ender_i>-1) {
 										key_as_identifier = key_as_identifier.substr(0,ender_i);
 									}
+									if (!item.hasOwnProperty('tmp')) {
+										item.tmp = {};
+										console.log("generating tmp for " + JSON.stringify(item));
+									}
+									if (!item.tmp.hasOwnProperty('date')) {
+										if (selected_year) {
+											if (selected_year.length==4) {
+												if (selected_month) {
+													if (selected_month.length==2) {
+														item.tmp.date = selected_year + "-" + selected_month + "-" + this_day;
+														item.tmp.tui = selected_year + "/" + selected_month + "/" + this_day + "/" + item_key;
+													}
+													else console.log("(ERROR in show_reports) bad selected_month " + String(selected_month) + " in " + JSON.stringify(item));
+												}
+											}
+											else console.log("(ERROR in show_reports) bad selected_year " + String(selected_year) + " in " + JSON.stringify(item));
+										}
+									}
+									fun.cache_date(item, "show_reports");
 									d_path = m_path+"/"+item.tmp.day;
 									if (fun.is_blank(item.tmp.day)) {
-										console.log("[   ] cache ERROR in show_reports: tmp.day is "+item.tmp.day+" for "+item_key);
+										console.log("[   ] cache ERROR in show_reports: tmp.day is "+String(item.tmp.day)+" for "+item_key);
+									}
+									if (fun.is_blank(item.tmp.month)) {
+										console.log("[   ] cache ERROR in show_reports: tmp.month is "+String(item.tmp.month)+" for "+item_key);
 									}
 									item_path = d_path+"/"+item.key;
 									//console.log();
@@ -3301,12 +3355,13 @@ var hbs = exphbs.create({
 										else if (item.hasOwnProperty(column_name)) {
 											val = item[column_name];
 										}
-										if (selected_field==column_name) {
+										//if (selected_field==column_name) {
 											//don't show value yet if selected (see below)
-										}
-										else ret += val;
-
-										if (selected_field==column_name) { //show even if does NOT have property
+										//}
+										//else ret += val;
+										//TODO: use timer and AJAX to save (and eliminate change-selection)
+										//if (selected_field==column_name) { //show even if does NOT have property //TODO: eliminate selected_field
+										if ((!column_name.startsWith("=")) && (!column_name.endsWith("_by"))) {
 											ret += '<form class="form-horizontal" id="change-microevent-field" action="' + config.proxy_prefix_then_slash + 'change-microevent-field" method="post">' + "\n";
 											ret += '  <input type="hidden" name="scroll_to_named_a" id="scroll_to_named_a" value="'+a_name+'"/>' + "\n";
 											ret += '  <input type="hidden" name="unit" id="unit" value="'+unit+'"/>' + "\n";
@@ -3318,7 +3373,7 @@ var hbs = exphbs.create({
 											ret += '  <input type="hidden" name="selected_month" id="selected_month" value="'+item.tmp.month+'"/>' + "\n";
 											ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
 											ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
-											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+selected_field+'"/>' + "\n";
+											ret += '  <input type="hidden" name="selected_field" id="selected_field" value="'+column_name+'"/>' + "\n";  // selected_field
 											ret += '  <input type="text" size="13" name="set_value" id="set_value" value="'+val+'"/>' + "\n";
 											ret += '  <button class="btn btn-default" type="submit">Save</button>' + "\n";
 											ret += '</form>';
@@ -3579,7 +3634,12 @@ var hbs = exphbs.create({
 												ret += '  <input type="hidden" name="selected_day" id="selected_day" value="'+item.tmp.day+'"/>' + "\n";
 												ret += '  <input type="hidden" name="selected_key" id="selected_key" value="'+item.key+'"/>' + "\n";
 												ret += '  <input type="hidden" name="selected_field" id="selected_field" value="ctime"/>' + "\n"; //SET ctime
-												ret += '  <input type="hidden" name="set_value" id="set_value" value="'+item.ctime.replaceAll(item.tmp.date,item.tmp["=get_date_from_path()"])+'"/>' + "\n";
+												if (item.hasOwnProperty("ctime")) {
+													ret += '  <input type="hidden" name="set_value" id="set_value" value="'+item.ctime.replaceAll(item.tmp.date,item.tmp["=get_date_from_path()"])+'"/>' + "\n";
+												}
+												else {
+													console.log("ERROR in show_reports: ctime missing from", JSON.stringify(item))
+												}
 												ret += '  <button class="btn btn-warning" type="submit">Repair ctime as '+item.tmp["=get_date_from_path()"]+'</button>' + "\n";
 												ret += '</form>' + "\n";
 											}
@@ -3752,7 +3812,7 @@ var hbs = exphbs.create({
 				}
 			} //end if table_enable
 			else {
-				ret += '  <div class="alert alert-warning">ERROR in show_reports (table_info.error): '+table_info.error+' for '+unit+"/"+section+"/"+category+"/"+dataset_name+'</div>';
+				ret += '  <div class="alert alert-warning">ERROR in show_reports (table_info.error): '+table_info.error+' (for '+unit+"/"+section+"/"+category+"/"+dataset_name+')</div>';
 			}
 			//else error already shown
 			return new Handlebars.SafeString(ret);
@@ -3879,6 +3939,12 @@ var hbs = exphbs.create({
 		},
 		reportsGroupContains: function(unit, section, username, opts) {
 			if (user_has_section_permission(unit, username, section, "reports"))
+				return opts.fn(this);
+			else
+				return opts.inverse(this);
+		},
+		settingsGroupContains: function(unit, section, username, opts) {
+			if (user_has_section_permission(unit, username, section, "settings"))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
@@ -4687,7 +4753,7 @@ app.get('/', function(req, res){
 				}
 				else {
 					if (unit !== null && section !== null && category !== null && dataset_name !== null) {
-						req.session.error = "Failed to find cached directory for unit:" +  unit + " section:" + section + " category:" + category + " dataset_name:" + dataset_name;
+						req.session.error = "Failed to find cached directory for unit:" + unit + " section:" + section + " category:" + category + " dataset_name:" + dataset_name;
 					}
 					else {
 						var fails_msg = "";
@@ -4711,7 +4777,43 @@ app.get('/', function(req, res){
 	if (req.session.runme) console.log("runme: "+req.session.runme);
 	var user_selectable_modes = null;
 	if (section && user_modes_by_section && user_modes_by_section.hasOwnProperty(section)) user_selectable_modes = user_modes_by_section[section];
-	res.render('home', {user: req.user, unit: unit, section: section, permitted_users: get_all_permitted_users(), category: category, dataset_name: dataset_name, runme: req.session.runme, mode: mode, selected_setting: req.query.selected_setting, prefill: req.session.prefill, missing_fields: req.session.missing_fields, prefill_mode: prefill_mode, selected_year:selected_year, selected_month: selected_month, selected_day: selected_day, selected_number: selected_number, section_report_edit_field: req.session.section_report_edit_field, selected_item_key: selected_item_key, sections: user_sections, user_selectable_modes: user_selectable_modes, years: years, months: months, days: days, objects: items, this_sheet_field_names: this_sheet_field_names, this_sheet_field_friendly_names: this_sheet_field_friendly_names});
+	var page_locals = {
+		user: req.user,
+		unit: unit,
+		section: section,
+		permitted_users: get_all_permitted_users(),
+		category: category,
+		dataset_name: dataset_name,
+		runme: req.session.runme,
+		mode: mode,
+		selected_setting: req.query.selected_setting,
+		prefill: req.session.prefill,
+		missing_fields: req.session.missing_fields,
+		prefill_mode: prefill_mode,
+		selected_year: selected_year,
+		selected_month: selected_month,
+		selected_day: selected_day,
+		selected_number: selected_number,
+		section_report_edit_field: req.session.section_report_edit_field,
+		selected_item_key: selected_item_key,
+		sections: user_sections,
+		user_selectable_modes: user_selectable_modes,
+		years: years,
+		months: months,
+		days: days,
+		objects: items,
+		this_sheet_field_names: this_sheet_field_names,
+		this_sheet_field_friendly_names: this_sheet_field_friendly_names
+	};
+	if (section=="admin") {
+		res.render('admin', page_locals);
+	}
+	else if (section=="forms") {
+		res.render('forms', page_locals);
+	}
+	else {
+		res.render('home', page_locals);
+	}
 	delete req.session.runme;
 });
 
@@ -4781,15 +4883,15 @@ app.post('/autofill-query', function(req, res){
 							var ok = false;
 							if (fsc[unit][section][category][dataset_name].hasOwnProperty(req.body.selected_year)) {
 								if (fsc[unit][section][category][dataset_name][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
-									var days_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month].length;
-									if (days_len>0) {
+									//var days_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month].length;
+									//if (days_len>0) {
 										for (var day_key in fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month]) {
 										//for (var day_i=0; day_i<days_len; day_i++) {
 											//var day_key = day_keys[day_i];
 											var d_path = m_path + "/" + day_key;
 											if (fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
-												var items_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key].length;
-												if (items_len>0) {
+												//var items_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key].length;
+												//if (items_len>0) {
 													for (var item_key in fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key]) {
 														if (fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
 															var item_path = d_path + "/" + item_key;
@@ -4826,20 +4928,26 @@ app.post('/autofill-query', function(req, res){
 															req.session.error=msg;
 														}
 													}
-												}
-												else console.log("[ _ ] Cache missed -- 0 item_keys for "+day_key);
+												//}
+												//else console.log("[ _ ] Cache missed -- 0 item_keys for "+day_key);
 
 											}
 											else console.log("[ _ ] Cache missed for day "+day_key);
 										}//end of outermost for loop
 										req.session.success = msg + " " + update_saved_count + " of " + update_match_count + " record(s).";
-									}
-									else console.log("[ _ ] Cached missed -- 0 days in month "+req.body.selected_month);
+									//}
+									//else {
+										// console.log("[ _ ] Cached missed -- 0 days in month "+req.body.selected_month);
+									//	console.log("[ _ ] Cached missed -- 0 days in", unit, section, category, dataset_name, req.body.selected_year, req.body.selected_month);
+									//}
 								}
 								else console.log("[ _ ] Cache missed for month "+req.body.selected_month);
 							}
 							else console.log("[ _ ] Cache missed for year "+req.body.selected_year);
-							if (!ok) req.session.error = "Cache failure in update query so skipped saving value for "+req.body.selected_field+"!";
+							if (!ok) {
+								if (!req.session.error) req.session.error = "";
+								req.session.error += "Cache failure in update query so skipped saving value for "+req.body.selected_field+"!";
+							}
 						}
 						else {
 							req.session.error = "Section "+section+" does not specify which information is needed to uniquely identify person (_settings["+section+"]['autofill_requires'] does not have a field list for "+req.body.selected_field+")";
@@ -4898,13 +5006,13 @@ app.post('/update-query', function(req, res){
 						if (table_info.enable) {
 							if (fsc[unit][section][category][dataset_name].hasOwnProperty(req.body.selected_year)) {
 								if (fsc[unit][section][category][dataset_name][req.body.selected_year].hasOwnProperty(req.body.selected_month)) {
-									var days_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month].length;
-									if (days_len>0) {
+									//var days_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month].length;
+									//if (days_len>0) {
 										for (var day_key in fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month]) {
 											if (fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month].hasOwnProperty(day_key)) {
 												var d_path = m_path + "/" + day_key;
-												var items_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key].length;
-												if (items_len>0) {
+												//var items_len=fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key].length;
+												//if (items_len>0) {
 													for (var item_key in fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key]) {
 														var item_path = d_path + "/" + item_key;
 														if (fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][day_key].hasOwnProperty(item_key)) {
@@ -4959,15 +5067,15 @@ app.post('/update-query', function(req, res){
 															req.session.error=msg;
 														}
 													}
-												}
-												else console.log("[ ] Cache missed -- 0 item_keys for "+day_key);
+												//}
+												//else console.log("[ ] Cache missed -- 0 item_keys for "+day_key);
 
 											}
 											else console.log("[ ] Cache missed for day "+day_key);
 										}//end of outermost for loop
 										req.session.success = msg + " for " + update_saved_count + " of " + update_match_count + " matching ";
-									}
-									else console.log("[ ] Cached missed -- 0 days in month "+req.body.selected_month);
+									//}
+									//else console.log("[ ] Cached missed -- 0 days in month "+req.body.selected_month);
 								}
 								else console.log("[ ] Cache missed for month "+req.body.selected_month);
 							}
@@ -5283,13 +5391,13 @@ app.post('/split-entry', function(req, res){
 														else new_key=null;  // results in a key being generated based on the current time
 														//fields were already validated since using an existing entry
 														//fields were already autofilled above
-														//                             req_else_null, section, date_array_else_null, record, deepest_dir, as_username,     write_mode, custom_file_name_else_null, autofill_enable
-														var write_new_results = _write_record_as_is(req, unit, section, category, date_array,    null,       new_item, req.user.username, "create", new_key,                    false);
+														//            _write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record,   as_username,     write_mode, custom_file_name_else_null, autofill_enable)
+														var write_new_results = _write_record_as_is(req, unit, section, category, dataset_name, date_array,           null,                  new_item, req.user.username, "create",  new_key,                    false);
 														if (write_new_results.out_path && write_new_results.out_name) { //write_new_results.out_path is only set AFTER file is written so always check that
 															new_item.key = write_new_results.out_name;
 															fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][write_new_results.out_name] = new_item;
-															if (!fun.array_contains(fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys,write_new_results.out_name))
-																fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys.push(write_new_results.out_name);
+															// if (!fun.array_contains(fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys, write_new_results.out_name))
+															//	fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][req.body.selected_day].item_keys.push(write_new_results.out_name);
 														}
 														if (write_new_results.notice) notice += "\n"+write_new_results.notice+" "; //+"<!--" + out_path + "-->.";
 														if (write_new_results.out_path) {
@@ -5324,7 +5432,8 @@ app.post('/split-entry', function(req, res){
 														original_item.active = false; //no longer use the record, it has been split
 														original_item[req.body.selected_field] = original_field_value;
 														console.log(indent + "saving old record as deactivated: " + req.body.selected_key);
-														var results = _write_record_as_is(req, unit, section, category, date_array, null, original_item, req.user.username, "modify", req.body.selected_key, false);
+														//	_write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record, as_username, write_mode, custom_file_name_else_null, autofill_enable)
+														var results = _write_record_as_is(req, unit, section, category, dataset_name,   date_array,         null,           original_item, req.user.username, "modify", req.body.selected_key,      false);
 														//fsc[unit][section][category][dataset_name][req.body.selected_year][req.body.selected_month][req.body.selected_day][req.body.selected_key] = original_item;
 														if (fun.is_blank(results.error)) {
 															if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
@@ -5647,10 +5756,11 @@ function do_track(params) {
 }//end do_track
 
 app.get('/userExists', function(req, res) {
-	//equivalent in php that works: header('Content-Type: application/json; charset=utf-8');
-	res.type('application/json');  //or text/plain
-	//res.type('text/plain');
+	// equivalent in php that works: header('Content-Type: application/json; charset=utf-8');
+	// res.type('application/json');  //or text/plain
+	// res.type('text/plain');
 	// res.setHeader("content-type", "text/plain");
+	res.setHeader("content-type", "application/json; charset=utf-8");
 	fun.userExistsJSON(req, res, req.query.username); //MUST call res.send
 });
 
@@ -5927,6 +6037,13 @@ app.get('/change-selection', function (req, res) {
 	var sounds_path_then_slash = "sounds/";
 	var section = req.query.section;
 	var unit = req.query.unit;
+	var url_params = "?";
+	if (req.query.hasOwnProperty('unit')) url_params += "unit="+req.query.unit+"&";
+	if (req.query.hasOwnProperty('section')) url_params += "section="+req.query.section+"&";
+	if (req.query.hasOwnProperty('category')) url_params += "category="+req.query.category+"&";
+	if (req.query.hasOwnProperty('dataset_name')) url_params += "dataset_name="+req.query.dataset_name+"&";
+	if (req.query.hasOwnProperty('mode')) url_params += "mode="+req.query.mode+"&";
+
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		if (user_has_section_permission(req.query.unit, req.user.username, section, "read")) {
 			//if (req.query.selected_field) {
@@ -5962,10 +6079,14 @@ app.get('/change-selection', function (req, res) {
 					}
 				}
 				if (selected_field!==null) {
-					if (!req.session.section_report_edit_field.hasOwnProperty(section)) req.session.section_report_edit_field[section] = {};
-					if (!req.session.section_report_edit_field[section].hasOwnProperty(req.query.mode)) req.session.section_report_edit_field[section][req.query.mode] = {};
+					if (!req.session.section_report_edit_field.hasOwnProperty(section)) {
+						req.session.section_report_edit_field[section] = {};
+					}
+					if (!req.session.section_report_edit_field[section].hasOwnProperty(req.query.mode)) {
+						req.session.section_report_edit_field[section][req.query.mode] = {};
+					}
 					req.session.section_report_edit_field[section][req.query.mode] = selected_field; //.toFixed(2)
-					//req.session.success = "Changed selected field for "+req.query.mode+" mode to "+req.session.section_report_edit_field[section][req.query.mode];
+					req.session.success = "Changed selected field for "+req.query.mode+" mode to "+req.session.section_report_edit_field[section][req.query.mode];
 				}
 				else req.session.error = "Invalid field specified (no matching literal data field on sheet): "+req.query.change_section_report_edit_field;
 			}
@@ -5981,7 +6102,7 @@ app.get('/change-selection', function (req, res) {
 	}
 	else console.log("ERROR in change-selection: user not logged in");
 
-	res.redirect(config.proxy_prefix_then_slash);
+	res.redirect(config.proxy_prefix_then_slash + url_params);
 });
 
 app.post('/change-section-settings', function(req, res) {
@@ -6031,6 +6152,14 @@ app.post('/student-microevent', function(req, res){
 	//sounds_path_then_slash = config.proxy_prefix_then_slash+"sounds/";
 	//sounds_path_then_slash = sounds_path_then_slash.substring(1); //remove leading slash
 	var unit = req.body.unit;
+	var url_params = "?";
+	// req.body does not inherit from object, and does not have hasOwnProperty
+	// see <https://github.com/expressjs/express/issues/3264>
+	if (req.body.unit) url_params += "unit="+req.body.unit+"&";
+	if (req.body.section) url_params += "section="+req.body.section+"&";
+	if (req.body.category) url_params += "category="+req.body.category+"&";
+	if (req.body.dataset_name) url_params += "dataset_name="+req.body.dataset_name+"&";
+	if (req.body.mode) url_params += "mode="+req.body.mode+"&";
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
 		//console.log("* NOTE: student-microevent by " + req.user.username);
 		//if using qs, student sign in/out form subscript fields can be created in html template, then accessed here via dot notation: family_id first_name last_name grade (time is calculated here)
@@ -6074,7 +6203,7 @@ app.post('/student-microevent', function(req, res){
 								req.session.prefill[key] = req.body[key];
 								if (!never_save_fields.includes(key)) {
 									if (req.body[key]) record[key] = req.body[key].trim();
-									else record[key] = req.body[key]; //blank apparently, but may be "0"
+									else record[key] = req.body[key];  // blank apparently, but may be "0"
 								}
 							}
 							//console.log(key + " is filled in");
@@ -6211,10 +6340,11 @@ app.post('/student-microevent', function(req, res){
 					var ymd_array;
 					if (stated_date_enable) ymd_array = record.stated_date.split("-");  //ok since already validated or conformed
 					else ymd_array = moment().format("YYYY-MM-DD").split("-");
-					            //_write_record_as_is(req_else_null, unit, section, category, date_array_else_null, deepest_dir_else_null, record, as_username,  write_mode,  custom_file_name_else_null, autofill_enable) {
-					var results = _write_record_as_is(req,           unit, section, category, ymd_array,            null,                  record, req.user.username, "create", null,                      true); //already validated above
+					//            _write_record_as_is(req_else_null, unit, section, category, dataset_name, date_array_else_null, deepest_dir_else_null, record, as_username,     write_mode, custom_file_name_else_null, autofill_enable)
+					var results = _write_record_as_is(req,           unit, section, category, dataset_name, ymd_array,            null,                  record, req.user.username, "create", null,                       true);  // already validated above
 					if (results.notice) req.session.notice = results.notice; //+"<!--" + out_path + "-->.";
 					if (fun.is_blank(results.error)) {
+						console.log("(verbose message in '/student-microevent') wrote: "+JSON.stringify(record)+" (results:" + JSON.stringify(results) + ")");
 						if (config.audio_enable) req.session.runme = ("var audio = new Audio('"+sounds_path_then_slash+"success.wav'); audio.play();"); //new Handlebars.SafeString
 						//for (var indexer in req.session.prefill) {
 						//	if (req.session.prefill.hasOwnProperty(indexer)) {
@@ -6283,7 +6413,7 @@ app.post('/student-microevent', function(req, res){
 		req.session.error = "The server was reset so you must log in again. Sorry for the inconvenience.";
 		delete req.session.runme;
 	}
-	res.redirect(config.proxy_prefix_then_slash);
+	res.redirect(config.proxy_prefix_then_slash+url_params);
 });
 
 //sends the request through our local login/signin strategy, and if successful takes user to homepage, otherwise returns then to signin page
@@ -6300,7 +6430,6 @@ app.post('/login', function(req, res, next) {
 	// err,user,info: from `new LocalStrategy`'s callback, which calls this function as the verified function--see `verified(`)
 	// (NOT  function as the resolve/reject function--see `resolve` and `reject` in exports.localAuth )
 	req.session.setup_banner = null;
-	req.session.missing_users = null;
 	//console.log("(/login) err: ", err)
 	//console.log("(/login) user: ", user)
 	//console.log("(/login) info: ", info)
@@ -6338,37 +6467,11 @@ app.post('/login', function(req, res, next) {
     else if (user.hasOwnProperty('error')) {
 		// 'error' is ALWAYS defined by my LocalStrategy's callback when
 		// err is null and login fails for non-database reason
+		var all_users = get_all_permitted_users();
 		if (req.body.username == 'admin') {
 			if (user.error.includes("username")) {
-				//admin wasn't created, so get some more info for admin:
+				// admin wasn't created, so get some more info for admin:
 				req.session.setup_banner = 'Your server is not setup yet. You must first click "I need to make an account" and make a user named "admin".';
-				req.session.missing_users = [];
-				//req.session.missing_users.push('admin');
-				all_users = get_all_permitted_users();
-				//this only happens if admin doesn't exist--done again in case admin logs in (see further down)
-				//for (var this_username in all_users) {
-				for (var user_i=0; user_i<all_users.length; user_i++) {
-					var this_username = all_users[user_i];
-					//if (all_users.hasOwnProperty(this_username)) {
-					fun.userExists(this_username)
-					.then(function(result) {
-						if (!result.found) {
-							console.log("WARNING in bad username case: need to create user which already has permissions: ", result.username);
-							//TODO: the following fails since it is set later than the page loads (create a json route so an XMLHttpRequest can check this list, and remove the list from the messaging middleware so it isn't erased):
-							if (!req.session.missing_users) {
-								console.log("  (missing users list was not present)");
-							}
-							if (req.session.missing_users.indexOf(result.username) < 0) {
-								req.session.missing_users.push(result.username);
-							}
-						}
-					})
-					.fail(function(result) {
-						console.log("ERROR: userExists failed");
-					});
-					//}
-				}
-				console.log("all users with permissions: " + JSON.stringify(all_users));
 			}
 			else {
 				console.log("(/login) user.error: (admin) " + user.error);
@@ -6380,56 +6483,10 @@ app.post('/login', function(req, res, next) {
     req.logIn(user, function(err) {
 		if (err) {
 			console.log("(/login) (logIn err): ", err)
-			console.log("")
-			console.log("")
 			return next(err);
 		}
 		// else login SUCCESS
-		if (user.username=='admin') {
-			// admin login SUCCESS
-			all_users = get_all_permitted_users();
-			req.session.missing_users = [];
-			for (var user_i=0; user_i<all_users.length; user_i++) {
-				var this_username = all_users[user_i];
-				//if (all_users.hasOwnProperty(this_username)) {
-				fun.userExists(this_username)
-				.then(function(result) {
-					if (!result.found) {
-						console.log("WARNING in admin login success case: need to create user which already has permissions: ", result.username);
-						//TODO: the following fails since it is set later than the page loads (create a json route so an XMLHttpRequest can check this list, and remove the list from the messaging middleware so it isn't erased):
-						//req.session.missing_users becomes res.locals.missing_users via middleware (see above)
-						//if (result.hasOwnProperty('req')) {
-							//var req = result.req;
-							if (!req) {
-								console.log("  (missing req)");
-							}
-							else if (!req.session) {
-								console.log("  (missing session)");
-							}
-							else if (!req.session.missing_users) {
-								console.log("  (missing missing_users list)");
-							}
-							else {
-								console.log("  (detected missing_users list)");
-							}
-							if (req.session.missing_users.indexOf(result.username) < 0) {
-								req.session.missing_users.push(result.username);
-							}
-						//}
-						//else console.log("  (no req returned)");
-
-					}
-				})
-				.fail(function(result) {
-					console.log("ERROR: userExists failed", result);
-				});
-				//}
-			}
-
-		}
-		console.log("(/login) (logIn)")
-		console.log("")
-		console.log("")
+		// console.log("(/login) (logIn)")
 		return res.redirect(config.proxy_prefix_then_slash);
     });
   })(req, res, next);

@@ -1,0 +1,66 @@
+{{#if user}}
+    {{#if_eq section "forms"}}
+    {{else}}
+    <p class="alert alert-danger">forms handlebars should not be used for {{section}} section</p>
+    {{/if_eq}}
+    {{#if section}}
+        {{#if_eq mode "read"}}
+            {{#readGroupContains unit section user.username}}
+            <p class="text-info">read mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/readGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "create"}}
+            {{#createGroupContains unit section user.username}}
+	    <form action="{{get_proxy_prefix_then_slash}}" method="get">
+		    <input type="hidden" name="unit" id="unit" value="{{@root.unit}}"/>
+		    <input type="hidden" name="section" id="section" value="{{@root.section}}"/>
+		    <input type="hidden" name="category" id="category" value="{{@root.category}}"/>
+		    <input type="hidden" name="dataset_name" id="dataset_name" value="{{@root.dataset_name}}"/>
+		    <input type="hidden" name="mode" id="mode" value="{{@root.mode}}"/>
+		    <input type="hidden" name="selected_year" id="selected_year" value="(none)" />
+		    <input type="hidden" name="selected_month" id="selected_month" value="(none)" />
+		    <input type="hidden" name="selected_day" id="selected_day" value="(none)" />
+		    <input type="hidden" name="selected_item_key" id="selected_item_key" value="(none)" />
+	    </form>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/createGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "modify"}}
+            {{#modifyGroupContains unit section user.username}}
+            <p class="text-info">modify mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/modifyGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "reports"}}
+            {{#reportsGroupContains unit section user.username}}
+            <p class="text-info">reports mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/reportsGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "settings"}}
+            {{#settingsGroupContains unit section user.username}}
+            <p class="text-info">settings mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/settingsGroupContains}}
+        {{/if_eq}}
+    {{else}}
+    select a section
+    {{/if}}
+{{else}}
+<div class="jumbotron">
+    <h1>IntegratorEdu</h1>
+    <p>Log in as known user to view and add information.</p>
+    <p>
+        <a href="{{get_proxy_prefix_then_slash}}login" class="btn btn-primary btn-lg" role="button">
+            <span class="glyphicon glyphicon-user"></span>
+        Log In
+        </a>
+    </p>
+</div>
+{{/if}}

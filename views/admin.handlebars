@@ -1,0 +1,56 @@
+{{#if user}}
+    {{#if_eq section "admin"}}
+    {{else}}
+    <p class="alert alert-danger">admin handlebars should not be used for {{section}} section</p>
+    {{/if_eq}}
+    {{#if section}}
+        {{#if_eq mode "read"}}
+            {{#readGroupContains unit section user.username}}
+            <p class="text-info">read mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/readGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "create"}}
+            {{#createGroupContains unit section user.username}}
+            <p class="text-info">create mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/createGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "modify"}}
+            {{#modifyGroupContains unit section user.username}}
+            <p class="text-info">modify mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/modifyGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "reports"}}
+            {{#reportsGroupContains unit section user.username}}
+            <p class="text-info">reports mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/reportsGroupContains}}
+        {{/if_eq}}
+        {{#if_eq mode "settings"}}
+            {{#settingsGroupContains unit section user.username}}
+            <p class="text-info">settings mode is not implemented for {{section}}</p>
+            {{else}}
+            <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
+            {{/settingsGroupContains}}
+        {{/if_eq}}
+    {{else}}
+    select a section
+    {{/if}}
+{{else}}
+<div class="jumbotron">
+    <h1>IntegratorEdu</h1>
+    <p>Log in as known user to view and add information.</p>
+    <p>
+        <a href="{{get_proxy_prefix_then_slash}}login" class="btn btn-primary btn-lg" role="button">
+            <span class="glyphicon glyphicon-user"></span>
+        Log In
+        </a>
+    </p>
+</div>
+{{/if}}
