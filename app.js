@@ -3123,7 +3123,8 @@ var hbs = exphbs.create({
 								//for (var item_i=0, items_len=items.length; item_i<items_len; item_i++) {
 								//for (var item_i=0; item_i<items_by_date.length; item_i++) {
 								//for (var date_key in items_by_date) {  // items
-								for (var item_key in items) {
+								for (var item_key in items) {  // TODO: asdf why does this work?? should be items_by_date[date_s][i]?
+
 									//var date_items = items_by_date[item_key];  // items
 									//for (var item_key in date_items) {
 										//var item = date_items[item_key]
