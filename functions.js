@@ -5,7 +5,7 @@ fs = require('fs');
 
 ////// POLYFILLS //////
 
-String.prototype.replaceAll = function(search, replacement) {
+String.prototype.replaceAll = function (search, replacement) {
 		var target = this;
 		return target.split(search).join(replacement);
 };
@@ -16,8 +16,168 @@ String.prototype.replaceAll = function(search, replacement) {
 if (!config.mongodbHost) config.mongodbHost = "127.0.0.1";
 var mongodbUrl = 'mongodb://' + config.mongodbHost + ':27017/users';
 var MongoClient = require('mongodb').MongoClient;
+var db = null;
 
-//used in local-signup strategy
+// stream entries so all isn't loaded at once
+// <https://medium.freecodecamp.org/node-js-streams-everything-you-need-to-know-c9141306be93>
+// as suggested on:
+// <https://stackoverflow.com/questions/21626896/nodejs-mongodb-native-find-all-documents>
+exports.listEntriesJSON = function (req, res, collection_name) {
+	if (collection_name) {
+		MongoClient.connect(mongodbUrl, function (err, db) {
+			var cursor = db.collection(collection_name).find();
+			res.write("[\n");
+			//res.render('author_list', { title: 'Author List', author_list: list_authors })
+			cursor.each(function (err, item) {
+				// If the item is null then the cursor is exhausted/empty and closed
+				if (err) {
+					console.log("ERROR in listEntriesJSON: ", err);
+				}
+				if (item == null) {
+					res.write('{"info":"EOF"}]\n');
+					res.end()
+					db.close(); // you may not want to close the DB if you have more code....
+					console.log("finished getting users.");
+					return;
+				}
+				res.write(JSON.stringify(item) + ",\n");
+				console.log("got user " + item.username);
+				// otherwise, do something with the item
+			});
+		});
+	}
+	else {
+		console.log("ERROR in getEntriesCB: missing collection_name");
+	}
+}
+
+exports.listEntriesAwait = async function (collection_name) {
+	// async/await requires Node 7.6+
+	if (collection_name) {
+		//TODO: don't connect now--keep global db object to make use of connection pool
+		let db = await mongodb.MongoClient.connect(mongodbUrl);
+		let results = db.collection(collection_name).find().toArray();
+		await db.close();
+		return results;
+	}
+	else {
+		let msg = "ERROR in getEntriesCB: missing collection_name";
+		let results = { error: msg };
+		//console.log(msg);
+		return results;
+	}
+}
+
+exports.listEntries = function (callback, collection_name) {
+	if (collection_name) {
+		MongoClient.connect(mongodbUrl, function (err, db) {
+			if (err) {
+				callback(err, null);
+			}
+			else {
+				callback(null, db.collection(collection_name).find().toArray());
+			}
+		});
+	}
+	else {
+		var msg = "ERROR in getEntriesCB: missing collection_name";
+		callback(new Error(msg), null);
+		console.log(msg);
+	}
+}
+
+exports.listEntriesPromise = function (collection_name) {
+	var deferred = Q.defer();
+	if (collection_name) {
+		MongoClient.connect(
+			mongodbUrl,
+			function (err, db) {
+				if (db) {
+					if (err) {
+						console.log("ERROR in listEntriesPromise:", err);
+						deferred.reject(err);
+					}
+					else {
+						deferred.resolve(db.collection(collection_name).find().toArray());
+					}
+					db.close();
+				}
+				else {
+					deferred.reject(new Error('database connection failed'));
+				}
+			}
+		);
+	}
+	else {
+		var msg = "ERROR in getEntriesCB: missing collection_name";
+		console.log(msg);
+		deferred.reject(new Error(msg));
+	}
+	return deferred.promise;
+}
+
+
+exports.restrict = function (req, res, next) {
+	//see <http://toon.io/on-passportjs-specific-use-cases/>
+	//express-specific improvements from <https://scotch.io/tutorials/route-middleware-to-check-if-a-user-is-authenticated-in-node-js>
+    //if (req.isUnAuthenticated())
+	if (!req.user || !req.user.username) {
+		//only Angular (?) return req.json(403, {message: 'Access denied, please log in'});
+		var results = {"error":"Access denied"};
+		res.send(results);
+	}
+    else return next();
+}
+
+exports.listCollectionsJSON = function (req, res, collection_name) {
+	MongoClient.connect(mongodbUrl, function (err, db) {
+		if (db) {
+			if (err) {
+				console.log("ERROR in listCollectionsJSON:", err);
+				var results = [
+					{
+						"error":err
+					}
+				];
+				res.send(JSON.stringify(results));
+			}
+			else {
+				console.log("listCollections...");
+				var arr = db.listCollections().toArray(function (err, collections) {
+					if (err) {
+						log.error(err);
+						var results = [
+							{
+								"error":err
+							}
+						];
+						res.send(JSON.stringify(results));
+					} else {
+						res.send(JSON.stringify(collections));
+						//log.info(collections);
+					}
+				});
+				//deprecation note: <https://stackoverflow.com/questions/42254813/how-get-collections-list-in-mongoose/42278950#42278950>
+				//only in mongo shell (or deprecated?): var arr = db.getCollectionNames();
+				//only in mongo shell (or deprecated?): db.getCollectionInfos();
+				//res.send(JSON.stringify(arr));
+			}
+			db.close();
+		}
+		else {
+			var results = [
+				{
+					"error":"db connection failed"
+				}
+			];
+			log.error("ERROR in listCollectionsJSON: " + results[0].error);
+			res.send(JSON.stringify(results));
+		}
+	});
+}
+
+// TODO: see if MongoClient <https://mongodb.github.io/node-mongodb-native/driver-articles/mongoclient.html> avoids multiple connections <https://stackoverflow.com/questions/14495975/why-is-it-recommended-not-to-close-a-mongodb-connection-anywhere-in-node-js-code>
+// used in local-signup strategy
 exports.localReg = function (username, password) {
 	var deferred = Q.defer();
 	if (username) {
@@ -79,8 +239,8 @@ exports.localReg = function (username, password) {
 
 // Display list of all users.
 // see <https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/Displaying_data/Author_list_page#Controller>
-//exports.userList = function(req, res, next) {
-// [uses a mongoose Schema]
+//exports.listUsers = function (req, res, next) {
+// [uses a mongoose Schema, which requires mongoose, which causes heavy relations overhead]
   //Author.find()
     //.sort([['family_name', 'ascending']])
     //.exec(function (err, list_authors) {
@@ -90,7 +250,7 @@ exports.localReg = function (username, password) {
     //});
 
 //};
-exports.userExistsJSON = function(req, res, username) {
+exports.userExistsJSON = function (req, res, username) {
 	MongoClient.connect(
 		mongodbUrl,
 		function (err, db) {
@@ -131,7 +291,7 @@ exports.userExistsJSON = function(req, res, username) {
 	)
 }
 
-exports.cache_date = function(this_item, traceback_func_name) {
+exports.cache_date = function (this_item, traceback_func_name) {
 	if (this_item.hasOwnProperty('tmp')) {
 		if (this_item.tmp.hasOwnProperty('date')) {
 			ymd_array = this_item.tmp.date.split("-");
@@ -148,42 +308,46 @@ exports.cache_date = function(this_item, traceback_func_name) {
 	else console.log("ERROR in "+traceback_func_name+": missing tmp for " + JSON.stringify(this_item));
 }
 
-exports.userExists = function(username) {
+exports.userExists = function (username) {
 	var deferred = Q.defer();
 	MongoClient.connect(
 		mongodbUrl,
 		function (err, db) {
 			if (err) {
 				console.log("ERROR in userExists: db connect said: ", err);
-			}
-			if (db) {
-				var collection = db.collection('localUsers');
-				if (username!==null && username!==undefined && username.length>0) {
-					username = username.toLowerCase();
-					collection.findOne({'username' : username})
-					.then(function (result) {
-						if (null === result) {
-							deferred.resolve({username:username, found:false});
-						}
-						else {
-							deferred.resolve({found:true});
-						}
-					});
-				}
-				else {
-					console.log("ERROR in userExists: blank username");
-					deferred.resolve({username:username, found:false, error:'blank username'});
-				}
-				db.close();
+				deferred.reject(err);
 			}
 			else {
-				deferred.reject(new Error('database connection failed'));
+				if (db) {
+					var collection = db.collection('localUsers');
+					if (username!==null && username!==undefined && username.length>0) {
+						username = username.toLowerCase();
+						collection.findOne({'username' : username})
+						.then(function (result) {
+							if (null === result) {
+								deferred.resolve({username:username, found:false});
+							}
+							else {
+								deferred.resolve({found:true});
+							}
+						});
+					}
+					else {
+						console.log("ERROR in userExists: blank username");
+						deferred.resolve({username:username, found:false, error:'blank username'});
+					}
+					db.close();
+				}
+				else {
+					deferred.reject(new Error('database connection failed'));
+				}
 			}
 		}
 	);
 	return deferred.promise;
 };
 
+//TODO: does not need to be promisified with Q--MongoClient.connect returns a promise if no callback is specified
 //check if user exists
 		//if user exists check if passwords match (use bcrypt.compareSync(password, hash); // true where 'hash' is password in DB)
 			//if password matches take into website
@@ -195,53 +359,56 @@ exports.localAuth = function (username, password) {
 	MongoClient.connect(mongodbUrl, function (err, db) {
 		if (err) {
 			console.log("ERROR in localAuth: db connect said: ", err);
-		}
-		if (db) {
-			//console.log("(verbose message in localAuth) found db...");
-			var collection = db.collection('localUsers');
-			if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
-			collection.findOne({'username' : username}//,
-			//second param (callback function) can be added [instead of then] as per <http://www.passportjs.org/docs/>
-				//function (err, user) {
-					//if (err) {
-						//console.log("(peeking at findOne callback) err:", err);
-					//}
-					//console.log("(peeking at findOne callback) user:", user);
-				//}
-			)
-			.then(function (result) {  // if callback is specified above, then will not exist, resulting in exception
-				if (null === result) {
-					//console.log("USERNAME NOT FOUND:", username);
-					deferred.resolve({error:'bad username'});
-				}
-				else {
-					var hash = result.password;
-					//console.log("FOUND USER: " + result.username);
-					if (bcrypt.compareSync(password, hash)) {
-						//console.log("AUTHENTICATION SUCCESS");
-						deferred.resolve(result);
-					} else {
-						//console.log("AUTHENTICATION FAILED");
-						deferred.resolve({error:'bad password'});
-					}
-				}
-			});
-			// below causes exception: fail is not a function
-			//.fail(function (result, result2) {
-			//	console.log("DATABASE FAILED (findOne fail)");
-			//	deferred.reject(new Error('bad password'));
-			//});
-			db.close();
+			deferred.reject(err);
 		}
 		else {
-			//var result = {};
-			//console.log("")
-			console.log("ERROR: Database connection failed. Make sure mongodb-server package is installed and mongod is running: systemctl start mongod && systemctl status mongod");
-			var msg = "Database connection failed. Error details were saved to server console.";
-			//err.body = msg;
-			//deferred.reject(err);  // also works, but Error object is recommended by q
-			//deferred.reject(false, 'missing database connection');
-			deferred.reject(new Error(msg));
+			if (db) {
+				//console.log("(verbose message in localAuth) found db...");
+				var collection = db.collection('localUsers');
+				if (username!==null && username!==undefined && username.length>0) username = username.toLowerCase();
+				collection.findOne({'username' : username}//,
+				//second param (callback function) can be added [instead of then] as per <http://www.passportjs.org/docs/>
+					//function (err, user) {
+						//if (err) {
+							//console.log("(peeking at findOne callback) err:", err);
+						//}
+						//console.log("(peeking at findOne callback) user:", user);
+					//}
+				)
+				.then(function (result) {  // if callback is specified above, then will not exist, resulting in exception
+					if (null === result) {
+						//console.log("USERNAME NOT FOUND:", username);
+						deferred.resolve({error:'bad username'});
+					}
+					else {
+						var hash = result.password;
+						//console.log("FOUND USER: " + result.username);
+						if (bcrypt.compareSync(password, hash)) {
+							//console.log("AUTHENTICATION SUCCESS");
+							deferred.resolve(result);
+						} else {
+							//console.log("AUTHENTICATION FAILED");
+							deferred.resolve({error:'bad password'});
+						}
+					}
+				});
+				// below causes exception: fail is not a function
+				//.fail(function (result, result2) {
+				//	console.log("DATABASE FAILED (findOne fail)");
+				//	deferred.reject(new Error('bad password'));
+				//});
+				db.close();
+			}
+			else {
+				//var result = {};
+				//console.log("")
+				console.log("ERROR: Database connection failed. Make sure mongodb-server package is installed and mongod is running: systemctl start mongod && systemctl status mongod");
+				var msg = "Database connection failed. Error details were saved to server console.";
+				//err.body = msg;
+				//deferred.reject(err);  // also works, but Error object is recommended by q
+				//deferred.reject(false, 'missing database connection');
+				deferred.reject(new Error(msg));
+			}
 		}
 	});
 	return deferred.promise;
@@ -255,7 +422,7 @@ exports.localAuth = function (username, password) {
 
 ////// GENERAL FUNCTIONS ///////
 
-exports.param_info = function(params, name, source) {
+exports.param_info = function (params, name, source) {
 	var results = {};
 	results.value = null;
 	if (typeof params.hasOwnProperty !== 'function') {
@@ -286,7 +453,7 @@ exports.param_info = function(params, name, source) {
 function readLines(input, func) {
 	var remaining = '';
 
-	input.on('data', function(data) {
+	input.on('data', function (data) {
 		remaining += data;
 		var index = remaining.indexOf('\n');
 		var last	= 0;
@@ -300,14 +467,14 @@ function readLines(input, func) {
 		remaining = remaining.substring(last);
 	});
 
-	input.on('end', function() {
+	input.on('end', function () {
 		if (remaining.length > 0) {
 			func(remaining);
 		}
 	});
 }
 
-exports.to_object = function(body) {
+exports.to_object = function (body) {
 	var results = null;
 	for (var key in body) {
 		if (results===null) results = {};
@@ -317,26 +484,26 @@ exports.to_object = function(body) {
 };
 
 //from Titlacauan on https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs
-exports.getDirectories = function(path) {
+exports.getDirectories = function (path) {
 	return fs.readdirSync(path).filter(function (file) {
 		return fs.statSync(path+'/'+file).isDirectory();
 	});
 };
 
-exports.getFiles = function(path) {
+exports.getFiles = function (path) {
 	return fs.readdirSync(path).filter(function (file) {
 		return !fs.statSync(path+'/'+file).isDirectory();
 	});
 };
 //versions below ignore if starting with "."
-exports.getVisibleDirectories = function(path) {
+exports.getVisibleDirectories = function (path) {
 	//return fs.readdirSync(path).filter(function (file) {
 		//return fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
 	//});
 	//see <https://gist.github.com/kethinov/6658166#gistcomment-1603591>
 	var files = fs.readdirSync(path);
 	var filelist = [];
-	files.forEach(function(file) {
+	files.forEach(function (file) {
 		if (fs.statSync(path + '/' + file).isDirectory() && !file.startsWith(".")) {
 			filelist.push(file);
 		}
@@ -344,14 +511,14 @@ exports.getVisibleDirectories = function(path) {
 	return filelist;
 };
 
-exports.getVisibleFiles = function(path) {
+exports.getVisibleFiles = function (path) {
 	//return fs.readdirSync(path).filter(function (file) {
 		//return !fs.statSync(path+'/'+file).isDirectory() && (file.substring(0,1)!=".");
 	//});
 	//see <https://gist.github.com/kethinov/6658166#gistcomment-1603591>
 	var files = fs.readdirSync(path);
 	var filelist = [];
-	files.forEach(function(file) {
+	files.forEach(function (file) {
 		if (fs.statSync(path + '/' + file).isFile() && !file.startsWith(".")) {
 			filelist.push(file);
 		}
@@ -359,12 +526,12 @@ exports.getVisibleFiles = function(path) {
 	return filelist;
 };
 
-exports.contains = function(haystack, needle) {
+exports.contains = function (haystack, needle) {
 	console.log("contains is deprecated--use builtin haystack.includes(needle) instead");
 	return haystack.indexOf(needle) > -1;
 };
 
-exports.get_row = function(obj, names) {
+exports.get_row = function (obj, names) {
 	var result = [];
 	var n_i;
 	var n_len=names.length;
@@ -375,7 +542,7 @@ exports.get_row = function(obj, names) {
 	return result;
 };
 
-exports.array_index_of = function(haystack, needle) {
+exports.array_index_of = function (haystack, needle) {
 	if (haystack && Array.isArray(haystack)) {
 		var findNaN = needle !== needle;
 		for (var i=0,len=haystack.length; i<len; i++) {
@@ -388,7 +555,7 @@ exports.array_index_of = function(haystack, needle) {
 	return -1;
 };
 
-exports.array_contains = function(haystack, needle) {
+exports.array_contains = function (haystack, needle) {
 	//NOTE: do NOT use haystack.includes(needle), since that is hidden behind harmony flags in node.js for backward compatibility
 	// Per spec, the way to identify NaN is that it is not equal to itself
 	var findNaN = needle !== needle;
@@ -402,7 +569,7 @@ exports.array_contains = function(haystack, needle) {
 };
 
 //case-insensitive version
-exports.array_contains_ci = function(haystack, needle) {
+exports.array_contains_ci = function (haystack, needle) {
 	//NOTE: do NOT use haystack.includes(needle), since that is hidden behind harmony flags in node.js for backward compatibility
 	// Per spec, the way to identify NaN is that it is not equal to itself
 	var findNaN = needle !== needle;
@@ -420,7 +587,7 @@ exports.array_contains_ci = function(haystack, needle) {
 	return false;
 };
 
-exports.zero_padded = function(str, len) {
+exports.zero_padded = function (str, len) {
 	var result = str;
 	if (typeof(str)!="string") result = ""+str;
 	while (result.length<len) result = "0"+result;
@@ -428,7 +595,7 @@ exports.zero_padded = function(str, len) {
 };
 
 //Like in python, "Return the base name of pathname path. This is the second element of the pair returned by passing path to the function split(). Note that the result of this function is different from the Unix basename program; where basename for '/foo/bar/' returns 'bar', the basename() function returns an empty string ('')."
-exports.basename = function(path) {
+exports.basename = function (path) {
 	var result = path;
 	if (exports.is_not_blank(path)) {
 		last_slash_i = path.lastIndexOf("/");
@@ -440,7 +607,7 @@ exports.basename = function(path) {
 	return result;
 };
 
-exports.split_capitalized = function(delimited, delimiter) {
+exports.split_capitalized = function (delimited, delimiter) {
 	var results = delimited.split(delimiter);
 	if (delimiter) {
 		for (var ds_i=0,ds_len=results.length; ds_i<ds_len; ds_i++) {
@@ -452,7 +619,7 @@ exports.split_capitalized = function(delimited, delimiter) {
 };
 
 //Like in python, "Split the pathname path into a pair (root, ext) such that root + ext == path, and ext is empty or begins with a period and contains at most one period. Leading periods on the basename are ignored; splitext('.cshrc') returns ('.cshrc', '')."
-exports.splitext = function(path) {
+exports.splitext = function (path) {
 	var chunks = ["",""];
 	if (path) {
 		var last_dot_i = path.lastIndexOf('.');
@@ -475,8 +642,8 @@ exports.splitext = function(path) {
 
 /*
 //function by eyelidlessness on <https://stackoverflow.com/questions/1181575/determine-whether-an-array-contains-a-value> 5 Jan 2016. 31 Aug 2017.
-//var array_contains = function(needle) {
-exports.array_contains = function(needle) {
+//var array_contains = function (needle) {
+exports.array_contains = function (needle) {
 		// Per spec, the way to identify NaN is that it is not equal to itself
 		var findNaN = needle !== needle;
 		var indexOf;
@@ -484,7 +651,7 @@ exports.array_contains = function(needle) {
 		if(!findNaN && typeof Array.prototype.indexOf === 'function') {
 				indexOf = Array.prototype.indexOf;
 		} else {
-				indexOf = function(needle) {
+				indexOf = function (needle) {
 						var i = -1, index = -1;
 
 						for(i = 0; i < this.length; i++) {
@@ -509,7 +676,7 @@ exports.array_contains = function(needle) {
 */
 
 
-exports.get_human_delimited_values = function(input_string) {
+exports.get_human_delimited_values = function (input_string) {
 	var result = null;
 	if (exports.is_not_blank(input_string)) {
 		result = [input_string];
@@ -537,7 +704,7 @@ exports.get_human_delimited_values = function(input_string) {
 
 ///returns: whether the haystack only contains characters from needle_chars_as_string
 ///(false if haystack has any other characters)
-exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
+exports.only_contains_any_char = function (haystack, needle_chars_as_string) {
 	var result = true;
 	for (i = 0; i < haystack.length; i++) {
 		//if criteria does not contain haystack (yes, this is correct), return false
@@ -551,7 +718,7 @@ exports.only_contains_any_char = function(haystack, needle_chars_as_string) {
 	return result;
 };
 
-exports.good_time_string = function(human_written_time_string) {
+exports.good_time_string = function (human_written_time_string) {
 	var result = null;
 	if (human_written_time_string) {
 		var input_lower = human_written_time_string.toLowerCase().trim();
@@ -617,7 +784,7 @@ exports.good_time_string = function(human_written_time_string) {
 	return result;
 };
 
-exports.safe_equals_ci = function(par1, par2) {
+exports.safe_equals_ci = function (par1, par2) {
 	if ((par1!==null)&&(par2!==null)&&(par1!==undefined)&&(par2!==undefined)&&(par1===par1)&&(par2===par2)) { ///=== to ensure is not NaN
 		if ((typeof par1)!="string") par1 = ""+par1;
 		if ((typeof par2)!="string") par2 = ""+par2;
@@ -628,7 +795,7 @@ exports.safe_equals_ci = function(par1, par2) {
 	return false;
 };
 
-exports.single_level_copy = function(src) {
+exports.single_level_copy = function (src) {
 	result = {};
 	for (var index in src) {
 		if ( ((typeof src[index])!=="undefined") ){
@@ -648,7 +815,7 @@ exports.single_level_copy = function(src) {
 };
 
 
-exports.get_date_or_stated_date = function(record, debug_msg) {
+exports.get_date_or_stated_date = function (record, debug_msg) {
 	var stated_date_enable = false;
 	var stated_date = null;
 	var result = null;
@@ -695,7 +862,7 @@ exports.get_date_or_stated_date = function(record, debug_msg) {
 	return result;
 };
 
-exports.get_time_or_stated_time = function(record, debug_msg) {
+exports.get_time_or_stated_time = function (record, debug_msg) {
 	var result = null;
 	if ("stated_time" in record) {
 		var good_time = exports.good_time_string(record.stated_time);
@@ -735,7 +902,7 @@ exports.get_time_or_stated_time = function(record, debug_msg) {
 	return result;
 };
 
-exports.get_datetime_or_stated_datetime = function(record, debug_msg) {
+exports.get_datetime_or_stated_datetime = function (record, debug_msg) {
 	var good_date = exports.get_date_or_stated_date(record, "get_datetime_or_stated_datetime"); //, "("+debug_msg+") get_datetime_or_stated_datetime");
 	var good_time = exports.get_time_or_stated_time(record);//, "("+debug_msg+") get_datetime_or_stated_datetime");
 	var result = null;

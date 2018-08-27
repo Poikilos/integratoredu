@@ -40,13 +40,13 @@ var no_autofill_requires_in_section_warning_enable = true;
 ////// POLYFILLS //////
 
 //see also https://stackoverflow.com/questions/1144783/how-to-replace-all-occurrences-of-a-string-in-javascript
-//String.prototype.replaceAll = function(search, replace) {
+//String.prototype.replaceAll = function (search, replace) {
     //if (replace === undefined) {
         //return this.toString();
     //}
     //return this.split(search).join(replace);
 //}
-String.prototype.replaceAll = function(search, replacement) {
+String.prototype.replaceAll = function (search, replacement) {
     var target = this;
     return target.split(search).join(replacement);
 };
@@ -61,6 +61,131 @@ String.prototype.replaceAll = function(search, replacement) {
     //console.log("speech synthesis supported")
 //}
 
+// see https://schema.org/Person
+// see https://schema.org/PostalAddress
+// see (not implemented) https://schema.org/ContactPointOption
+// see (not implemented) AdministrativeArea
+// see (not implemented) GeoShape
+// see (not implemented) Place
+// see (not implemented) OpeningHoursSpecification
+var schemas = {
+	User: {
+		parent_schema: "IeduPerson",
+		fields: ["aup_accepted", "aup_signed", "priv_accepted", "internet_banned", "roles", "EntryNo", "last_login_ip", "on_dom"],
+		html_types: {
+			"aup_accepted": "checkbox",
+			"aup_signed": "checkbox",
+			"gdpr_accepted": "checkbox",
+			"internet_banned": "checkbox",
+			"on_dom": "checkbox"
+		},
+		strong_types: {
+			"aup_accepted": "bool",
+			"aup_signed": "bool",
+			"gdpr_accepted": "bool",
+			"internet_banned": "bool",
+			"roles": "string[]",
+			"on_dom": "bool"
+		},
+		display_strings: {
+			"on_dom": "Has Domain Account"
+		},
+		lookup_values: {
+			"roles": ["Employee", "Faculty", "Office", "Student"]
+		}
+	},
+	IeduRecord: {
+		auto_fields: ["created_by", "created_by_ip",
+			"ctime", "tz_offset_mins", "tz"
+		],
+		examples: {
+			"ctime": '2018-08-20 01:06:25 -04:00'
+		}
+	},
+	IeduPerson: {
+		parent_schema: "Person",
+		auto_fields: ["created_by", "created_by_ip",
+			"ctime", "tz_offset_mins", "tz"
+		],
+		examples: {
+			"ctime": '2018-08-20 01:06:25 -04:00'
+		}
+	},
+	PostalAddress: {
+		fields: ["streetAddress", "streetAddress2", "postOfficeBoxNumber", "addressCountry", "addressLocality", "addressRegion", "postalCode"],
+		display_strings: {
+			"streetAddress": "Address",
+			"streetAddress2": "Address line 2 (optional)",
+			"addressLocality": "City",
+			"addressRegion": "State",
+			"postalCode": "ZIP",
+			"postOfficeBoxNumber": "PO Box (if applicable)"
+		},
+		alternatives: {
+			"postOfficeBoxNumber": ["streetAddress"]
+		}
+	},
+	ContactPoint: {
+		fields: ["contactType", "email", "faxNumber", "hoursAvailable", "telephone", "areaServed", "availableLanguage", "contactOption", "productSupported"],
+		value_schemas: {
+			"contactOption": "ContactPointOption",
+			"areaServed": "AdministrativeArea|GeoShape|Place|Text",
+			"availableLanguage": "Language|Text",
+			"hoursAvailable": "OpeningHoursSpecification",
+			"productSupported": "Product|Text"
+		},
+		//supercedes: {
+		//	"areaServed": "serviceArea"
+		//},
+		excludes: {
+			"email": ["telephone", "hoursAvailable"]
+		}
+	},
+	Person: {
+		required: ["givenName"],
+		fields: ["name", "givenName", "additionalName", "familyName"],
+		display_strings: {
+			"name": "Nickname (American name if international)",
+			"givenName": "First",
+			"additionalName": "Middle",
+			"familyName": "Last (family name)",
+		},
+		value_schemas: {
+			"address": "PostalAddress",
+			"contactPoint":"ContactPoint",
+			"homeLocation":"ContactPoint|Place",
+			"workLocation":"ContactPoint|Place",
+		},
+		lookup_values: {
+			"gender": ["M", "F", "-"]
+		},
+		lookup_value_strings: {
+			"-": "Prefer not to mention"
+		}
+	},
+	Student: {
+		parent_schema: "User",
+		required: ["GradYr"],
+		fields: ["GradYr", "ID", "UDID", "NameNotes", "DateAdded", "pe"],
+		import_fields: {
+			"GoesBy": "name",
+			"StudentNo": "UDID",
+			"Student ID": "ID",
+			"Student UD ID": "UDID",
+			"FirstNameAndMid": ["name", "additionalName"],
+			"LastName": "familyName",
+			"User Name": "username",
+			"Password": "pe",
+			"LastThenFirstName": "s"
+		}
+	},
+	Employee: {
+		parent_schema: "User",
+		fields: ["NameNotes"]
+	}
+};
+//TODO: ensure password becomes hash ("password") or encrypted ("pe") using (imported non-blank or random) salt ("s") at some point during import
+
 var ptcache = {}; // this is the custom plain text cache by file path
 // "A polyfill is a script you can use to ensure that any browser will have an implementation of something you're using" -- FireSBurnsmuP Sep 20 '16 at 13:39 on https://stackoverflow.com/questions/7378228/check-if-an-element-is-present-in-an-array
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
@@ -68,7 +193,7 @@ var ptcache = {}; // this is the custom plain text cache by file path
 // This is usually not used--see fun.array_contains instead
 if (!Array.prototype.includes) { //if doesn't support ECMA 2016
 	Object.defineProperty(Array.prototype, 'includes', {
-		value: function(searchElement, fromIndex) {
+		value: function (searchElement, fromIndex) {
 			if ((this === null) || (this === undefined)) {
 				throw new TypeError('"this" is null or not defined');
 			}
@@ -184,12 +309,15 @@ _settings_default.unit.enabled_sections = ["care", "commute", "forms", "track", 
 _settings_default.unit.selectable_modes = ["create", "read", "settings", "reports"];
 _settings_default.unit.local_time_zone = "America/New_York";
 _settings_default.admin = {};
+_settings_default.admin.prioritized_modes = ["settings", "reports", "create", "read"];
 _settings_default.admin.display_name = "Advanced";
 _settings_default.forms = {};
+_settings_default.forms.prioritized_modes = ["create", "settings", "reports", "read"];
 _settings_default.forms.display_name = "Forms";
 _settings_default.forms.primary_category = "transactions";
 _settings_default.forms.primary_dataset_name = "employee";
 _settings_default.care = {};
+_settings_default.care.prioritized_modes = ["reports","create", "read"];
 _settings_default.care.primary_category = "transactions";
 _settings_default.care.primary_dataset_name = "student";
 _settings_default.care.display_name = "Extended Care";
@@ -235,8 +363,8 @@ _settings_default.care.autofill_requires.family_id = ["first_name", "last_name",
 _settings_default.care.autofill_requires.qty = ["first_name"];
 //NOTE: mid uses counting numbers, and last param is inclusive
 _settings_default.care.history_sheet_fields = ["time", "qty", "=mid(first_name,1,1)", "=mid(last_name,1,1)", "grade_level", "chaperone", "family_id"];
-_settings_default.care.mode_priority = ["reports","create", "read"];
 _settings_default.commute = {};
+_settings_default.commute.prioritized_modes = ["reports", "read", "create"];
 _settings_default.commute.primary_category = "transactions";
 _settings_default.commute.primary_dataset_name = "student";
 _settings_default.commute.display_name = "Commute";
@@ -254,8 +382,8 @@ _settings_default.commute.local_end_time = '15:05:00';
 _settings_default.commute.reports = {};
 _settings_default.commute.reports.suggest_missing_required_fields_enable = true; //may cause slowness with loading reports when required fields are blank
 _settings_default.commute.reports.auto_select_month_enable = true; //ok since in reports section
-_settings_default.commute.mode_priority = ["reports","create", "read"];
 _settings_default.track = {};
+_settings_default.track.prioritized_modes = ["create", "reports", "read"];
 _settings_default.track.primary_category = "status";
 _settings_default.track.primary_dataset_name = "MAC";
 _settings_default.track.display_name = ["Track"];
@@ -266,6 +394,7 @@ _settings_default.track.sheet_fields = ["MAC","MachineName","UserName","HostName
 _settings_default.track.status_keys = ["MAC"];
 //TODO: employee leave request (aka absence request)
 _settings_default.po = {};
+_settings_default.po.prioritized_modes = ["create", "read", "reports"];
 _settings_default.po.primary_category = "tables";
 _settings_default.po.primary_dataset_name = "PurchaseOrder";
 _settings_default.po.minimum_key_values = {"po_number":4213}; //TODO: asdf implement this
@@ -291,11 +420,11 @@ _settings_default.po.required_fields = ["po_number","vendor", "stated_date", "qt
 //var startTime = moment('08:10:00', "HH:mm:ss");
 //var endTime = moment('15:05:00', "HH:mm:ss");
 
-var default_mode_by_user = {};
-default_mode_by_user.care = "create";
-default_mode_by_user.commute = "create";
-default_mode_by_user.attendance = "read";
-default_mode_by_user.accounting = "reports";
+//var default_mode_by_user = {};
+//default_mode_by_user.care = "create";
+//default_mode_by_user.commute = "create";
+//default_mode_by_user.attendance = "read";
+//default_mode_by_user.accounting = "reports";
 
 
 var _groups = null; //load from groups_path
@@ -879,21 +1008,21 @@ function user_has_pinless_time(unit, section, username) {
 //===============PASSPORT===============
 
 // Passport session setup.
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
 	// console.log("* passport serializing ", user);
 	// user object has _id, username, password (hash)
 	//TODO: ? serialize manually
 	done(null, user);  // TODO: should be user.id as per <http://www.passportjs.org/docs/>
 });
 
-passport.deserializeUser(function(id, done) {
+passport.deserializeUser(function (id, done) {
 	// console.log("* passport deserializing ", id);
 	// user object has _id, username, password (hash)
 	done(null, id);
 	//changed to id and above removed and below added, as per <http://www.passportjs.org/docs/>
 	//"The serialization and deserialization logic is supplied by the application, allowing the application to choose an appropriate database and/or object mapper, without imposition by the authentication layer."
 	//TODO: ? deserialize manually
-	//User.findById(id, function(err, user) {
+	//User.findById(id, function (err, user) {
 	//	done(err, user);
 	//});
 });
@@ -905,7 +1034,7 @@ passport.use(new LocalStrategy(
 	{passReqToCallback: true,
 	 usernameField: 'username',
 	 passwordField:'password'}, //see ./node_modules/passport-local/lib/strategy.js
-	function(req, username, password, verified) { //verified formerly done--see passport-local/lib/strategy.js
+	function (req, username, password, verified) { //verified formerly done--see passport-local/lib/strategy.js
 		//(all logging is made available to the /login route, otherwise the promise chain is incomplete)
 		// added return before verified as per <http://www.passportjs.org/docs/>
 		//strategy.js notes:
@@ -944,7 +1073,7 @@ passport.use(new LocalStrategy(
 // Use the LocalStrategy within Passport to register/"signup" users.
 passport.use('local-signup', new LocalStrategy(
 	{passReqToCallback : true}, //allows us to pass back the request to the callback
-	function(req, username, password, done) {
+	function (req, username, password, done) {
 		if (password) {
 			if (username) {
 				if ( req.body.pin && (req.body.pin==config.it_pin)) {
@@ -998,17 +1127,17 @@ passport.use('local-signup', new LocalStrategy(
 
 //===============EXPRESS================
 // Configure Express
-//app.configure(function() {  // removed in express 4
+//app.configure(function () {  // removed in express 4
 app.use(logger('combined'));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(methodOverride('X-HTTP-Method-Override'));
-app.use(session({secret: 'supernova', saveUninitialized: true, resave: true}));
+app.use(session({secret: 'SUPERN0VA', saveUninitialized: true, resave: true}));
 app.use(passport.initialize());
 app.use(passport.session());
 // Session-persisted message middleware
-app.use(function(req, res, next){
+app.use(function (req, res, next){
 	var err = req.session.error,
 		msg = req.session.notice,
 		success = req.session.success,
@@ -2069,7 +2198,7 @@ function get_billing_cycle_selector(unit, section, category, dataset_name, selec
 // Configure express to use handlebars templates
 var hbs = exphbs.create({
 		helpers: {
-		remove_audio_message: function() {
+		remove_audio_message: function () {
 			//delete session.runme;
 			//not a function: session.destroy("runme");
 		},
@@ -2077,14 +2206,14 @@ var hbs = exphbs.create({
 		getStringifiedJson: function (value) {
 			return JSON.stringify(value);
 		},
-		if_eq: function(a, b, opts) {
+		if_eq: function (a, b, opts) {
 			//console.log("* checking if_eq while user is " + a);
 			if (a == b) // Or ===
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		if_is_any_form_mode: function(unit, mode, opts) {
+		if_is_any_form_mode: function (unit, mode, opts) {
 			//console.log("* checking if_eq while user is " + a);
 			var is_match = false;
 			var arr = ["create", "modify"];
@@ -2101,18 +2230,17 @@ var hbs = exphbs.create({
 			else
 				return opts.inverse(this);
 		},
-		if_formula: function(a, opts) {
+		if_formula: function (a, opts) {
 			if (a.startsWith("="))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		get_member: function(a, name, opts) {
+		get_member: function (a, name, opts) {
 			return (a.hasOwnProperty(name)) ? a.name : "";
 		},
-		show_settings: function(unit, section, username, selected_setting, opts) {
+		show_settings: function (unit, section, username, selected_setting, opts) {
 			var ret = "";
-
 			if (user_has_section_permission(unit, username, section, "settings")) {
 				var settings_keys = get_all_settings_names();
 				ret += '<div><a href="'+config.proxy_prefix_then_slash+"reload-settings?section="+section+'" class="btn btn-danger" role="button">' + "\n";
@@ -2163,7 +2291,7 @@ var hbs = exphbs.create({
 			}
 			return new Handlebars.SafeString(ret);
 		},
-		show_billing_cycle_preview: function(unit, section, username, selected_number, opts) { //as opposed to having a billing-cycle route
+		show_billing_cycle_preview: function (unit, section, username, selected_number, opts) { //as opposed to having a billing-cycle route
 			var ret = "";
 			var mode = "reports";
 			var category = "tables"; //BillingCycle
@@ -2607,14 +2735,14 @@ var hbs = exphbs.create({
 			}
 			return new Handlebars.SafeString(ret);
 		},
-		long_description: function(unit, section, field_name, opts) {
+		long_description: function (unit, section, field_name, opts) {
 			var ret = "";
 			if (has_setting(unit, section+".long_descriptions."+field_name)) {
 				ret += peek_setting(unit, section+".long_descriptions."+field_name);
 			}
 			return new Handlebars.SafeString(ret);
 		},
-		show_reports: function(container_enable, unit, section, category, dataset_name, username, years, months, days, selected_year, selected_month, selected_day, selected_number, section_report_edit_field, opts) {
+		show_reports: function (container_enable, unit, section, category, dataset_name, username, years, months, days, selected_year, selected_month, selected_day, selected_number, section_report_edit_field, opts) {
 			var ret = "";
 			var mode = "reports";
 			var year = null;
@@ -2840,7 +2968,7 @@ var hbs = exphbs.create({
 							//NOTE: already checked for section+".sheet_fields" above
 							var parsing_info = "";
 							var parsing_error = "";
-							var items = {}; //formerly a list: is now keyed by actual key (filename)
+							var items = {};  // formerly a list: is now keyed by actual key (filename)
 							ret += '<table class="table table-bordered table-sm">' + "\n";
 							ret += '  <thead>' + "\n";
 							ret += '    <tr>' + "\n";
@@ -3702,13 +3830,13 @@ var hbs = exphbs.create({
 												ret += '    </script>' + "\n";
 												ret += '    <form class="form" id="add-end-dates-to-bill" action="' + config.proxy_prefix_then_slash + 'add-end-dates-to-bill" method="post">' + "\n";
 												ret += '      <div class="form-group">' + "\n";
-												//ret += '        <div class="entry form-group col-sm-6">' + "\n"; //input-group mb-2 mr-sm-2 mb-sm-0
+												//ret += '        <div class="entry form-group col-sm-6">' + "\n";  // input-group mb-2 mr-sm-2 mb-sm-0
 
 												//ret += '          <div class="input-group-addon" >New Billing Cycle Name:</div>';
 												//ret += '            <label for="new_cycle_name">New Cycle Name:</label>' + "\n";
 												//ret += '            <input type="text" class="form-control" name="new_cycle_name" id="new_cycle_name" value=""/>' + "\n";
 												//ret += '          </div>' + "\n";
-												//ret += '          <div class="form-group col-4">' + "\n"; //input-group mb-2 mr-sm-2 mb-sm-0
+												//ret += '          <div class="form-group col-4">' + "\n";  // input-group mb-2 mr-sm-2 mb-sm-0
 												//ret += '            <button type="submit" class="btn btn-primary">Create from Selected Weeks</button>' + "\n";
 												//ret += '          </div">';
 												//ret += '        </div>' + "\n";//end col
@@ -3818,7 +3946,7 @@ var hbs = exphbs.create({
 			//else error already shown
 			return new Handlebars.SafeString(ret);
 		},  //end show_reports
-		get_section_form: function(unit, section, category, dataset_name, mode, username, prefill, missing_fields, opts) {
+		get_section_form: function (unit, section, category, dataset_name, mode, username, prefill, missing_fields, opts) {
 			//aka get_form
 			//globals of note:
 			//prefill_data_by_user
@@ -3872,7 +4000,7 @@ var hbs = exphbs.create({
 			}
 			return new Handlebars.SafeString(ret); // mark as already escaped (so that literal html can be pushed) -- normally new Handlebars.SafeString
 		},
-		eachProperty: function(context, options) {
+		eachProperty: function (context, options) {
 			//see Ben on https://stackoverflow.com/questions/9058774/handlebars-mustache-is-there-a-built-in-way-to-loop-through-the-properties-of
 			//NOTE: This is needed since builtin each didn't work though according to  "each" can iterate objects as @key : {{this}} (whereas array is iterated as @index : {{this}})
 			var ret = "";
@@ -3882,13 +4010,13 @@ var hbs = exphbs.create({
 			}
 			return ret;
 		},
-		user_has_pinless_time: function(unit, section, username, opts) {
+		user_has_pinless_time: function (unit, section, username, opts) {
 			if (user_has_pinless_time(unit, section, username)) // Or ===
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		if_undefined: function(a, opts) {
+		if_undefined: function (a, opts) {
 			//NOTE: Never use this, since sending undefined variables to render causes failure to render!
 			//      Ensure variable exists, and then use is_blank instead.
 			//console.log("* checking if_eq while user is " + a);
@@ -3897,20 +4025,20 @@ var hbs = exphbs.create({
 			else
 				return opts.inverse(this);
 		},
-		if_blank: function(a, opts) {
+		if_blank: function (a, opts) {
 			//console.log("* checking if_eq while user is " + a);
 			if (fun.is_blank(a))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		createGroupContains: function(unit, section, username, opts) {
+		createGroupContains: function (unit, section, username, opts) {
 			if (user_has_section_permission(unit, username, section, "create"))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		groupContains: function(groupname, username, opts) {
+		groupContains: function (groupname, username, opts) {
 			if (_groups.hasOwnProperty(groupname)) {
 				if (fun.array_contains(_groups[groupname], username)) {
 					//console.log(groupname+" contains "+username);
@@ -3926,61 +4054,61 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 			}
 		},
-		readGroupContains: function(unit, section, username, opts) {
+		readGroupContains: function (unit, section, username, opts) {
 			if (user_has_section_permission(unit, username, section, "read"))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		modifyGroupContains: function(unit, section, username, opts) {
+		modifyGroupContains: function (unit, section, username, opts) {
 			if (user_has_section_permission(unit, username, section, "modify"))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		reportsGroupContains: function(unit, section, username, opts) {
+		reportsGroupContains: function (unit, section, username, opts) {
 			if (user_has_section_permission(unit, username, section, "reports"))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		settingsGroupContains: function(unit, section, username, opts) {
+		settingsGroupContains: function (unit, section, username, opts) {
 			if (user_has_section_permission(unit, username, section, "settings"))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		friendlyModeName: function(unit, needle, opts) {
+		friendlyModeName: function (unit, needle, opts) {
 			if (friendly_mode_names.hasOwnProperty(needle))
 				return friendly_mode_names[needle];
 			else
 				return needle;
 		},
-		friendlySectionName: function(unit, needle, opts) {
+		friendlySectionName: function (unit, needle, opts) {
 			if (has_setting(unit, needle+".display_name"))
 				return peek_setting(unit, needle+".display_name");
 			else
 				return needle;
 		},
-		//isReadableByUser: function(section, user, opts) {
+		//isReadableByUser: function (section, user, opts) {
 		//	if (fun.array_contains(, ))
 		//		return opts.fn(this);
 		//	else
 		//		return opts.inverse(this);
 		//},
-		isOnlyEmployeeReadSection: function(needle, opts) {
+		isOnlyEmployeeReadSection: function (needle, opts) {
 			if (fun.array_contains(only_employee_read_sections, needle))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		isOnlyEmployeeModifySection: function(needle, opts) {
+		isOnlyEmployeeModifySection: function (needle, opts) {
 			if (fun.array_contains(only_employee_modify_sections, needle))
 				return opts.fn(this);
 			else
 				return opts.inverse(this);
 		},
-		is_after_school: function(unit, section, opts) {
+		is_after_school: function (unit, section, opts) {
 			if (!section) console.log("ERROR: no section given to is_after_school helper");
 			if (has_setting(unit, section+".local_end_time")) {
 				var local_time_zone = null;
@@ -4015,7 +4143,7 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 			}
 		},
-		is_before_school: function(unit, section, opts) {
+		is_before_school: function (unit, section, opts) {
 			if (!section) console.log("ERROR: no section given to is_before_school helper");
 			if (has_setting(unit, section+".local_start_time")) {
 				var local_time_zone = null;
@@ -4049,38 +4177,38 @@ var hbs = exphbs.create({
 				return opts.inverse(this);
 			}
 		},
-		show_time: function(opts) {
+		show_time: function (opts) {
 			//return "Time of last change: " + moment().format("HH:mm");
 			//return moment().format("h:mm a") + " (will be updated on refresh or enter)";
 			return "";
 		},
-		get_proxy_prefix_then_slash: function(opts) {
+		get_proxy_prefix_then_slash: function (opts) {
 			if (config.proxy_prefix_then_slash.trim())
 				return config.proxy_prefix_then_slash.trim();
 			else
 				return "/";
 		},
-		get_primary_dataset_name: function(unit, section, opts) {
+		get_primary_dataset_name: function (unit, section, opts) {
 			var dataset_name = null;
 			if (has_setting(unit, section+".primary_dataset_name")) {
 				dataset_name=peek_setting(unit, section+".primary_dataset_name");
 			}
 			return dataset_name;
 		},
-		get_primary_category: function(unit, section, opts) {
+		get_primary_category: function (unit, section, opts) {
 			var category = null;
 			if (has_setting(unit, section+".primary_category")) {
 				category=peek_setting(unit, section+".primary_category");
 			}
 			return category;
 		},
-		get_tz_offset_mins: function(opts) {
+		get_tz_offset_mins: function (opts) {
 			return moment().utcOffset();
 		},
-		//get_startup_js_code: function(opts) {
+		//get_startup_js_code: function (opts) {
 		//	return session.runme;
 		//},
-		show_status: function(unit, section, dataset_name, opts) {
+		show_status: function (unit, section, dataset_name, opts) {
 			var ret="";
 			if (fun.array_contains(tracking_sections, section)) {
 				var category = "status";
@@ -4156,7 +4284,7 @@ var hbs = exphbs.create({
 			}
 			return new Handlebars.SafeString(ret);
 		},
-		show_history: function(unit, section, objects, opts) {
+		show_history: function (unit, section, objects, opts) {
 			var ret = "";
 			var force_date_enable = false;
 			if (has_setting(unit, section+".history_sheet_fields")) {
@@ -4298,9 +4426,10 @@ var hbs = exphbs.create({
 			return new Handlebars.SafeString(ret);
 		},
 	},
-	defaultLayout: 'main', //we will be creating this layout shortly
+	defaultLayout: 'main',
 });
-//partialsDir can also be added as a param above for storing partial paths for portability (normally used to specify where handlebars files are stored)
+//TODO: ? partialsDir can also be added as a param above for storing partial paths for portability (normally used to specify where handlebars files are stored)
+//--see <https://github.com/pillarjs/hbs/tree/master/examples/partial>
 app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
 
@@ -4310,7 +4439,7 @@ app.set('view engine', 'handlebars');
 //  so the following doesn't work:
 //via https://www.youtube.com/watch?v=h3sAJXpCOdo
 //NOTE: if helper is called via iterate, context and options are the params automatically created by handlebars, and contains fn, hash, and inverse (see https://www.youtube.com/watch?v=oezJZiFFPNU)
-//exphbs.registerHelper('strcomp', function(haystack, needle){
+//exphbs.registerHelper('strcomp', function (haystack, needle){
 //	return haystack==needle;
 //});
 
@@ -4325,8 +4454,8 @@ app.set('view engine', 'handlebars');
 //===============ROUTES===============
 
 /*
-//use app.use(express.static(__dirname + '/public')); // instead of below (see above)
-app.get('/public/sounds/missing-information.wav', function(req, res){
+//deprecated in favor of: app.use(express.static(__dirname + '/public'));
+app.get('/public/sounds/missing-information.wav', function (req, res){
 	//see also https://stackoverflow.com/questions/5823722/how-to-serve-an-image-using-nodejs
 	var request = url.parse(req.url, true);
 	var action = request.pathname;
@@ -4345,7 +4474,7 @@ app.get('/public/sounds/missing-information.wav', function(req, res){
 	//    res.end('Hello World \n');
 	//}
 });
-app.get('/public/sounds/security-warning.wav', function(req, res){
+app.get('/public/sounds/security-warning.wav', function (req, res){
 	var request = url.parse(req.url, true);
 	var action = request.pathname;
 	console.log("action: "+action);
@@ -4353,7 +4482,7 @@ app.get('/public/sounds/security-warning.wav', function(req, res){
 	res.writeHead(200, {'Content-Type': 'audio/wav'});
 	res.end(wav, 'binary');
 });
-app.get('/public/sounds/success.wav', function(req, res){
+app.get('/public/sounds/success.wav', function (req, res){
 	var request = url.parse(req.url, true);
 	var action = request.pathname;
 	console.log("action: "+action);
@@ -4390,7 +4519,7 @@ function check_settings() {
 }
 
 // default route "/"
-app.get('/', function(req, res){
+app.get('/', function (req, res){
 	console.log("");
 	if (req.query.hasOwnProperty("clear_selection") && (req.query.clear_selection=="true")) {
 		//see also "stale selection" logic, elsewhere
@@ -4566,20 +4695,33 @@ app.get('/', function(req, res){
 	if (fun.is_not_blank(req.query.mode)) {
 		mode = req.query.mode;
 	}
-	else if (user_modes_by_section.hasOwnProperty(section) && user_modes_by_section[section] && user_modes_by_section[section].length>=1) {
-		if (req.user && req.user.username && (default_mode_by_user.hasOwnProperty(req.user.username))) mode=default_mode_by_user[req.user.username];
-		else mode = user_modes_by_section[section][user_modes_by_section[section].length-1];
-		req.session.mode = mode;
+	else if (has_setting(unit, section+".prioritized_modes")) {
+		var modes = peek_setting(unit, section+".prioritized_modes");
+		for (var mode_i=0; mode_i<modes.length; mode_i++) {
+			var try_mode = modes[mode_i];
+			// NOTE: req.user may not be defined at this time
+			//if (user_has_section_permission(unit, req.user.username, section, try_mode)) {
+			if (user_modes_by_section.hasOwnProperty(section) &&
+			    fun.array_contains(user_modes_by_section[section], try_mode)) {
+				mode = try_mode;
+				break;
+			}
+		}
 	}
+	//else if (user_modes_by_section.hasOwnProperty(section) && user_modes_by_section[section] && user_modes_by_section[section].length>=1) {
+	//	if (req.user && req.user.username && (default_mode_by_user.hasOwnProperty(req.user.username))) mode=default_mode_by_user[req.user.username];
+	//	else mode = user_modes_by_section[section][user_modes_by_section[section].length-1];
+	//	req.session.mode = mode;
+	//}
 
-	var prefill_mode = ""; //differs from prefill.mode in that prefill_mode specifies what mode the form should post as
-	if (fun.is_not_blank(req.query.prefill_mode)) {
-		prefill_mode = req.query.prefill_mode;
-		req.session.prefill_mode = prefill_mode;
-	}
-	else if ((req.session.prefill.hasOwnProperty("prefill_mode")) && fun.is_not_blank(req.session.prefill.prefill_mode)) {
-		prefill_mode = req.session.prefill_mode;
-	}
+	//var prefill_mode = ""; //differs from prefill.mode in that prefill_mode specifies what mode the form should post as
+	//if (fun.is_not_blank(req.query.prefill_mode)) {
+		//prefill_mode = req.query.prefill_mode;
+		//req.session.prefill_mode = prefill_mode;
+	//}
+	//else if ((req.session.prefill.hasOwnProperty("prefill_mode")) && fun.is_not_blank(req.session.prefill.prefill_mode)) {
+		//prefill_mode = req.session.prefill_mode;
+	//}
 	//if (fun.is_not_blank(req.body.prefill_mode)) {
 	//	prefill_mode = req.body.prefill_mode;
 	//	req.session.prefill_mode = prefill_mode;
@@ -4778,6 +4920,7 @@ app.get('/', function(req, res){
 	if (req.session.runme) console.log("runme: "+req.session.runme);
 	var user_selectable_modes = null;
 	if (section && user_modes_by_section && user_modes_by_section.hasOwnProperty(section)) user_selectable_modes = user_modes_by_section[section];
+	var scripts = ['/js/main.js'];
 	var page_locals = {
 		user: req.user,
 		unit: unit,
@@ -4790,7 +4933,6 @@ app.get('/', function(req, res){
 		selected_setting: req.query.selected_setting,
 		prefill: req.session.prefill,
 		missing_fields: req.session.missing_fields,
-		prefill_mode: prefill_mode,
 		selected_year: selected_year,
 		selected_month: selected_month,
 		selected_day: selected_day,
@@ -4804,7 +4946,8 @@ app.get('/', function(req, res){
 		days: days,
 		objects: items,
 		this_sheet_field_names: this_sheet_field_names,
-		this_sheet_field_friendly_names: this_sheet_field_friendly_names
+		this_sheet_field_friendly_names: this_sheet_field_friendly_names,
+		scripts: scripts
 	};
 	if (section=="admin") {
 		res.render('admin', page_locals);
@@ -4819,7 +4962,7 @@ app.get('/', function(req, res){
 });
 
 //displays our signup page
-app.get('/login', function(req, res){
+app.get('/login', function (req, res){
 	load_permissions("showing login", req);
 	load_groups("showing login", req);
 
@@ -4846,7 +4989,7 @@ var autofill_query_callback = function (err) {
 	//else console.log("[ * ] saving entry"+reason+"...OK");
 };
 
-app.post('/autofill-query', function(req, res){
+app.post('/autofill-query', function (req, res){
 	//aka autofilla all, aka autofill-all, aka autofill_all
 	var sounds_path_then_slash = "sounds/";
 	var update_match_count = 0;
@@ -4980,7 +5123,7 @@ app.post('/autofill-query', function(req, res){
 }); //end autofill-query
 
 
-app.post('/update-query', function(req, res){
+app.post('/update-query', function (req, res){
 	var category="transactions";
 	var dataset_name = "student";
 	var sounds_path_then_slash = "sounds/";
@@ -5112,7 +5255,7 @@ app.post('/update-query', function(req, res){
 	res.redirect(config.proxy_prefix_then_slash);
 }); //end update-query
 
-app.post('/change-microevent-field', function(req, res){
+app.post('/change-microevent-field', function (req, res){
 	var category="transactions";
 	var dataset_name = "student";
 	var sounds_path_then_slash = "sounds/";
@@ -5220,7 +5363,7 @@ app.post('/change-microevent-field', function(req, res){
 	res.redirect(config.proxy_prefix_then_slash+((bookmark_enable)?(a_suffix):""));
 });  // change-microevent-field
 
-app.post('/add-end-dates-to-bill', function(req, res){
+app.post('/add-end-dates-to-bill', function (req, res){
 	var category = "tables";
 	var dataset_name = "BillingCycle";
 	var sounds_path_then_slash = "sounds/";
@@ -5295,7 +5438,7 @@ split_entry_callback = function (err) {
 	else console.log(indent + "  * deleted a stray split result");
 };
 
-app.post('/split-entry', function(req, res){
+app.post('/split-entry', function (req, res){
 	var sounds_path_then_slash = "sounds/";
 	var bookmark_enable = false;
 	var indent="  ";
@@ -5490,7 +5633,7 @@ app.post('/split-entry', function(req, res){
 });
 
 // Admin can save status, which is normally only in memory (at some point it should be saved in intervals and onlu if changed)
-app.get('/save-status', function(req, res){
+app.get('/save-status', function (req, res){
 	// NOTE: req.body does not inherit from object therefore doesn't have
 	// hasOwnProperty
 	var unit = req.query.unit;
@@ -5571,7 +5714,7 @@ app.get('/save-status', function(req, res){
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
-app.get('/reload-settings', function(req, res){
+app.get('/reload-settings', function (req, res){
 	var sounds_path_then_slash = "sounds/";
 	if (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username)) {
 		ptcache = {};
@@ -5608,7 +5751,7 @@ app.get('/reload-settings', function(req, res){
 	//res.write("<html><body>admin did it</body></html>")
 });
 
-app.get('/reload-permissions-and-groups', function(req, res){
+app.get('/reload-permissions-and-groups', function (req, res){
 	var sounds_path_then_slash = "sounds/";
 	if ((_groups===null) || (_groups.hasOwnProperty("admin") && fun.array_contains(_groups.admin, req.user.username))) {
 		load_groups("reload-permissions-and-groups", req);
@@ -5624,7 +5767,7 @@ app.get('/reload-permissions-and-groups', function(req, res){
 	//res.write("<html><body>admin did it</body></html>")
 });
 
-app.post('/poke-settings', function(req, res) {
+app.post('/poke-settings', function (req, res) {
 	var sounds_path_then_slash = "sounds/";
 	var unit = req.body.unit;
 	if (req.hasOwnProperty("user") && req.user.hasOwnProperty("username")) {
@@ -5756,17 +5899,31 @@ function do_track(params) {
 	return results;
 }//end do_track
 
-app.get('/userExists', function(req, res) {
+// Use the restrict middleware defined in functions.js as per <http://toon.io/on-passportjs-specific-use-cases/>
+app.get('/listUsers', fun.restrict, function (req, res, next) {
+	res.setHeader("content-type", "application/json; charset=utf-8");
+	// MUST call res.send or call multiple res.write then one res.end:
+	fun.listEntriesJSON(req, res, "localUsers");
+});
+
+// no authentication:
+app.get('/listCollections', fun.restrict, function (req, res) {
+	res.setHeader("content-type", "application/json; charset=utf-8");
+	fun.listCollectionsJSON(req, res);
+});
+
+app.get('/userExists', fun.restrict, function (req, res) {
 	// equivalent in php that works: header('Content-Type: application/json; charset=utf-8');
 	// res.type('application/json');  //or text/plain
 	// res.type('text/plain');
 	// res.setHeader("content-type", "text/plain");
 	res.setHeader("content-type", "application/json; charset=utf-8");
-	fun.userExistsJSON(req, res, req.query.username); //MUST call res.send
+	// MUST call res.send or call multiple res.write then one res.end:
+	fun.userExistsJSON(req, res, req.query.username);
 });
 
 //TODO: change to JSON
-app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see also show_status helper
+app.get('/tr', function (req, res) { //aka "/t" (tr is track, get version) see also show_status helper
 	var results = do_track(req.query);
 	res.type('text/plain');  // res.setHeader("content-type", "text/plain");
 	var msg = "";
@@ -5783,7 +5940,7 @@ app.get('/tr', function(req, res) { //aka "/t" (tr is track, get version) see al
 });
 
 //get list of file keys for files that should be on a given machine group
-app.get('/cpflr', function(req, res) {  // computer policy file list request
+app.get('/cpflr', function (req, res) {  // computer policy file list request
 	res.type('text/plain');  // res.setHeader("content-type", "text/plain");
 	var section = "tm";
 	var this_endl = "\n";
@@ -5940,7 +6097,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 					else {
 						// data = fs.readFileSync(script_path);
 						lines = [];
-						fs.readFileSync(script_path).toString().split("\n").forEach(function(line, index, arr) {
+						fs.readFileSync(script_path).toString().split("\n").forEach(function (line, index, arr) {
 						  if (index === arr.length - 1 && line === "") { return; }
 						  lines.push(line);
 						});
@@ -5993,7 +6150,7 @@ function get_cpf_plain_text(params_dict, remarks_list) {
 	return msg;
 }
 
-app.get('/cppr', function(req, res) {  // computer policy plaintext request; gets a plaintext file by name
+app.get('/cppr', function (req, res) {  // computer policy plaintext request; gets a plaintext file by name
 	// linux machine should get the hourly cron job script like:
 	// wget --output-document=iedu-cs-hourly /cp?unit=0&kernel=linux&access_level=root&machine_group=StudentMachines&pf_name=hourly
 	// then the file will be named iedu-cs-hourly
@@ -6003,7 +6160,7 @@ app.get('/cppr', function(req, res) {  // computer policy plaintext request; get
 	res.send(msg);
 });
 
-app.get('/cpsr', function(req, res) {  // computer policy text file request
+app.get('/cpsr', function (req, res) {  // computer policy text file request
 	// linux machine should get the hourly cron job script like:
 	// wget --output-document=iedu-cs-hourly /cp?unit=0&kernel=linux&access_level=root&machine_group=StudentMachines&pf_name=hourly
 	// then the file will be named iedu-cs-hourly
@@ -6014,7 +6171,7 @@ app.get('/cpsr', function(req, res) {  // computer policy text file request
 	res.send(msg);
 });
 
-app.post('/tp', function(req, res) { //aka "/t" (tp is track, post version) see also show_status helper
+app.post('/tp', function (req, res) { //aka "/t" (tp is track, post version) see also show_status helper
 	var params = req.body;
 	if ((typeof params.hasOwnProperty) !== 'function') {
 		params = fun.to_object(req.body);
@@ -6106,7 +6263,7 @@ app.get('/change-selection', function (req, res) {
 	res.redirect(config.proxy_prefix_then_slash + url_params);
 });
 
-app.post('/change-section-settings', function(req, res) {
+app.post('/change-section-settings', function (req, res) {
 	var sounds_path_then_slash = "sounds/";
 	var tmp;
 	var unit = req.body.unit;
@@ -6145,7 +6302,7 @@ app.post('/change-section-settings', function(req, res) {
 	res.redirect(config.proxy_prefix_then_slash);
 });
 
-app.post('/student-microevent', function(req, res){
+app.post('/student-microevent', function (req, res){
 	//req is request, res is response
 	var sounds_path_then_slash = "sounds/";
 	var category = "transactions";
@@ -6425,9 +6582,9 @@ app.post('/student-microevent', function(req, res){
 //);
 //above also works, but has no way to do custom output
 //see <http://www.passportjs.org/docs/> under Custom Callback:
-app.post('/login', function(req, res, next) {
+app.post('/login', function (req, res, next) {
 	//req.body for post, req.query for get
-  passport.authenticate('local', function(err, user, info) {
+  passport.authenticate('local', function (err, user, info) {
 	// err,user,info: from `new LocalStrategy`'s callback, which calls this function as the verified function--see `verified(`)
 	// (NOT  function as the resolve/reject function--see `resolve` and `reject` in exports.localAuth )
 	req.session.setup_banner = null;
@@ -6481,7 +6638,7 @@ app.post('/login', function(req, res, next) {
 		else console.log("(/login) user.error: " + user.error);
 		return res.redirect(config.proxy_prefix_then_slash + 'login');
 	}
-    req.logIn(user, function(err) {
+    req.logIn(user, function (err) {
 		if (err) {
 			console.log("(/login) (logIn err): ", err)
 			return next(err);
@@ -6494,7 +6651,7 @@ app.post('/login', function(req, res, next) {
 });
 
 //logs user out of site, deleting them from the session, and returns to homepage
-app.get('/logout', function(req, res){
+app.get('/logout', function (req, res){
 	if (req.user) {
 		var name = req.user.username;
 		console.log("LOGGING OUT " + req.user.username);

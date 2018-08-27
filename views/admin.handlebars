@@ -34,7 +34,11 @@
         {{/if_eq}}
         {{#if_eq mode "settings"}}
             {{#settingsGroupContains unit section user.username}}
-            <p class="text-info">settings mode is not implemented for {{section}}</p>
+                {{#if_eq section "admin"}}
+                    <h2>Users</h2>
+                    <div id="users_editor">
+                    </div>
+                {{/if_eq}}
             {{else}}
             <p class="alert alert-danger">no permission for {{mode}} in {{section}}</p>
             {{/settingsGroupContains}}
@@ -42,6 +46,10 @@
     {{else}}
     select a section
     {{/if}}
+    {{#each scripts}}
+    <script src="{{this}}"></script>
+    {{/each}}
+
 {{else}}
 <div class="jumbotron">
     <h1>IntegratorEdu</h1>

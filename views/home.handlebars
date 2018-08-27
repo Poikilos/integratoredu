@@ -38,9 +38,9 @@
                         requests[i].open('GET', "userExists?username=" + user.username, true);
                         // requests[i].open('GET', "http://localhost:8080/userExists?username=" + user.username, true);
                         // console.log("creating request for user " + user.username);
-                        // requests[i].onload = function() {
+                        // requests[i].onload = function () {
                             //readystate is always 4 in onload (and in onerror)
-                        requests[i].onreadystatechange = function() {
+                        requests[i].onreadystatechange = function () {
                             var ret="";
                             if (this.readyState === 4) {
                             //if (this.status >= 200 && this.status < 400) {
@@ -128,8 +128,8 @@
                                 //console.log("...this readyState is " + readyStates[this.readyState]);
                             //}
                         }
-                        //requests[i].onerror = function() {
-                        var dummy = function() {
+                        //requests[i].onerror = function () {
+                        var dummy = function () {
                             //element is not available anymore since we are in a callback, so get it again:
                             var element = null;
                             if (results.username) {

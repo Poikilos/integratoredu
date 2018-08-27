@@ -146,6 +146,9 @@ tm:
   If permissions_octal is present, it overrides attributes unless there is some special filesystem where you need attributes not present in octal format.
 
 ## Changes
+(2018-08-26)
+* deprecate user_modes_by_section in favor of prioritized_modes formerly mode_priority
+* deprecate prefill_mode session and page_locals variable (wasn't being used)
 (2018-08-19)
 * complete the AJAX for users with permissions but no account list
 * add forms section to enabled_sections, remove po
