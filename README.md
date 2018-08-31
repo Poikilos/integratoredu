@@ -670,3 +670,8 @@ npm install js-yaml --save
 npm install node-yaml --save
 #see also: npm install moment-timezone --save
 ```
+
+## poikilos' Sample Data
+### Purchase Orders
+(update unit.yml's po_number to an unused PO# after updating list below!)
+list is in ownCloud/FCA/1.MergeWithIEdu
