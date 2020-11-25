@@ -1,1 +1,5 @@
+# Remove files from linguist's repo language detection.
 *.css -linguist-detectable
+
+# Force files to be considored vendored (not written as part of this project for linguist's purposes).
+*.scss linguist-vendored
