@@ -61,7 +61,7 @@ typings/
 .env
 /.README.md.kate-swp
 /.app.js.kate-swp
-/package-lock.json
+#/package-lock.json
 /err.txt
 /etc/quality.tmp
 /quality.tmp
